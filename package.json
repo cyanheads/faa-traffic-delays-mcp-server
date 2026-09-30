@@ -57,6 +57,10 @@
     "type": "git",
     "url": "git+https://github.com/cyanheads/faa-traffic-delays-mcp-server.git"
   },
+  "homepage": "https://github.com/cyanheads/faa-traffic-delays-mcp-server#readme",
+  "bugs": {
+    "url": "https://github.com/cyanheads/faa-traffic-delays-mcp-server/issues"
+  },
   "license": "Apache-2.0",
   "packageManager": "bun@1.4.2",
   "engines": {
