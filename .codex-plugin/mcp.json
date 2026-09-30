@@ -1,0 +1,12 @@
+{
+  "faa-traffic-delays-mcp-server": {
+    "command": "npx",
+    "args": [
+      "-y",
+      "@cyanheads/faa-traffic-delays-mcp-server"
+    ],
+    "env": {
+      "MCP_TRANSPORT_TYPE": "stdio"
+    }
+  }
+}

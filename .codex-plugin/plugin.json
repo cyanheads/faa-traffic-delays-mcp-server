@@ -1,0 +1,36 @@
+{
+  "name": "faa-traffic-delays-mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server for FAA Air Traffic Control System Command Center status: ground stops, ground delay programs, airspace flow programs, and airport arrival/departure delays.",
+  "author": {
+    "name": "cyanheads",
+    "email": "casey@caseyjhand.com",
+    "url": "https://github.com/cyanheads"
+  },
+  "homepage": "https://github.com/cyanheads/faa-traffic-delays-mcp-server",
+  "repository": "https://github.com/cyanheads/faa-traffic-delays-mcp-server",
+  "license": "Apache-2.0",
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "faa",
+    "air-traffic",
+    "flight-delays",
+    "ground-stop",
+    "aviation"
+  ],
+  "mcpServers": "./.codex-plugin/mcp.json",
+  "interface": {
+    "displayName": "faa-traffic-delays-mcp-server",
+    "shortDescription": "FAA ground stops, ground delay programs, and airport delays.",
+    "longDescription": "Reads the FAA Air Traffic Control System Command Center status from the NAS Status feed. Check an airport for active ground stops, ground delay programs, average and maximum delay minutes, stated causes, and runway configuration; list every active program across the National Airspace System; and read active en-route events and the FAA operations plan for programs expected later in the day. No API key required.",
+    "developerName": "cyanheads",
+    "category": "Travel",
+    "capabilities": [
+      "Read"
+    ],
+    "websiteURL": "https://github.com/cyanheads/faa-traffic-delays-mcp-server",
+    "defaultPrompt": []
+  }
+}
