@@ -62,12 +62,10 @@ export function delayBand(min: number | undefined, max: number | undefined): str
   return;
 }
 
-/** An inline value safe inside a Markdown table cell: every `\` doubled, then `|[]<>` escaped. */
+/** An inline value safe inside a Markdown table cell: every `\`, `|`, `[`, `]`, `<`, and `>` escaped. */
 export function cell(value: string | number | boolean | undefined): string {
   if (value === undefined) return '—';
-  return flatten(String(value))
-    .replaceAll('\\', '\\\\')
-    .replace(/[|[\]<>]/g, '\\$&');
+  return flatten(String(value)).replace(/[\\|[\]<>]/g, '\\$&');
 }
 
 /** Renders free text as a blockquote, every line prefixed. */
