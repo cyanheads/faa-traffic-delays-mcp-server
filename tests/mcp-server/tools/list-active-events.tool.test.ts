@@ -227,6 +227,41 @@ describe('results', () => {
     expect(event).toMatchObject({ eventType: 'departure_delay', reason: 'volume' });
     expect(event).not.toHaveProperty('delayRangeMinutes');
   });
+
+  it.each([
+    ['only a minimum', { min: '16 minutes' }, { min: 16 }],
+    ['only a maximum', { max: '30 minutes' }, { max: 30 }],
+  ])('keeps the known bound of a band that reports %s', async (_label, arrivalDeparture, range) => {
+    services.dispose();
+    setup({
+      'airport-events': [{ airportId: 'SEA', departureDelay: { arrivalDeparture } }],
+      'enroute-events': [],
+    });
+    const [event] = structured(await run()).events;
+    expect(event).toMatchObject({ eventType: 'departure_delay', location: 'SEA' });
+    expect(event?.delayRangeMinutes).toEqual(range);
+  });
+
+  it('sorts a one-sided band by its known bound, ahead of a delay with no band', async () => {
+    services.dispose();
+    setup({
+      'airport-events': [
+        { airportId: 'AAA', arrivalDelay: { reason: 'volume' } },
+        { airportId: 'BBB', departureDelay: { arrivalDeparture: { min: '46 minutes' } } },
+        { airportId: 'CCC', arrivalDelay: { averageDelay: '15', trend: 'increasing' } },
+        { airportId: 'DDD', arrivalDelay: { arrivalDeparture: { max: '45 minutes' } } },
+      ],
+    });
+
+    const result = await run({ event_types: ['arrival_delay', 'departure_delay'] });
+
+    expect(locations(result)).toEqual([
+      'departure_delay:BBB',
+      'arrival_delay:DDD',
+      'arrival_delay:CCC',
+      'arrival_delay:AAA',
+    ]);
+  });
 });
 
 describe('enrichment and filtering', () => {
@@ -641,6 +676,13 @@ describe('format', () => {
           eventType: 'airspace_flow_program',
           location: 'FCA001',
         },
+        {
+          delayRangeMinutes: { min: 16 },
+          eventType: 'arrival_delay',
+          location: 'BOS',
+          trend: 'increasing',
+        },
+        { delayRangeMinutes: { max: 30 }, eventType: 'departure_delay', location: 'ORD' },
       ],
       fetchedAt: 'now',
     });
@@ -651,6 +693,8 @@ describe('format', () => {
     expect(text).toContain('- Window: until 2026-09-30T04:00:00Z (start not reported)');
     expect(text).toContain('- Delay: average 40 min');
     expect(text).toContain('- Altitudes: ceiling 600');
+    expect(text).toContain('- Delay band: at least 16 min, increasing');
+    expect(text).toContain('- Delay band: up to 30 min');
     expect(text).not.toContain('?');
   });
 

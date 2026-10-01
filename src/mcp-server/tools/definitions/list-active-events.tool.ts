@@ -11,7 +11,14 @@ import { JsonRpcErrorCode } from '@cyanheads/mcp-ts-core/errors';
 import { isRecord } from '@cyanheads/mcp-ts-core/utils';
 import { getNasStatusService } from '@/services/nas-status/nas-status-service.js';
 import type { AirportEvents, AirspaceFlowProgram, DelayBand } from '@/services/nas-status/types.js';
-import { advisoryLine, blockquote, delayFigures, inline, span } from '../format-helpers.js';
+import {
+  advisoryLine,
+  blockquote,
+  delayBand,
+  delayFigures,
+  inline,
+  span,
+} from '../format-helpers.js';
 import { skippedRowsNotice, staleDelayNotice } from '../notices.js';
 import {
   AdvisoryRefSchema,
@@ -108,12 +115,18 @@ const EventSchema = z
       .describe('Maximum assigned delay in minutes (ground_delay_program).'),
     delayRangeMinutes: z
       .object({
-        min: z.number().describe('Lower bound in minutes.'),
-        max: z.number().describe('Upper bound in minutes.'),
+        min: z
+          .number()
+          .optional()
+          .describe('Lower bound in minutes; absent when the FAA reported only the upper bound.'),
+        max: z
+          .number()
+          .optional()
+          .describe('Upper bound in minutes; absent when the FAA reported only the lower bound.'),
       })
       .optional()
       .describe(
-        'Delay band for arrival_delay and departure_delay (the FAA reports 15-minute bands).',
+        'Delay band for arrival_delay and departure_delay (the FAA reports 15-minute bands); absent when the FAA reported neither bound.',
       ),
     trend: z
       .enum(['increasing', 'decreasing'])
@@ -205,9 +218,15 @@ const CountsSchema = z
 
 type Counts = z.infer<typeof CountsSchema>;
 
-const delayRange = (band: DelayBand) =>
-  band.minMinutes !== undefined && band.maxMinutes !== undefined
-    ? { delayRangeMinutes: { min: band.minMinutes, max: band.maxMinutes } }
+/** The band with whichever bounds the FAA reported; nothing when it reported neither. */
+const delayRange = ({ maxMinutes: max, minMinutes: min }: DelayBand) =>
+  min !== undefined || max !== undefined
+    ? {
+        delayRangeMinutes: {
+          ...(min !== undefined && { min }),
+          ...(max !== undefined && { max }),
+        },
+      }
     : {};
 
 function airportRows(airport: AirportEvents): EventRow[] {
@@ -305,9 +324,12 @@ function afpRow(program: AirspaceFlowProgram): EventRow {
   };
 }
 
-/** The delay a row sorts by within its rank: band maximum or average; undefined when unreported. */
+/**
+ * The delay a row sorts by within its rank: band maximum (the minimum when only that bound is
+ * reported) or average; undefined when unreported.
+ */
 const magnitude = (row: EventRow): number | undefined =>
-  row.delayRangeMinutes?.max ?? row.averageDelayMinutes;
+  row.delayRangeMinutes?.max ?? row.delayRangeMinutes?.min ?? row.averageDelayMinutes;
 
 /**
  * Severity rank, then rows with a reported delay (largest first) before rows without one, then
@@ -409,7 +431,7 @@ export const listActiveEvents = tool('faa_delays_list_active_events', {
     {
       reason: 'upstream_rate_limited',
       code: JsonRpcErrorCode.RateLimited,
-      when: 'The FAA returned 429 after retries',
+      when: "The FAA returned 429 after retries, or this server's queue to the FAA would wait past 10 s while backing off from an FAA 429",
       recovery:
         "The FAA feed is limiting request rate; wait the retryAfter interval in this error's data (about a minute when it carries none), then call faa_delays_list_active_events again.",
       retryable: true,
@@ -427,7 +449,7 @@ export const listActiveEvents = tool('faa_delays_list_active_events', {
     {
       reason: 'pacer_shed',
       code: JsonRpcErrorCode.RateLimited,
-      when: "This server's own queue to the FAA would wait past 10 s",
+      when: "This server's own queue to the FAA would wait past 10 s with no FAA 429 backoff in effect",
       recovery:
         "This server is pacing its requests to the FAA; wait the retryAfter seconds in this error's data, then call faa_delays_list_active_events again.",
       retryable: true,
@@ -549,10 +571,9 @@ export const listActiveEvents = tool('faa_delays_list_active_events', {
       if (event.reason) lines.push(`- Reason: ${inline(event.reason)}`);
       const delay = delayFigures(event.averageDelayMinutes, event.maximumDelayMinutes);
       if (delay) lines.push(`- Delay: ${delay}`);
-      if (event.delayRangeMinutes) {
-        lines.push(
-          `- Delay band: ${event.delayRangeMinutes.min}–${event.delayRangeMinutes.max} min${event.trend ? `, ${event.trend}` : ''}`,
-        );
+      const band = delayBand(event.delayRangeMinutes?.min, event.delayRangeMinutes?.max);
+      if (band) {
+        lines.push(`- Delay band: ${band}${event.trend ? `, ${event.trend}` : ''}`);
       } else if (event.trend) {
         lines.push(`- Trend: ${event.trend}`);
       }

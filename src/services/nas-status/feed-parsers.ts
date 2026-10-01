@@ -38,15 +38,35 @@ export interface ParseReporter {
   unknownKey(feed: string, key: string): void;
 }
 
+/** A NAS Status feed, by its `/api/` path segment. */
+export type Feed =
+  | 'airport-events'
+  | 'enroute-events'
+  | 'operations-plan'
+  | 'miscellaneous-info'
+  | 'pacing-airports';
+
+/** How caller-facing messages name each feed: `The FAA NAS Status ${label} feed`. */
+const FEED_LABELS: Record<Feed, string> = {
+  'airport-events': 'airport events',
+  'enroute-events': 'en-route events',
+  'miscellaneous-info': 'announcements',
+  'operations-plan': 'operations plan',
+  'pacing-airports': 'pacing airports',
+};
+
+/** `The FAA NAS Status operations plan feed`: the feed as caller-facing messages name it. */
+export const feedName = (feed: Feed): string => `The FAA NAS Status ${FEED_LABELS[feed]} feed`;
+
 type Obj = Record<string, unknown>;
 
 const describeType = (value: unknown): string =>
   value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value;
 
 /** The error every unrecognizable feed body raises. */
-function feedContractChanged(feed: string, detail: string): Error {
+function feedContractChanged(feed: Feed, detail: string): Error {
   return serializationError(
-    `The FAA NAS Status ${feed} feed returned a shape this server does not recognize (${detail}).`,
+    `${feedName(feed)} returned a shape this server does not recognize (${detail}).`,
     { feed, reason: 'feed_contract_changed', retryable: false },
   );
 }
@@ -145,7 +165,7 @@ class Fields {
 /** Walks an array feed: rows missing their key are skipped; all-skipped is a contract change. */
 function parseRows<T>(
   body: unknown,
-  feed: string,
+  feed: Feed,
   report: ParseReporter,
   knownKeys: ReadonlySet<string>,
   parseRow: (row: Fields) => T | undefined,

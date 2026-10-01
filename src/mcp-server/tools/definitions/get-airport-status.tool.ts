@@ -15,7 +15,14 @@ import {
 } from '@/services/airport-directory/airport-directory.js';
 import { getNasStatusService } from '@/services/nas-status/nas-status-service.js';
 import type { AirportEvents } from '@/services/nas-status/types.js';
-import { advisoryLine, blockquote, delayFigures, inline, span } from '../format-helpers.js';
+import {
+  advisoryLine,
+  blockquote,
+  delayBand,
+  delayFigures,
+  inline,
+  span,
+} from '../format-helpers.js';
 import { skippedRowsNotice, staleDelayNotice } from '../notices.js';
 import { AdvisoryRefSchema, DelayProfileSchema, renderDelayProfile } from '../schemas.js';
 
@@ -266,18 +273,9 @@ function buildRow(
   };
 }
 
-/** `16–30 min`, `at least 16 min`, or `up to 30 min`, by which bounds the FAA reported. */
-function delayRange({ maxMinutes, minMinutes }: z.infer<typeof DelayBandSchema>): string {
-  if (minMinutes !== undefined && maxMinutes !== undefined) {
-    return `${minMinutes}–${maxMinutes} min`;
-  }
-  if (minMinutes !== undefined) return `at least ${minMinutes} min`;
-  if (maxMinutes !== undefined) return `up to ${maxMinutes} min`;
-  return 'band not reported';
-}
-
 function renderDelayBand(label: string, band: z.infer<typeof DelayBandSchema>): string[] {
-  const lines = [`**${label}:** ${delayRange(band)}${band.trend ? `, ${band.trend}` : ''}`];
+  const range = delayBand(band.minMinutes, band.maxMinutes) ?? 'band not reported';
+  const lines = [`**${label}:** ${range}${band.trend ? `, ${band.trend}` : ''}`];
   if (band.reason) lines.push(`- Reason: ${inline(band.reason)}`);
   if (band.updatedAt) lines.push(`- Updated: ${inline(band.updatedAt)}`);
   return lines;
@@ -332,7 +330,7 @@ export const getAirportStatus = tool('faa_delays_get_airport_status', {
     {
       reason: 'upstream_rate_limited',
       code: JsonRpcErrorCode.RateLimited,
-      when: 'The FAA returned 429 after retries',
+      when: "The FAA returned 429 after retries, or this server's queue to the FAA would wait past 10 s while backing off from an FAA 429",
       recovery:
         "The FAA feed is limiting request rate; wait the retryAfter interval in this error's data (about a minute when it carries none), then call faa_delays_get_airport_status again.",
       retryable: true,
@@ -350,7 +348,7 @@ export const getAirportStatus = tool('faa_delays_get_airport_status', {
     {
       reason: 'pacer_shed',
       code: JsonRpcErrorCode.RateLimited,
-      when: "This server's own queue to the FAA would wait past 10 s",
+      when: "This server's own queue to the FAA would wait past 10 s with no FAA 429 backoff in effect",
       recovery:
         "This server is pacing its requests to the FAA; wait the retryAfter seconds in this error's data, then call faa_delays_get_airport_status again.",
       retryable: true,

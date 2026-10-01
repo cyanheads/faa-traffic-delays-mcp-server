@@ -283,14 +283,14 @@ describe('NasStatusService', () => {
     );
 
     it.each([
-      ['airport-events', 'getAirportEvents', { airportId: 'SEA' }],
-      ['enroute-events', 'getEnrouteEvents', 'nothing at all'],
-      ['operations-plan', 'getOperationsPlan', ['not', 'an', 'object']],
-      ['miscellaneous-info', 'getAnnouncements', { event: 'x' }],
-      ['pacing-airports', 'getPacingAirports', null],
+      ['airport-events', 'getAirportEvents', { airportId: 'SEA' }, 'airport events'],
+      ['enroute-events', 'getEnrouteEvents', 'nothing at all', 'en-route events'],
+      ['operations-plan', 'getOperationsPlan', ['not', 'an', 'object'], 'operations plan'],
+      ['miscellaneous-info', 'getAnnouncements', { event: 'x' }, 'announcements'],
+      ['pacing-airports', 'getPacingAirports', null, 'pacing airports'],
     ] as const)(
       'raises feed_contract_changed once for a wrong top-level %s shape',
-      async (feed, method, body) => {
+      async (feed, method, body, label) => {
         const made = makeService(feedHarness({ [feed]: () => jsonResponse(JSON.stringify(body)) }));
         service = made.service;
 
@@ -298,6 +298,9 @@ describe('NasStatusService', () => {
 
         expect(error).toMatchObject({ code: JsonRpcErrorCode.SerializationError });
         expect(dataOf(error)).toMatchObject({ feed, reason: 'feed_contract_changed' });
+        expect((error as McpError).message).toContain(
+          `The FAA NAS Status ${label} feed returned a shape this server does not recognize`,
+        );
         expect(callsTo(made.harness, feedUrl(feed))).toBe(1);
       },
     );

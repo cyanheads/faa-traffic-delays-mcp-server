@@ -15,6 +15,8 @@ import {
 } from '@/services/upstream/faa-http-client.js';
 import { TtlCache } from '@/services/upstream/ttl-cache.js';
 import {
+  type Feed,
+  feedName,
   type ParseReporter,
   parseAirportEvents,
   parseAnnouncements,
@@ -48,24 +50,6 @@ const PROFILE: UpstreamProfile = {
   service: 'The FAA NAS Status feed',
   unavailableReason: 'feed_unavailable',
 };
-
-type Feed =
-  | 'airport-events'
-  | 'enroute-events'
-  | 'operations-plan'
-  | 'miscellaneous-info'
-  | 'pacing-airports';
-
-/** How caller-facing messages name each feed: `The FAA NAS Status ${label} feed`. */
-const FEED_LABELS: Record<Feed, string> = {
-  'airport-events': 'airport events',
-  'enroute-events': 'en-route events',
-  'miscellaneous-info': 'announcements',
-  'operations-plan': 'operations plan',
-  'pacing-airports': 'pacing airports',
-};
-
-const feedName = (feed: Feed): string => `The FAA NAS Status ${FEED_LABELS[feed]} feed`;
 
 /** Client for the five NAS Status feeds this server reads. */
 export class NasStatusService implements Disposable {

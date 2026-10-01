@@ -152,7 +152,7 @@ export const getAdvisory = tool('faa_delays_get_advisory', {
     {
       reason: 'upstream_rate_limited',
       code: JsonRpcErrorCode.RateLimited,
-      when: 'The advisories host returned 429 after retries',
+      when: "The advisories host returned 429 after retries, or this server's queue to it would wait past 10 s while backing off from that host's 429",
       recovery:
         "The FAA advisories database is limiting request rate; wait the retryAfter interval in this error's data (about a minute when it carries none), then call faa_delays_get_advisory again.",
       retryable: true,
@@ -170,7 +170,7 @@ export const getAdvisory = tool('faa_delays_get_advisory', {
     {
       reason: 'pacer_shed',
       code: JsonRpcErrorCode.RateLimited,
-      when: "This server's queue to the advisories host would wait past 10 s",
+      when: "This server's queue to the advisories host would wait past 10 s with no 429 backoff in effect",
       recovery:
         "This server is pacing its requests to the FAA; wait the retryAfter seconds in this error's data, then call faa_delays_get_advisory again.",
       retryable: true,

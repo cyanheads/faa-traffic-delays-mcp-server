@@ -421,7 +421,7 @@ export const listReference = tool('faa_delays_list_reference', {
     {
       reason: 'upstream_rate_limited',
       code: JsonRpcErrorCode.RateLimited,
-      when: 'The FAA returned 429 after retries (topic pacing_airports only)',
+      when: "The FAA returned 429 after retries, or this server's queue to the FAA would wait past 10 s while backing off from an FAA 429 (topic pacing_airports only)",
       recovery:
         "The FAA feed is limiting request rate; wait the retryAfter interval in this error's data (about a minute when it carries none), then call faa_delays_list_reference again.",
       retryable: true,
@@ -439,7 +439,7 @@ export const listReference = tool('faa_delays_list_reference', {
     {
       reason: 'pacer_shed',
       code: JsonRpcErrorCode.RateLimited,
-      when: "This server's own queue to the FAA would wait past 10 s (topic pacing_airports only)",
+      when: "This server's own queue to the FAA would wait past 10 s with no FAA 429 backoff in effect (topic pacing_airports only)",
       recovery:
         "This server is pacing its requests to the FAA; wait the retryAfter seconds in this error's data, then call faa_delays_list_reference again.",
       retryable: true,

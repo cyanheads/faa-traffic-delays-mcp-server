@@ -1,13 +1,15 @@
 /**
  * @fileoverview Offline smoke coverage for the shipped tool definitions: the static
- * faa_delays_list_reference topics, and faa_delays_get_airport_status rejecting an unknown code
- * before any upstream request.
+ * faa_delays_list_reference topics, faa_delays_get_airport_status rejecting an unknown code
+ * before any upstream request, and every tool's rate-limit contract telling a shed during an
+ * FAA-started backoff apart from this server's own pacing.
  * @module tests/smoke/definitions.smoke.test
  */
 
 import { createMockContext } from '@cyanheads/mcp-ts-core/testing';
 import { describe, expect, it } from 'vitest';
 import { getAirportStatus } from '@/mcp-server/tools/definitions/get-airport-status.tool.js';
+import { allToolDefinitions } from '@/mcp-server/tools/definitions/index.js';
 import { listReference } from '@/mcp-server/tools/definitions/list-reference.tool.js';
 
 describe('definition smoke test', () => {
@@ -32,4 +34,15 @@ describe('definition smoke test', () => {
       data: { reason: 'unknown_airport', unknownCodes: ['ZZZ'] },
     });
   });
+
+  it.each(allToolDefinitions.map((definition) => [definition.name, definition] as const))(
+    '%s reports a shed during an FAA 429 backoff as upstream_rate_limited',
+    (_name, definition) => {
+      const errors = (definition.errors ?? []) as readonly { reason: string; when: string }[];
+      const when = (reason: string) => errors.find((entry) => entry.reason === reason)?.when;
+
+      expect(when('upstream_rate_limited')).toMatch(/while backing off from .*429/);
+      expect(when('pacer_shed')).toMatch(/with no .*429 backoff in effect/);
+    },
+  );
 });

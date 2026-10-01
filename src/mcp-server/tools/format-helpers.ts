@@ -33,6 +33,14 @@ export function delayFigures(
   return figures.length > 0 ? figures.join(', ') : undefined;
 }
 
+/** `16–30 min`, `at least 16 min`, or `up to 30 min`, by which bounds of a delay band the FAA reported. */
+export function delayBand(min: number | undefined, max: number | undefined): string | undefined {
+  if (min !== undefined && max !== undefined) return `${min}–${max} min`;
+  if (min !== undefined) return `at least ${min} min`;
+  if (max !== undefined) return `up to ${max} min`;
+  return;
+}
+
 /** An inline value safe inside a Markdown table cell. */
 export function cell(value: string | number | boolean | undefined): string {
   if (value === undefined) return '—';

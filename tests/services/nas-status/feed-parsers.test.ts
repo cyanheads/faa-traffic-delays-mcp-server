@@ -44,12 +44,26 @@ function parseOneAirport(overrides: Record<string, unknown>): {
   return { drift, row: rows[0] as AirportEvents };
 }
 
+/** How the shape-change message names each feed, matching the retry and malformed-JSON messages. */
+const FEED_LABELS: Record<string, string> = {
+  'airport-events': 'airport events',
+  'enroute-events': 'en-route events',
+  'miscellaneous-info': 'announcements',
+  'operations-plan': 'operations plan',
+  'pacing-airports': 'pacing airports',
+};
+
 function expectContractChanged(run: () => unknown, feed: string): void {
   try {
     run();
   } catch (error) {
     expect(error).toBeInstanceOf(McpError);
     expect((error as McpError).code).toBe(JsonRpcErrorCode.SerializationError);
+    expect((error as McpError).message).toMatch(
+      new RegExp(
+        `^The FAA NAS Status ${FEED_LABELS[feed]} feed returned a shape this server does not recognize \\(.+\\)\\.$`,
+      ),
+    );
     expect((error as McpError).data).toMatchObject({
       feed,
       reason: 'feed_contract_changed',
