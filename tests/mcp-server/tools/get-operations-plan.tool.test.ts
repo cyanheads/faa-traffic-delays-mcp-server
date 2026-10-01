@@ -166,6 +166,24 @@ describe('plan', () => {
     );
   });
 
+  it('reports one skipped row in the singular', async () => {
+    services.dispose();
+    setup({ 'miscellaneous-info': [{ event: 'A' }, { junk: true }] });
+
+    expect(structured(await run()).notice).toBe(
+      '1 FAA feed row could not be read and was skipped.',
+    );
+  });
+
+  it('describes timeUtc as dated by the plan event window, not the advisory date', () => {
+    const description = getOperationsPlan.output.shape.terminalPlanned.element.shape.timeUtc
+      .description as string;
+
+    expect(description).toContain('EVENT TIME');
+    expect(description).toContain('UTC day after the advisory date');
+    expect(description).not.toContain('covers the UTC day of its advisory');
+  });
+
   it('keeps an item that states no time or likelihood', async () => {
     services.dispose();
     setup({

@@ -19,6 +19,7 @@ import {
   createClock,
   feedHarness,
   feedUrl,
+  hangUntilAborted,
   htmlResponse,
   jsonResponse,
 } from '../../helpers/faa-fakes.js';
@@ -245,7 +246,24 @@ describe('NasStatusService', () => {
 
       expect(error).toMatchObject({ code: JsonRpcErrorCode.ServiceUnavailable });
       expect(dataOf(error)).toMatchObject({ feed: 'operations-plan', reason: 'feed_unavailable' });
+      expect((error as McpError).message).toContain(
+        'The FAA NAS Status operations plan feed returned a malformed JSON body.',
+      );
       expect(callsTo(made.harness, feedUrl('operations-plan'))).toBe(3);
+    });
+
+    it('names the feed in caller-readable words when the retry deadline runs out', async () => {
+      const made = makeService(feedHarness({ 'operations-plan': hangUntilAborted }));
+      service = made.service;
+
+      const { error } = await settle(service.getOperationsPlan(createMockContext()));
+
+      expect(error).toMatchObject({ code: JsonRpcErrorCode.Timeout });
+      expect(dataOf(error)).toMatchObject({ reason: 'retry_deadline_exceeded' });
+      expect((error as McpError).message).toContain(
+        'The FAA NAS Status operations plan feed exceeded its 20000ms retry deadline',
+      );
+      expect((error as McpError).message).not.toContain('NasStatusService');
     });
 
     it.each([404, 410])(
@@ -343,6 +361,26 @@ describe('NasStatusService', () => {
     });
   });
 
+  describe('pacing', () => {
+    it('names the FAA host, not an internal pacer id, when its own queue sheds a call', async () => {
+      const made = makeService();
+      service = made.service;
+      const ctx = createMockContext();
+      for (let request = 0; request < 30; request++) {
+        await service.getAirportEvents(ctx);
+        made.clock.advance(MINUTE);
+      }
+
+      const error = await service.getAirportEvents(ctx).catch((thrown: unknown) => thrown);
+
+      expect(error).toMatchObject({ code: JsonRpcErrorCode.RateLimited });
+      expect(dataOf(error)).toMatchObject({ reason: 'pacer_shed' });
+      expect((error as McpError).message).toContain('No FAA NAS Status request slot');
+      expect((error as McpError).message).not.toContain('faa-nasstatus');
+      expect(callsTo(made.harness, feedUrl('airport-events'))).toBe(30);
+    });
+  });
+
   describe('drift logging', () => {
     it('logs a wrong-typed field once per process, even across refetches', async () => {
       const warning = vi.spyOn(logger, 'warning').mockImplementation(() => undefined);
@@ -359,8 +397,7 @@ describe('NasStatusService', () => {
       const driftLogs = warning.mock.calls.filter(([message]) => /unexpected type/.test(message));
       expect(driftLogs).toHaveLength(1);
       expect(driftLogs[0]?.[1]).toMatchObject({
-        fieldPath: 'airport-events[].groundDelay.avgDelay',
-        observedType: 'string',
+        extra: { fieldPath: 'airport-events[].groundDelay.avgDelay', observedType: 'string' },
       });
     });
 
@@ -380,7 +417,9 @@ describe('NasStatusService', () => {
 
       const keyLogs = warning.mock.calls.filter(([message]) => /unknown key/.test(message));
       expect(keyLogs).toHaveLength(1);
-      expect(keyLogs[0]?.[1]).toMatchObject({ feed: 'airport-events', key: 'newEvent' });
+      expect(keyLogs[0]?.[1]).toMatchObject({
+        extra: { feed: 'airport-events', key: 'newEvent' },
+      });
     });
 
     it('logs skipped rows with their count', async () => {
@@ -392,7 +431,7 @@ describe('NasStatusService', () => {
 
       expect(warning).toHaveBeenCalledWith(
         expect.stringContaining('Skipped 1 unreadable airport-events rows'),
-        expect.objectContaining({ feed: 'airport-events', skippedRows: 1 }),
+        expect.objectContaining({ extra: { feed: 'airport-events', skippedRows: 1 } }),
       );
     });
   });

@@ -7,7 +7,7 @@
 
 import type { Context } from '@cyanheads/mcp-ts-core';
 import { serviceUnavailable } from '@cyanheads/mcp-ts-core/errors';
-import { logger, type RequestContext } from '@cyanheads/mcp-ts-core/utils';
+import { logger, type RequestContext, withExtra } from '@cyanheads/mcp-ts-core/utils';
 import {
   FaaHttpClient,
   type HttpServiceOptions,
@@ -43,7 +43,7 @@ const PROFILE: UpstreamProfile = {
     cooldown: { baseMs: 5_000, maxMs: 60_000 },
     limits: [{ perMs: 60_000, requests: 30 }],
     maxConcurrent: 4,
-    name: 'faa-nasstatus',
+    name: 'FAA NAS Status',
   },
   service: 'The FAA NAS Status feed',
   unavailableReason: 'feed_unavailable',
@@ -55,6 +55,17 @@ type Feed =
   | 'operations-plan'
   | 'miscellaneous-info'
   | 'pacing-airports';
+
+/** How caller-facing messages name each feed: `The FAA NAS Status ${label} feed`. */
+const FEED_LABELS: Record<Feed, string> = {
+  'airport-events': 'airport events',
+  'enroute-events': 'en-route events',
+  'miscellaneous-info': 'announcements',
+  'operations-plan': 'operations plan',
+  'pacing-airports': 'pacing airports',
+};
+
+const feedName = (feed: Feed): string => `The FAA NAS Status ${FEED_LABELS[feed]} feed`;
 
 /** Client for the five NAS Status feeds this server reads. */
 export class NasStatusService implements Disposable {
@@ -123,16 +134,15 @@ export class NasStatusService implements Disposable {
         };
         const parsed = await this.client.request({
           context: logContext,
-          operation: `NasStatusService.${feed}`,
+          operation: feedName(feed),
           parse: (text) => parse(parseJson(text, feed), this.reporter(logContext)),
           url: `${BASE_URL}${feed}`,
         });
         if (parsed.skippedRows > 0) {
-          const details: Record<string, unknown> = { feed, skippedRows: parsed.skippedRows };
-          logger.warning(`Skipped ${parsed.skippedRows} unreadable ${feed} rows`, {
-            ...logContext,
-            ...details,
-          });
+          logger.warning(
+            `Skipped ${parsed.skippedRows} unreadable ${feed} rows`,
+            withExtra(logContext, { feed, skippedRows: parsed.skippedRows }),
+          );
         }
         return { ttlMs, value: { ...parsed, fetchedAt: new Date(this.now()).toISOString() } };
       },
@@ -145,7 +155,7 @@ export class NasStatusService implements Disposable {
     const once = (key: string, message: string, details: Record<string, unknown>): void => {
       if (this.reported.has(key)) return;
       this.reported.add(key);
-      logger.warning(message, { ...logContext, ...details });
+      logger.warning(message, withExtra(logContext, details));
     };
     return {
       drift: (path, observedType) =>
@@ -168,7 +178,7 @@ function parseJson(text: string, feed: Feed): unknown {
     return JSON.parse(text);
   } catch (error) {
     throw serviceUnavailable(
-      `The FAA NAS Status ${feed} feed returned a malformed JSON body.`,
+      `${feedName(feed)} returned a malformed JSON body.`,
       { feed, reason: 'feed_unavailable' },
       { cause: error },
     );

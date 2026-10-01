@@ -44,7 +44,7 @@ const describeType = (value: unknown): string =>
   value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value;
 
 /** The error every unrecognizable feed body raises. */
-export function feedContractChanged(feed: string, detail: string): Error {
+function feedContractChanged(feed: string, detail: string): Error {
   return serializationError(
     `The FAA NAS Status ${feed} feed returned a shape this server does not recognize (${detail}).`,
     { feed, reason: 'feed_contract_changed', retryable: false },
@@ -346,8 +346,8 @@ function parseClosureNotam(f: Fields): ClosureNotam {
 }
 
 function parseRunwayConfiguration(f: Fields): RunwayConfiguration {
-  const arrivalRunways = f.string('arrivalRunwayConfig');
-  const departureRunways = f.string('departureRunwayConfig');
+  const arrivalRunways = f.string('arrivalRunwayConfig')?.trim();
+  const departureRunways = f.string('departureRunwayConfig')?.trim();
   const arrivalRatePerHour = f.number('arrivalRate');
   const reportedAt = f.string('sourceTimeStamp') ?? f.string('updatedAt');
   return {

@@ -319,6 +319,7 @@ describe('AdvisoryService', () => {
 
       expect(error).toMatchObject({ code: JsonRpcErrorCode.ServiceUnavailable });
       expect((error as McpError).data).toMatchObject({
+        operation: 'The FAA advisories database',
         reason: 'advisory_service_unavailable',
         url: URL_UNDER_TEST,
       });

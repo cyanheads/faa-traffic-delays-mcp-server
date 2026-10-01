@@ -30,7 +30,7 @@ const PROFILE: UpstreamProfile = {
     limits: [{ perMs: 60_000, requests: 20 }],
     maxConcurrent: 2,
     minStartGapMs: 500,
-    name: 'faa-advisories',
+    name: 'FAA advisories database',
   },
   service: 'The FAA advisories database',
   unavailableReason: 'advisory_service_unavailable',
@@ -153,7 +153,7 @@ export class AdvisoryService implements Disposable {
         const page = await this.client.request({
           context,
           errorData: { url },
-          operation: 'AdvisoryService.getAdvisory',
+          operation: PROFILE.service,
           parse: (html) => parseAdvisoryPage(html, url),
           url,
         });

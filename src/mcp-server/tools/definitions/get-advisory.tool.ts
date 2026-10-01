@@ -25,12 +25,19 @@ function stripAdvzy(value: unknown): unknown {
   return /^\d+$/.test(digits) ? Number.parseInt(digits, 10) : value;
 }
 
-/** Trims, and rewrites `MM/DD/YYYY` (the form advisory titles print) to `YYYY-MM-DD`. */
+/**
+ * Trims, and rewrites `MM/DD/YYYY` (the form advisory titles print), or its unpadded `M/D/YYYY`, to
+ * `YYYY-MM-DD`.
+ */
 function normalizeDate(value: unknown): unknown {
   if (typeof value !== 'string') return value;
-  const trimmed = value.trim();
-  const printed = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(trimmed);
-  return printed ? `${printed[3]}-${printed[1]}-${printed[2]}` : trimmed;
+  return value
+    .trim()
+    .replace(
+      /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/,
+      (_, month: string, day: string, year: string) =>
+        `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`,
+    );
 }
 
 export const getAdvisory = tool('faa_delays_get_advisory', {
@@ -45,9 +52,12 @@ export const getAdvisory = tool('faa_delays_get_advisory', {
         'ATCSCC advisory number, 1–999: advisory.number from an advisory reference on faa_delays_list_active_events, faa_delays_get_airport_status, or faa_delays_get_operations_plan. The printed forms "ADVZY 082" and "082" are also accepted.',
       ),
     date: z
-      .preprocess(normalizeDate, z.iso.date())
+      .preprocess(
+        normalizeDate,
+        z.iso.date({ error: 'Must be a real UTC date as YYYY-MM-DD, MM/DD/YYYY, or M/D/YYYY.' }),
+      )
       .describe(
-        'UTC date the advisory was issued, YYYY-MM-DD: advisory.date from the same advisory reference. MM/DD/YYYY, as advisory titles print it, is also accepted.',
+        'UTC date the advisory was issued, YYYY-MM-DD: advisory.date from the same advisory reference. MM/DD/YYYY, as advisory titles print it, and M/D/YYYY are also accepted.',
       ),
   }),
   inputAliases: { number: 'advisory_number' },

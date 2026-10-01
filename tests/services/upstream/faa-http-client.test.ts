@@ -239,6 +239,42 @@ describe('FaaHttpClient', () => {
       client.dispose();
     });
 
+    it('reports a retry shed during a cooldown an upstream 429 closed as upstream_rate_limited', async () => {
+      const { impl, mock } = fakeFetch(
+        () => new Response('slow down', { headers: { 'retry-after': '5' }, status: 429 }),
+      );
+      const client = makeClient(impl);
+      const request = () =>
+        client.request({
+          context,
+          errorData: { feed: 'demo' },
+          operation: 'op',
+          parse: read,
+          url: URL_UNDER_TEST,
+        });
+
+      // Two legs share one pacer: each 429 escalates the cooldown, so the third attempt is shed.
+      const legs = Promise.allSettled([request(), request()]);
+      await vi.advanceTimersByTimeAsync(20_000);
+      const outcomes = await legs;
+
+      for (const outcome of outcomes) {
+        expect(outcome.status).toBe('rejected');
+        const error = outcome.status === 'rejected' ? outcome.reason : undefined;
+        expect(error).toMatchObject({ code: JsonRpcErrorCode.RateLimited });
+        expect(mcpData(error)).toMatchObject({ feed: 'demo', reason: 'upstream_rate_limited' });
+        expect(mcpData(error).retryAfter).toBeGreaterThanOrEqual(5);
+        expect((error as McpError).cause).toMatchObject({ data: { reason: 'pacer_shed' } });
+      }
+      expect(mock).toHaveBeenCalledTimes(4);
+
+      // The gate is still closed: a fresh call is refused without reaching the FAA.
+      const { error } = await settle(request());
+      expect(mcpData(error)).toMatchObject({ reason: 'upstream_rate_limited' });
+      expect(mock).toHaveBeenCalledTimes(4);
+      client.dispose();
+    });
+
     it('sheds a request the pacer cannot start within 10 s as pacer_shed, without retrying it', async () => {
       const { impl, mock } = fakeFetch(() => jsonResponse('{}'));
       const client = makeClient(impl, {

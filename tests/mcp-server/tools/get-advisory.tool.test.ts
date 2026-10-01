@@ -82,6 +82,8 @@ describe('input', () => {
   it.each([
     ['2026-09-30', '2026-09-30'],
     ['09/30/2026', '2026-09-30'],
+    ['9/30/2026', '2026-09-30'],
+    ['9/3/2026', '2026-09-03'],
     ['  2026-09-30 ', '2026-09-30'],
   ])('reads date %j as %j', (input, expected) => {
     const parsed = parse({ advisory_number: 3, date: input });
@@ -106,6 +108,13 @@ describe('input', () => {
       data: { reason: 'invalid_arguments' },
     });
     expect(harness.calls).toHaveLength(0);
+  });
+
+  it('names the accepted date forms when a date is malformed', async () => {
+    const result = await run({ advisory_number: 3, date: '30-09-2026' });
+    expect(errorOf(result).code).toBe(JsonRpcErrorCode.InvalidParams);
+    expect(contentText(result)).toContain('YYYY-MM-DD');
+    expect(contentText(result)).toContain('M/D/YYYY');
   });
 });
 

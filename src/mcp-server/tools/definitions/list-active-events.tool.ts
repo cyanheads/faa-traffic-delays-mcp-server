@@ -11,7 +11,8 @@ import { JsonRpcErrorCode } from '@cyanheads/mcp-ts-core/errors';
 import { isRecord } from '@cyanheads/mcp-ts-core/utils';
 import { getNasStatusService } from '@/services/nas-status/nas-status-service.js';
 import type { AirportEvents, AirspaceFlowProgram, DelayBand } from '@/services/nas-status/types.js';
-import { advisoryLine, blockquote, inline, span } from '../format-helpers.js';
+import { advisoryLine, blockquote, delayFigures, inline, span } from '../format-helpers.js';
+import { skippedRowsNotice, staleDelayNotice } from '../notices.js';
 import {
   AdvisoryRefSchema,
   DelayProfileSchema,
@@ -27,25 +28,42 @@ const EVENT_TYPE_ALIASES: Record<string, EventType> = {
   gs: 'ground_stop',
 };
 
+/** Trimmed, lowercased, `-`/space → `_`, and the gs/gdp/afp aliases expanded. */
+function normalizeEventType(item: string): string {
+  const normalized = item
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_');
+  return EVENT_TYPE_ALIASES[normalized] ?? normalized;
+}
+
 /**
- * Blank string or empty array → unset; a string is split on commas/whitespace; each value is
- * trimmed, lowercased, `-`/space → `_`, and the gs/gdp/afp aliases expanded. Anything else reaches
- * the enum and fails with its options listed.
+ * Splits on commas first: a piece naming one type stays whole (`departure delay`), and any other
+ * piece splits on whitespace (`gs gdp`). Every value comes back normalized.
+ */
+function splitEventTypes(value: string): string[] {
+  return value.split(',').flatMap((piece) => {
+    const whole = normalizeEventType(piece);
+    return EventTypeSchema.safeParse(whole).success
+      ? [whole]
+      : piece.split(/\s+/).filter(Boolean).map(normalizeEventType);
+  });
+}
+
+/**
+ * A string naming no types (blank, or only commas) or an empty array → unset; a string is split
+ * into types; each value is normalized. Anything else reaches the enum and fails with its options
+ * listed.
  */
 function normalizeEventTypes(value: unknown): unknown {
   if (value === undefined || value === null) return;
-  if (typeof value === 'string' && !value.trim()) return;
-  if (Array.isArray(value) && value.length === 0) return;
-  const items = typeof value === 'string' ? value.split(/[\s,]+/).filter(Boolean) : value;
-  if (!Array.isArray(items)) return value;
-  return items.map((item) => {
-    if (typeof item !== 'string') return item;
-    const normalized = item
-      .trim()
-      .toLowerCase()
-      .replace(/[\s-]+/g, '_');
-    return EVENT_TYPE_ALIASES[normalized] ?? normalized;
-  });
+  if (typeof value === 'string') {
+    const types = splitEventTypes(value);
+    return types.length > 0 ? types : undefined;
+  }
+  if (!Array.isArray(value)) return value;
+  if (value.length === 0) return;
+  return value.map((item) => (typeof item === 'string' ? normalizeEventType(item) : item));
 }
 
 /** Sort rank: arrival and departure delays share one group, sorted together by band maximum. */
@@ -331,7 +349,7 @@ export const listActiveEvents = tool('faa_delays_list_active_events', {
     event_types: z
       .preprocess(normalizeEventTypes, z.array(EventTypeSchema).optional())
       .describe(
-        'Only these event types: ground_stop, ground_delay_program, airspace_flow_program, arrival_delay, departure_delay, airport_closure, closure_notam, deicing. Also accepts gs, gdp, afp and a comma-separated string; case-insensitive. Omit for every type. countsByType always covers the whole feed.',
+        'Only these event types: ground_stop, ground_delay_program, airspace_flow_program, arrival_delay, departure_delay, airport_closure, closure_notam, deicing. Also accepts gs, gdp, afp, spelled-out names such as "departure delay", and a comma-separated string; case-insensitive. Omit for every type. countsByType always covers the whole feed.',
       ),
   }),
   output: z.object({
@@ -364,7 +382,9 @@ export const listActiveEvents = tool('faa_delays_list_active_events', {
     notice: z
       .string()
       .optional()
-      .describe('Guidance on empty or partial results and how to get the missing data.'),
+      .describe(
+        'Guidance on empty or partial results, stale delay entries, and how to get the missing data.',
+      ),
   },
   enrichmentTrailer: {
     totalActive: { label: 'Total active' },
@@ -503,10 +523,16 @@ export const listActiveEvents = tool('faa_delays_list_active_events', {
         'No Airspace Flow Programs are active; en-route constraints the FAA expects later are in faa_delays_get_operations_plan.',
       );
     }
+    for (const event of events) {
+      if (event.eventType !== 'arrival_delay' && event.eventType !== 'departure_delay') continue;
+      const kind = event.eventType === 'arrival_delay' ? 'arrival' : 'departure';
+      const stale = staleDelayNotice(event.location, kind, event.updatedAt, airportFeed.fetchedAt);
+      if (stale) notices.push(stale);
+    }
     const skipped =
       airportFeed.skippedRows +
       (enrouteResult.status === 'fulfilled' ? enrouteResult.value.skippedRows : 0);
-    if (skipped > 0) notices.push(`${skipped} FAA feed rows could not be read and were skipped.`);
+    if (skipped > 0) notices.push(skippedRowsNotice(skipped));
     if (notices.length > 0) ctx.enrich.notice(notices.join(' '));
 
     ctx.log.info('Active events listed', { enRouteFeed, shown: events.length, total: all.length });
@@ -521,11 +547,8 @@ export const listActiveEvents = tool('faa_delays_list_active_events', {
         `### ${event.eventType} — ${inline(event.location)}${event.locationName ? ` (${inline(event.locationName)})` : ''}`,
       );
       if (event.reason) lines.push(`- Reason: ${inline(event.reason)}`);
-      if (event.averageDelayMinutes !== undefined || event.maximumDelayMinutes !== undefined) {
-        lines.push(
-          `- Delay: average ${event.averageDelayMinutes ?? '?'} min${event.maximumDelayMinutes !== undefined ? `, maximum ${event.maximumDelayMinutes} min` : ''}`,
-        );
-      }
+      const delay = delayFigures(event.averageDelayMinutes, event.maximumDelayMinutes);
+      if (delay) lines.push(`- Delay: ${delay}`);
       if (event.delayRangeMinutes) {
         lines.push(
           `- Delay band: ${event.delayRangeMinutes.min}–${event.delayRangeMinutes.max} min${event.trend ? `, ${event.trend}` : ''}`,
@@ -545,11 +568,11 @@ export const listActiveEvents = tool('faa_delays_list_active_events', {
       if (afp) {
         const area = afp.constrainedArea;
         lines.push(`- Constrained area: ${area.type}${area.name ? ` ${inline(area.name)}` : ''}`);
-        if (afp.altitudeFloor || afp.altitudeCeiling) {
-          lines.push(
-            `- Altitudes: ${afp.altitudeFloor ? inline(afp.altitudeFloor) : '?'} / ${afp.altitudeCeiling ? inline(afp.altitudeCeiling) : '?'}`,
-          );
-        }
+        const altitudes = [
+          ...(afp.altitudeFloor ? [`floor ${inline(afp.altitudeFloor)}`] : []),
+          ...(afp.altitudeCeiling ? [`ceiling ${inline(afp.altitudeCeiling)}`] : []),
+        ];
+        if (altitudes.length > 0) lines.push(`- Altitudes: ${altitudes.join(', ')}`);
         if (afp.departsFrom) lines.push(`- Departs from: ${inline(afp.departsFrom)}`);
         if (afp.arrivesTo) lines.push(`- Arrives to: ${inline(afp.arrivesTo)}`);
         if (afp.filtersMatchAny !== undefined) {

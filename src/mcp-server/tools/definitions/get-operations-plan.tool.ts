@@ -10,6 +10,7 @@ import { tool, z } from '@cyanheads/mcp-ts-core';
 import { JsonRpcErrorCode } from '@cyanheads/mcp-ts-core/errors';
 import { getNasStatusService } from '@/services/nas-status/nas-status-service.js';
 import { advisoryLine, blockquote, inline } from '../format-helpers.js';
+import { skippedRowsNotice } from '../notices.js';
 import { AdvisoryRefSchema } from '../schemas.js';
 
 const PlannedItemSchema = z
@@ -29,7 +30,7 @@ const PlannedItemSchema = z
       .string()
       .optional()
       .describe(
-        'Planned time as HHMM UTC with no date; the plan covers the UTC day of its advisory.',
+        "Planned time as HHMM UTC, with no date. Its day comes from the plan's event window (the EVENT TIME line of the plan advisory, read with faa_delays_get_advisory), which can start on the UTC day after the advisory date.",
       ),
     likelihood: z
       .enum(['possible', 'probable', 'expected'])
@@ -188,7 +189,7 @@ export const getOperationsPlan = tool('faa_delays_get_operations_plan', {
     const skipped =
       plan.skippedRows +
       (announcementsResult.status === 'fulfilled' ? announcementsResult.value.skippedRows : 0);
-    if (skipped > 0) notices.push(`${skipped} FAA feed rows could not be read and were skipped.`);
+    if (skipped > 0) notices.push(skippedRowsNotice(skipped));
     if (notices.length > 0) ctx.enrich.notice(notices.join(' '));
 
     ctx.log.info('Operations plan read', {

@@ -289,7 +289,8 @@ const IDENTIFIER_FORMATS: { example: string; format: string; identifier: string 
   },
   {
     identifier: 'Operations-plan time',
-    format: 'HHMM UTC with no date; the plan covers the advisory date and event window.',
+    format:
+      "HHMM UTC with no date; its day comes from the plan's event window (the EVENT TIME line of the plan advisory), which can start on the UTC day after the advisory date.",
     example: '1600',
   },
   {

@@ -7,8 +7,13 @@
  * @module services/upstream/faa-http-client
  */
 
-import type { McpError } from '@cyanheads/mcp-ts-core/errors';
-import { serializationError, serviceUnavailable, timeout } from '@cyanheads/mcp-ts-core/errors';
+import {
+  McpError,
+  rateLimited,
+  serializationError,
+  serviceUnavailable,
+  timeout,
+} from '@cyanheads/mcp-ts-core/errors';
 import {
   createPacer,
   httpErrorFromResponse,
@@ -38,7 +43,7 @@ export interface UpstreamProfile {
   contractChangedReason: string;
   /** A 200 `text/html` response is a maintenance page, not data (JSON feeds). */
   htmlIsMaintenance: boolean;
-  /** Pacer settings for this host. */
+  /** Pacer settings; `name` reaches caller-facing shed messages, so write it as words. */
   pacer: PacerOptions;
   /** Name used in error messages. */
   service: string;
@@ -52,6 +57,10 @@ export interface UpstreamRequest<T> {
   context: RequestContext;
   /** Extra fields merged into the `data` of every error this request raises. */
   errorData?: Record<string, unknown>;
+  /**
+   * Caller-readable name of what is fetched (`The FAA NAS Status airport events feed`): `withRetry`
+   * puts it in the deadline message and in `data.operation` on exhaustion, both caller-facing.
+   */
   operation: string;
   /** Reads the 200 body; throws a classified error when the body is unusable. */
   parse: (body: string) => T;
@@ -74,22 +83,26 @@ export class FaaHttpClient implements Disposable {
   }
 
   /** Fetches and parses `request.url`, retrying transient failures inside the 20 s budget. */
-  request<T>(request: UpstreamRequest<T>): Promise<T> {
-    return withRetry(
-      ({ remainingMs, signal }) =>
-        this.pacer.run(
-          (taskSignal) =>
-            this.attempt(request, taskSignal, Math.min(ATTEMPT_TIMEOUT_MS, remainingMs)),
-          { maxWaitMs: Math.min(MAX_QUEUE_WAIT_MS, remainingMs), signal },
-        ),
-      {
-        baseDelayMs: 500,
-        context: request.context,
-        deadlineMs: RETRY_DEADLINE_MS,
-        maxRetries: 2,
-        operation: request.operation,
-      },
-    );
+  async request<T>(request: UpstreamRequest<T>): Promise<T> {
+    try {
+      return await withRetry(
+        ({ remainingMs, signal }) =>
+          this.pacer.run(
+            (taskSignal) =>
+              this.attempt(request, taskSignal, Math.min(ATTEMPT_TIMEOUT_MS, remainingMs)),
+            { maxWaitMs: Math.min(MAX_QUEUE_WAIT_MS, remainingMs), signal },
+          ),
+        {
+          baseDelayMs: 500,
+          context: request.context,
+          deadlineMs: RETRY_DEADLINE_MS,
+          maxRetries: 2,
+          operation: request.operation,
+        },
+      );
+    } catch (error) {
+      throw this.upstreamThrottle(error, request);
+    }
   }
 
   dispose(): void {
@@ -144,6 +157,27 @@ export class FaaHttpClient implements Disposable {
     } finally {
       clearTimeout(handle);
     }
+  }
+
+  /**
+   * Reads a pacer shed as the upstream's rate limit while the cooldown gate is closed, since only
+   * an upstream 429 closes that gate. `retryAfter` stays the shed's value, the instant this server
+   * next sends to the host, which never falls before the end of the host's own `Retry-After`.
+   */
+  private upstreamThrottle(error: unknown, request: UpstreamRequest<unknown>): unknown {
+    if (
+      !(error instanceof McpError) ||
+      error.data?.reason !== 'pacer_shed' ||
+      this.pacer.cooldown.remainingMs === 0
+    ) {
+      return error;
+    }
+    const { retryAfter } = error.data;
+    return rateLimited(
+      `${this.profile.service} returned HTTP 429, and this server is holding further requests to it for ${retryAfter} s.`,
+      { ...request.errorData, reason: 'upstream_rate_limited', retryAfter },
+      { cause: error },
+    );
   }
 
   /**

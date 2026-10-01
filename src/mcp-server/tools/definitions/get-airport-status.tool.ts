@@ -15,10 +15,9 @@ import {
 } from '@/services/airport-directory/airport-directory.js';
 import { getNasStatusService } from '@/services/nas-status/nas-status-service.js';
 import type { AirportEvents } from '@/services/nas-status/types.js';
-import { advisoryLine, blockquote, inline, span } from '../format-helpers.js';
+import { advisoryLine, blockquote, delayFigures, inline, span } from '../format-helpers.js';
+import { skippedRowsNotice, staleDelayNotice } from '../notices.js';
 import { AdvisoryRefSchema, DelayProfileSchema, renderDelayProfile } from '../schemas.js';
-
-const STALE_DELAY_MS = 6 * 60 * 60 * 1000;
 
 const STATUSES = [
   'closed',
@@ -267,22 +266,18 @@ function buildRow(
   };
 }
 
-/** Hours between a delay's last update and the snapshot, when past the staleness threshold. */
-function staleHours(
-  delay: { updatedAt?: string | undefined } | undefined,
-  fetchedAt: string,
-): number | undefined {
-  if (!delay?.updatedAt) return;
-  const age = Date.parse(fetchedAt) - Date.parse(delay.updatedAt);
-  return Number.isFinite(age) && age > STALE_DELAY_MS ? Math.floor(age / 3_600_000) : undefined;
+/** `16–30 min`, `at least 16 min`, or `up to 30 min`, by which bounds the FAA reported. */
+function delayRange({ maxMinutes, minMinutes }: z.infer<typeof DelayBandSchema>): string {
+  if (minMinutes !== undefined && maxMinutes !== undefined) {
+    return `${minMinutes}–${maxMinutes} min`;
+  }
+  if (minMinutes !== undefined) return `at least ${minMinutes} min`;
+  if (maxMinutes !== undefined) return `up to ${maxMinutes} min`;
+  return 'band not reported';
 }
 
 function renderDelayBand(label: string, band: z.infer<typeof DelayBandSchema>): string[] {
-  const range =
-    band.minMinutes !== undefined || band.maxMinutes !== undefined
-      ? `${band.minMinutes ?? '?'}–${band.maxMinutes ?? '?'} min`
-      : 'band not reported';
-  const lines = [`**${label}:** ${range}${band.trend ? `, ${band.trend}` : ''}`];
+  const lines = [`**${label}:** ${delayRange(band)}${band.trend ? `, ${band.trend}` : ''}`];
   if (band.reason) lines.push(`- Reason: ${inline(band.reason)}`);
   if (band.updatedAt) lines.push(`- Updated: ${inline(band.updatedAt)}`);
   return lines;
@@ -321,6 +316,7 @@ export const getAirportStatus = tool('faa_delays_get_airport_status', {
       reason: 'unknown_airport',
       code: JsonRpcErrorCode.NotFound,
       when: 'A requested code is not a 3-character identifier in the FAA NASR airport directory, or a 4-character code that is not the ICAO code of one',
+      severity: 'notice',
       recovery:
         'Send each airport as its 3-character FAA identifier (SEA) or ICAO code (KSEA); faa_delays_list_reference topic identifiers explains the accepted forms and topic pacing_airports lists the FAA major airports.',
     },
@@ -421,16 +417,12 @@ export const getAirportStatus = tool('faa_delays_get_airport_status', {
       );
     }
     for (const row of airports) {
-      for (const [label, band] of [
+      for (const [kind, band] of [
         ['arrival', row.arrivalDelay],
         ['departure', row.departureDelay],
       ] as const) {
-        const hours = staleHours(band, feed.fetchedAt);
-        if (hours !== undefined) {
-          notices.push(
-            `${row.airportId} ${label} delay was last updated ${hours} h ago; the FAA feed can keep a delay entry after it lapses.`,
-          );
-        }
+        const stale = staleDelayNotice(row.airportId, kind, band?.updatedAt, feed.fetchedAt);
+        if (stale) notices.push(stale);
       }
     }
     if (pacingResult.status === 'rejected') {
@@ -444,9 +436,7 @@ export const getAirportStatus = tool('faa_delays_get_airport_status', {
         'Pacing-airport flags and time zones are omitted because that FAA list could not be fetched.',
       );
     }
-    if (feed.skippedRows > 0) {
-      notices.push(`${feed.skippedRows} FAA feed rows could not be read and were skipped.`);
-    }
+    if (feed.skippedRows > 0) notices.push(skippedRowsNotice(feed.skippedRows));
     if (notices.length > 0) ctx.enrich.notice(notices.join(' '));
 
     ctx.log.info('Airport status resolved', {
@@ -459,14 +449,18 @@ export const getAirportStatus = tool('faa_delays_get_airport_status', {
   format: (result) => {
     const lines = [`**Fetched:** ${result.fetchedAt}`];
     for (const row of result.airports) {
-      const place = [row.city, row.state].filter(Boolean).map((part) => inline(part as string));
+      const place = [row.city, row.state].flatMap((part) => (part ? [inline(part)] : []));
       lines.push(
         '',
         `## ${row.airportId} — ${inline(row.airportName)}${place.length > 0 ? ` (${place.join(', ')})` : ''}`,
         `**Status:** ${row.status} · **Listed in feed:** ${row.listedInFeed ? 'yes' : 'no'}${row.requestedAs ? ` · **Requested as:** ${row.requestedAs}` : ''}`,
       );
-      if (row.latitude !== undefined || row.longitude !== undefined) {
-        lines.push(`**Coordinates:** ${row.latitude ?? '?'}, ${row.longitude ?? '?'}`);
+      if (row.latitude !== undefined && row.longitude !== undefined) {
+        lines.push(`**Coordinates:** ${row.latitude}, ${row.longitude}`);
+      } else if (row.latitude !== undefined) {
+        lines.push(`**Coordinates:** latitude ${row.latitude}`);
+      } else if (row.longitude !== undefined) {
+        lines.push(`**Coordinates:** longitude ${row.longitude}`);
       }
       if (row.isPacingAirport !== undefined) {
         lines.push(
@@ -510,11 +504,8 @@ export const getAirportStatus = tool('faa_delays_get_airport_status', {
       if (gdp) {
         lines.push('', `**Ground Delay Program:** ${span(gdp.startTime, gdp.endTime)}`);
         if (gdp.reason) lines.push(`- Reason: ${inline(gdp.reason)}`);
-        if (gdp.averageDelayMinutes !== undefined || gdp.maximumDelayMinutes !== undefined) {
-          lines.push(
-            `- Delay: average ${gdp.averageDelayMinutes ?? '?'} min, maximum ${gdp.maximumDelayMinutes ?? '?'} min`,
-          );
-        }
+        const delay = delayFigures(gdp.averageDelayMinutes, gdp.maximumDelayMinutes);
+        if (delay) lines.push(`- Delay: ${delay}`);
         if (gdp.delayProfile)
           lines.push(`- Delay profile: ${renderDelayProfile(gdp.delayProfile)}`);
         if (gdp.controllingCenter)

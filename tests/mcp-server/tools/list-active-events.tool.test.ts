@@ -1,8 +1,8 @@
 /**
  * @fileoverview Tests for faa_delays_list_active_events: event_types normalization (blank and
  * empty read as unset), severity sort, whole-feed counts, the required enrichment on the
- * zero-result and under-cap pages, the en-route degrade paths and AFP-only rethrow, declared feed
- * errors, and format() fidelity and sanitizing.
+ * zero-result and under-cap pages, stale-delay and skipped-row notices, the en-route degrade paths
+ * and AFP-only rethrow, declared feed errors, and format() fidelity and sanitizing.
  * @module tests/mcp-server/tools/list-active-events.tool.test
  */
 
@@ -30,9 +30,9 @@ type Overrides = Partial<Record<FeedName, FeedOverride | Responder>>;
 let harness: ReturnType<typeof feedHarness>;
 let services: { dispose: () => void };
 
-function setup(overrides: Overrides = {}): void {
+function setup(overrides: Overrides = {}, start?: string): void {
   harness = feedHarness(overrides);
-  services = installServices({ fetch: harness.fetch, now: createClock().now });
+  services = installServices({ fetch: harness.fetch, now: createClock(start).now });
 }
 
 const run = (input: Record<string, unknown> = {}) =>
@@ -67,6 +67,7 @@ describe('event_types input', () => {
   it.each([
     ['a blank string', ''],
     ['whitespace', '   '],
+    ['a string of only commas', ' , ,'],
     ['an empty array', []],
     ['null', null],
     ['undefined', undefined],
@@ -89,9 +90,19 @@ describe('event_types input', () => {
     ],
     [['closure-notam'], ['closure_notam']],
     ['airport_closure,departure_delay', ['airport_closure', 'departure_delay']],
+    ['departure delay, arrival delay', ['departure_delay', 'arrival_delay']],
+    ['departure delay', ['departure_delay']],
+    ['Ground Stop,gdp afp', ['ground_stop', 'ground_delay_program', 'airspace_flow_program']],
+    ['gs gdp', ['ground_stop', 'ground_delay_program']],
   ])('normalizes %j', (input, expected) => {
     const parsed = listActiveEvents.input.safeParse({ event_types: input });
     expect(parsed.success && parsed.data.event_types).toEqual(expected);
+  });
+
+  it('accepts spelled-out types in a comma-separated string through the wire', async () => {
+    const result = await run({ event_types: 'departure delay, arrival delay' });
+    expect(structured(result).appliedEventTypes).toEqual(['departure_delay', 'arrival_delay']);
+    expect(locations(result)).toEqual(['arrival_delay:BOS', 'departure_delay:ORD']);
   });
 
   it('rejects an unknown type through the wire with the options in the hint', async () => {
@@ -362,6 +373,70 @@ describe('enrichment and filtering', () => {
       '2 FAA feed rows could not be read and were skipped.',
     );
   });
+
+  it('reports one skipped row in the singular', async () => {
+    services.dispose();
+    setup({ 'airport-events': [{ airportId: 'SEA', deicing: {} }, { junk: 1 }] });
+
+    expect(structured(await run()).notice).toContain(
+      '1 FAA feed row could not be read and was skipped.',
+    );
+  });
+
+  describe('stale delay rows', () => {
+    it('flags each arrival or departure delay last updated more than 6 h before the snapshot', async () => {
+      services.dispose();
+      setup({}, '2026-09-30T08:00:00Z');
+
+      const { notice } = structured(await run());
+
+      expect(notice).toContain(
+        'ORD departure delay was last updated 8 h ago; the FAA feed can keep a delay entry after it lapses.',
+      );
+      expect(notice).toContain('BOS arrival delay was last updated 8 h ago');
+    });
+
+    it('leaves out stale delays the event_types filter excluded', async () => {
+      services.dispose();
+      setup({}, '2026-09-30T08:00:00Z');
+
+      const { notice } = structured(await run({ event_types: 'gs, departure delay' }));
+
+      expect(notice).toContain('ORD departure delay was last updated 8 h ago');
+      expect(notice).not.toContain('BOS arrival delay');
+      expect(structured(await run({ event_types: 'gs' })).notice).toBeUndefined();
+    });
+
+    it('does not flag a delay at exactly 6 h', async () => {
+      services.dispose();
+      setup({}, '2026-09-30T05:15:00Z');
+      expect(structured(await run()).notice).toBeUndefined();
+    });
+
+    it('flattens line breaks in the airport identifier it names', async () => {
+      services.dispose();
+      setup(
+        {
+          'airport-events': [
+            {
+              airportId: 'ORD\n### Injected',
+              departureDelay: {
+                averageDelay: '15',
+                trend: 'increasing',
+                updateTime: '2026-09-29T23:15:00Z',
+              },
+            },
+          ],
+          'enroute-events': [],
+        },
+        '2026-09-30T08:00:00Z',
+      );
+
+      expect(structured(await run()).notice).toContain(
+        'ORD ### INJECTED departure delay was last updated 8 h ago',
+      );
+    });
+  });
 });
 
 describe('en-route degrade paths', () => {
@@ -480,6 +555,20 @@ describe('declared feed errors', () => {
     },
   );
 
+  it('reports a sustained 429 on both feeds as upstream_rate_limited, not pacer_shed', async () => {
+    services.dispose();
+    const throttled = () => new Response('slow', { headers: { 'retry-after': '5' }, status: 429 });
+    setup({ 'airport-events': throttled, 'enroute-events': throttled });
+
+    const error = errorOf(await withLadder(() => run()));
+
+    expect(error).toMatchObject({
+      code: JsonRpcErrorCode.RateLimited,
+      data: { reason: 'upstream_rate_limited' },
+    });
+    expect(error.data?.retryAfter).toBeGreaterThanOrEqual(5);
+  });
+
   it('carries pacer_shed with retryAfter', async () => {
     vi.spyOn(getNasStatusService(), 'getAirportEvents').mockRejectedValue(
       rateLimited('queue full', { reason: 'pacer_shed', retryAfter: 9 }),
@@ -506,7 +595,7 @@ describe('format', () => {
       '- Advisory: ADVZY 12 · 2026-09-29 · https://www.fly.faa.gov/adv/adv_otherdis?advn=12&adv_date=09292026',
     );
     expect(text).toContain('- Constrained area: artcc ZNY');
-    expect(text).toContain('- Altitudes: 000 / 600');
+    expect(text).toContain('- Altitudes: floor 000, ceiling 600');
     expect(text).toContain('- Filters match: all (AND)');
     expect(text).toContain('- Excluded departures: ZBW ZOB');
     expect(text).toContain(
@@ -534,6 +623,35 @@ describe('format', () => {
 
     expect(text).toContain('### deicing — SEA');
     expect(text).not.toMatch(/undefined|NaN/);
+  });
+
+  it('names or leaves out a value the FAA did not report, never a placeholder', () => {
+    const blocks = listActiveEvents.format?.({
+      events: [
+        {
+          eventType: 'ground_delay_program',
+          location: 'SEA',
+          maximumDelayMinutes: 96,
+          startTime: '2026-09-30T01:00:00Z',
+        },
+        { endTime: '2026-09-30T04:00:00Z', eventType: 'ground_stop', location: 'DEN' },
+        {
+          afp: { altitudeCeiling: '600', constrainedArea: { type: 'fca' } },
+          averageDelayMinutes: 40,
+          eventType: 'airspace_flow_program',
+          location: 'FCA001',
+        },
+      ],
+      fetchedAt: 'now',
+    });
+    const text = blocks?.[0]?.type === 'text' ? blocks[0].text : '';
+
+    expect(text).toContain('- Delay: maximum 96 min');
+    expect(text).toContain('- Window: from 2026-09-30T01:00:00Z (end not reported)');
+    expect(text).toContain('- Window: until 2026-09-30T04:00:00Z (start not reported)');
+    expect(text).toContain('- Delay: average 40 min');
+    expect(text).toContain('- Altitudes: ceiling 600');
+    expect(text).not.toContain('?');
   });
 
   it('keeps CR/LF/TAB out of inline slots and quotes multi-line text', async () => {

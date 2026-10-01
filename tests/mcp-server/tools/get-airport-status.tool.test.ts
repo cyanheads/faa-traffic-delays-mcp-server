@@ -183,6 +183,14 @@ describe('airport resolution', () => {
       const result = await run({ airports: ['QQQ'] });
       expect(recoveryHint(errorOf(result))).toBe(declared?.recovery);
     });
+
+    it('logs at notice, as caller input, while feed reasons keep the default error level', () => {
+      for (const entry of getAirportStatus.errors ?? []) {
+        expect('severity' in entry ? entry.severity : undefined, entry.reason).toBe(
+          entry.reason === 'unknown_airport' ? 'notice' : undefined,
+        );
+      }
+    });
   });
 });
 
@@ -375,7 +383,7 @@ describe('degrade paths', () => {
     const result = await withLadder(() => run({ airports: ['SEA'] }));
 
     expect(noticeOf(result)).toContain('Pacing-airport flags and time zones are omitted');
-    expect(noticeOf(result)).toContain('1 FAA feed rows could not be read and were skipped.');
+    expect(noticeOf(result)).toContain('1 FAA feed row could not be read and was skipped.');
   });
 
   it('rethrows a failed pacing leg when the caller was cancelled', async () => {
@@ -505,6 +513,46 @@ describe('format', () => {
     expect(blocks?.[0]).toMatchObject({
       text: expect.stringContaining('**Arrival delay:** band not reported'),
     });
+  });
+
+  it('names or leaves out a value the FAA did not report, never a placeholder', () => {
+    const blocks = getAirportStatus.format?.({
+      airports: [
+        {
+          airportId: 'SEA',
+          airportName: 'Sea',
+          arrivalDelay: { minMinutes: 16 },
+          departureDelay: { maxMinutes: 30 },
+          groundDelayProgram: { maximumDelayMinutes: 96 },
+          groundStop: { startTime: '2026-09-30T01:00:00Z' },
+          listedInFeed: true,
+          longitude: -122.379,
+          status: 'ground_stop',
+        },
+        {
+          airportId: 'ORD',
+          airportName: 'Ord',
+          closure: { endTime: '2026-09-30T04:00:00Z' },
+          closureNotam: {},
+          latitude: 41.97,
+          listedInFeed: true,
+          status: 'closed',
+        },
+      ],
+      fetchedAt: 'now',
+    });
+    const text = blocks?.[0]?.type === 'text' ? blocks[0].text : '';
+
+    expect(text).toContain('**Coordinates:** longitude -122.379');
+    expect(text).toContain('**Coordinates:** latitude 41.97');
+    expect(text).toContain('**Ground stop:** from 2026-09-30T01:00:00Z (end not reported)');
+    expect(text).toContain('**Ground Delay Program:** times not reported');
+    expect(text).toContain('- Delay: maximum 96 min');
+    expect(text).toContain('**Arrival delay:** at least 16 min');
+    expect(text).toContain('**Departure delay:** up to 30 min');
+    expect(text).toContain('**Airport closed:** until 2026-09-30T04:00:00Z (start not reported)');
+    expect(text).toContain('**Closure NOTAM:** times not reported');
+    expect(text).not.toContain('?');
   });
 
   it('keeps upstream CR/LF/TAB out of inline slots and quotes multi-line free text', async () => {

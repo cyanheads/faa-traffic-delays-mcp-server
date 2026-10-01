@@ -217,6 +217,16 @@ describe('parseAirportEvents', () => {
     ]);
   });
 
+  it('trims padding around runway configurations', () => {
+    const { row } = parseOneAirport({
+      airportConfig: { arrivalRunwayConfig: ' 25L/24R ', departureRunwayConfig: ' 24L/25R' },
+    });
+    expect(row.runwayConfiguration).toEqual({
+      arrivalRunways: '25L/24R',
+      departureRunways: '24L/25R',
+    });
+  });
+
   describe('drift rules', () => {
     it('omits a wrong-typed field and reports its path and observed type', () => {
       const { drift, row } = parseOneAirport({

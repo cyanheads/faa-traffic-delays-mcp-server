@@ -1,7 +1,8 @@
 /**
  * @fileoverview Markdown rendering helpers for FAA-authored text in `format()`. Inline slots get
  * CR/LF/TAB flattened to one space; table cells also escape `\` then `|`; free text renders as a
- * `>` blockquote or a fenced block. `structuredContent` always keeps the verbatim value.
+ * `>` blockquote or a fenced block; a value the FAA did not report is named or left out, never
+ * shown as a placeholder. `structuredContent` always keeps the verbatim value.
  * @module mcp-server/tools/format-helpers
  */
 
@@ -12,9 +13,24 @@ export function inline(value: string): string {
   return value.replace(/[\r\n\t]+/g, ' ');
 }
 
-/** `start → end` for an upstream time window, `?` for a bound the FAA did not report. */
+/** `start → end` for an upstream time window, naming whichever bound the FAA did not report. */
 export function span(start: string | undefined, end: string | undefined): string {
-  return `${start ? inline(start) : '?'} → ${end ? inline(end) : '?'}`;
+  if (start && end) return `${inline(start)} → ${inline(end)}`;
+  if (start) return `from ${inline(start)} (end not reported)`;
+  if (end) return `until ${inline(end)} (start not reported)`;
+  return 'times not reported';
+}
+
+/** `average 55 min, maximum 117 min`, leaving out a figure the FAA did not report. */
+export function delayFigures(
+  average: number | undefined,
+  maximum: number | undefined,
+): string | undefined {
+  const figures = [
+    ...(average !== undefined ? [`average ${average} min`] : []),
+    ...(maximum !== undefined ? [`maximum ${maximum} min`] : []),
+  ];
+  return figures.length > 0 ? figures.join(', ') : undefined;
 }
 
 /** An inline value safe inside a Markdown table cell. */
