@@ -1,6 +1,6 @@
 {
   "name": "@cyanheads/faa-traffic-delays-mcp-server",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "mcpName": "io.github.cyanheads/faa-traffic-delays-mcp-server",
   "description": "Track FAA ground stops, delay programs, airport delays, the operations plan, and ATCSCC advisories via MCP. STDIO or Streamable HTTP.",
   "type": "module",

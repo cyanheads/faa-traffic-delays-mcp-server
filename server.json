@@ -7,14 +7,14 @@
     "url": "https://github.com/cyanheads/faa-traffic-delays-mcp-server",
     "source": "github"
   },
-  "version": "0.1.0",
+  "version": "0.1.1",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@cyanheads/faa-traffic-delays-mcp-server",
       "runtimeHint": "node",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "packageArguments": [
         {
           "type": "positional",
@@ -43,7 +43,7 @@
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@cyanheads/faa-traffic-delays-mcp-server",
       "runtimeHint": "node",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "packageArguments": [
         {
           "type": "positional",
