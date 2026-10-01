@@ -1,0 +1,36 @@
+[
+  {
+    "airspaceFlowProgram": {
+      "afpName": "FCAA05",
+      "startTime": "2026-07-15T18:00:00Z",
+      "endTime": "2026-07-16T01:59:00Z",
+      "updatedAt": "2026-07-15T17:40:00Z",
+      "avgDelay": 42.5,
+      "impactingCondition": "thunderstorms",
+      "lowerAltitude": "000",
+      "upperAltitude": "600",
+      "fuelFlowAdvisoryDelayTime": {
+        "controlElement": "FCAA05",
+        "delayProgramType": "AFP",
+        "startTime": "2026-07-15T18:00:00Z",
+        "dasDelays": { "dasDelay": [{ "delay": 44, "seq": 2 }, { "delay": 40, "seq": 1 }] }
+      }
+    },
+    "advisoryUrl": "https://www.fly.faa.gov/adv/adv_otherdis.jsp?advn=45&adv_date=07152026&facId=FCAA05&title=ATCSCC ADVZY 045 ZNY 07/15/2026 AIRSPACE FLOW PROGRAM&titleDate=07/15/2026",
+    "polygon": null,
+    "fcaArtcc": {
+      "fcaArtccName": "ZNY",
+      "points": { "point": [{ "latitude": "40.1", "longitude": "-80.2" }] }
+    },
+    "fcaAirport": null,
+    "fcaSectorName": null,
+    "departsAny": "ZNY ZDC",
+    "arrivesAny": null,
+    "departsNone": ["ZBW", "ZOB"],
+    "arrivesNone": null,
+    "isAnyConditions": false,
+    "fcaHeadingDirection": "westbound",
+    "comments": "EXPECT EDCTS FOR FLIGHTS WESTBOUND THROUGH FCAA05."
+  },
+  { "airspaceFlowProgram": { "afpName": "FCA002" } }
+]

@@ -1,0 +1,37 @@
+[
+  {
+    "airportId": "STL",
+    "timezone": "US/Central",
+    "isPacing": true,
+    "latitude": "38.7499",
+    "longitude": "-90.3748"
+  },
+  {
+    "airportId": "SEA",
+    "timezone": "US/Pacific",
+    "isPacing": true,
+    "latitude": "47.4502",
+    "longitude": "-122.3088"
+  },
+  {
+    "airportId": "ORD",
+    "timezone": "US/Central",
+    "isPacing": true,
+    "latitude": "41.9742",
+    "longitude": "-87.9073"
+  },
+  {
+    "airportId": "DEN",
+    "timezone": "US/Mountain",
+    "isPacing": true,
+    "latitude": "39.8617",
+    "longitude": "-104.6731"
+  },
+  {
+    "airportId": "TEB",
+    "timezone": "US/Eastern",
+    "isPacing": true,
+    "latitude": "40.8501",
+    "longitude": "-74.0608"
+  }
+]

@@ -1,0 +1,61 @@
+<html>
+<head>
+<title>ATCSCC Advisory</title>
+</head>
+<BODY>
+<TABLE id="Table3" BORDER=0 CELLSPACING=2 CELLPADDING=1>
+							
+								
+								
+									<TR VALIGN="top" ALIGN="left">
+										<TH class=header align="center" colspan=2>ATCSCC&nbsp;ADVZY&nbsp;003&nbsp;SEA/ZSE&nbsp;09/30/2026&nbsp;CDM GROUND DELAY PROGRAM</TH>
+									</TR>
+									<TR VALIGN="top" ALIGN="left">
+
+										
+											
+									
+										<TD class=nam>
+											<P align=right>MESSAGE:&nbsp;</P>
+										</TD>
+										<TD class=val>
+											<PRE>CTL ELEMENT: SEA
+ELEMENT TYPE: APT
+ADL TIME: 0015Z
+DELAY ASSIGNMENT MODE: UDP
+ARRIVALS ESTIMATED FOR: 30/0100Z - 30/0559Z
+CUMULATIVE PROGRAM PERIOD: 30/0100Z - 30/0559Z
+PROGRAM RATE: 38/36/36/36/36
+FLT INCL: ALL CONTIGUOUS US DEP
+DEP SCOPE: 1200
+CANADIAN DEP ARPTS INCLUDED: CYEG CYVR CYYC CYYJ CYLW
+DELAY ASSIGNMENT TABLE APPLIES TO: ZSE
+MAXIMUM DELAY: 117
+AVERAGE DELAY: 55
+IMPACTING CONDITION: WEATHER / LOW CEILINGS
+COMMENTS: NORTH FLOW, PLAN CHARLIE. LOW POP UP. TIME+20 DUE TO TIME
+ CONSTRAINTS TO AVOID GROUND STOP POSTURE.&nbsp;</PRE>
+										</TD>
+										</TR>
+										<TR VALIGN="top" ALIGN="left">
+											<TD class=nam>
+												<P align=right>EFFECTIVE TIME:&nbsp;</P>
+											</TD>
+											<TD class=val>300016-300659</TD>
+										</TR>
+										<TR VALIGN="top" ALIGN="left">
+											<TD class=nam>
+												<P align=right>SIGNATURE:&nbsp;</P>
+											</TD>
+											<TD class=val>
+												26/09/30 00:17&nbsp;&nbsp;
+												
+											</TD>
+										</TR>
+									
+							
+							
+							
+						</TABLE>
+</BODY>
+</HTML>

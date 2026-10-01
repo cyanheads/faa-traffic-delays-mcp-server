@@ -1,0 +1,12 @@
+{
+  "link": "https://www.fly.faa.gov/adv/adv_otherdis.jsp?advn=82&adv_date=09292026&facId=ATCSCC&title=ATCSCC ADVZY 082 DCC 09/29/2026 OPERATIONS PLAN&titleDate=09/29/2026",
+  "terminalPlanned": [
+    { "time": "", "event": "AFTER 1100\t-DCA GROUND STOP/DELAY PROGRAM POSSIBLE" },
+    { "time": "", "event": "AFTER 1600\t-BOS GROUND STOP/DELAY PROGRAM EXPECTED" },
+    { "time": "", "event": "AFTER 1800\t-MIA/FLL GROUND STOP PROBABLE" }
+  ],
+  "enRoutePlanned": [
+    { "time": "", "event": "AFTER 1200\t-LAKE ERIE ROUTES POSSIBLE" },
+    { "time": "", "event": "AFTER 1700\t-DEN CDRS/SWAP/ARRIVAL ROUTES POSSIBLE" }
+  ]
+}

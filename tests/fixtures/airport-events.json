@@ -1,0 +1,218 @@
+[
+  {
+    "airportId": "LAX",
+    "groundStop": null,
+    "groundDelay": null,
+    "airportClosure": null,
+    "freeForm": {
+      "id": "2fb55924-9199-4e6e-81d8-0561fef680a4",
+      "airportId": "LAX",
+      "createdAt": null,
+      "updatedAt": "2026-05-27T18:31:49Z",
+      "startTime": "2026-05-27T18:26:00Z",
+      "endTime": "2027-05-28T16:00:00Z",
+      "simpleText": "!LAX 05/277 LAX AD AP CLSD TO NON SKED TRANSIENT GA ACFT EXC 24HR PPR CTC ATLANTIC AVIATION 2605271826-2705281600",
+      "text": "TO NON SKED TRANSIENT GA ACFT EXC 24HR PPR CTC ATLANTIC AVIATION",
+      "notamNumber": 277,
+      "issuedDate": "2026-05-27T18:26:00Z"
+    },
+    "arrivalDelay": null,
+    "departureDelay": null,
+    "airportConfig": {
+      "id": "943df200-85bf-4ecc-8cc2-a3f06f710f8a",
+      "airportId": "LAX",
+      "arrivalRunwayConfig": "25L/24R",
+      "departureRunwayConfig": "25R/24L",
+      "arrivalRate": 68,
+      "sourceTimeStamp": "2026-09-29T12:34:54Z"
+    },
+    "deicing": null,
+    "airportLongName": "Los Angeles International",
+    "latitude": "33.9416",
+    "longitude": "-118.4085"
+  },
+  {
+    "airportId": "ORD",
+    "groundStop": null,
+    "groundDelay": null,
+    "airportClosure": null,
+    "freeForm": null,
+    "arrivalDelay": null,
+    "departureDelay": {
+      "airportId": "ORD",
+      "reason": "RWY:Obstruction",
+      "arrivalDeparture": {
+        "type": "Departure",
+        "min": "16 minutes",
+        "max": "30 minutes",
+        "trend": "Increasing"
+      },
+      "updateTime": "2026-09-29T23:15:00Z",
+      "averageDelay": "15",
+      "trend": "increasing"
+    },
+    "airportConfig": {
+      "airportId": "ORD",
+      "arrivalRunwayConfig": "27R/27C/28C",
+      "departureRunwayConfig": "27C/27L/28R/22L",
+      "arrivalRate": 100,
+      "sourceTimeStamp": "2026-09-29T23:05:33Z"
+    },
+    "deicing": null,
+    "airportLongName": "Chicago OHare International",
+    "latitude": "41.9742",
+    "longitude": "-87.9073"
+  },
+  {
+    "airportId": "SEA",
+    "groundStop": null,
+    "groundDelay": {
+      "id": "142a2153-bf71-4a43-bae9-484f63909f9b",
+      "airportId": "SEA",
+      "updatedAt": "2026-09-30T00:17:04Z",
+      "impactingCondition": "low ceilings",
+      "avgDelay": 55.0,
+      "maxDelay": 117,
+      "startTime": "2026-09-30T01:00:00Z",
+      "endTime": "2026-09-30T05:59:00Z",
+      "center": "ZSE",
+      "advisoryUrl": "https://www.fly.faa.gov/adv/adv_otherdis.jsp?advn=3&adv_date=09302026&facId=SEA&title=ATCSCC ADVZY 003 SEA/ZSE 09/30/2026 CDM GROUND DELAY PROGRAM&titleDate=09/30/2026",
+      "departureScope": 1200.0,
+      "includedFacilities": ["CYEG", "CYVR", "CYYC"],
+      "fuelFlowAdvisoryDelayTime": {
+        "controlElement": "SEA",
+        "delayProgramType": "GDP",
+        "startTime": "2026-09-30T01:00:00Z",
+        "endTime": "2026-09-30T05:59:00Z",
+        "dasDelays": {
+          "delayTimeAmount": "2026-09-30T01:00:00.000+00:00",
+          "dasDelay": [
+            { "delay": 64, "seq": 1 },
+            { "delay": 62, "seq": 2 },
+            { "delay": 62, "seq": 3 },
+            { "delay": 65, "seq": 4 }
+          ]
+        }
+      },
+      "includedFlights": ": ALL CONTIGUOUS US DEP",
+      "fadtParamType": "GDP",
+      "compression": false
+    },
+    "airportClosure": null,
+    "freeForm": null,
+    "arrivalDelay": null,
+    "departureDelay": null,
+    "airportConfig": {
+      "airportId": "SEA",
+      "arrivalRunwayConfig": "34L",
+      "departureRunwayConfig": "34C/34R",
+      "arrivalRate": 38,
+      "sourceTimeStamp": "2026-09-30T00:53:49Z"
+    },
+    "deicing": null,
+    "airportLongName": "Seattle-Tacoma International",
+    "latitude": "47.4502",
+    "longitude": "-122.3088"
+  },
+  {
+    "airportId": "DEN",
+    "groundStop": {
+      "airportId": "DEN",
+      "advisoryUrl": "https://www.fly.faa.gov/adv/adv_otherdis.jsp?advn=12&adv_date=09292026&facId=DEN&title=ATCSCC ADVZY 012 DEN/ZDV 09/29/2026 CDM GROUND STOP&titleDate=09/29/2026",
+      "impactingCondition": "thunderstorms",
+      "startTime": "2026-09-29T22:00:00Z",
+      "endTime": "2026-09-29T23:30:00Z",
+      "updatedAt": "2026-09-29T22:05:00Z",
+      "includedFacilities": ["ZAU", "ZDC"],
+      "probabilityOfExtension": "HIGH"
+    },
+    "groundDelay": null,
+    "airportClosure": null,
+    "freeForm": null,
+    "arrivalDelay": null,
+    "departureDelay": null,
+    "airportConfig": null,
+    "deicing": null,
+    "airportLongName": "Denver International",
+    "latitude": "39.8617",
+    "longitude": "-104.6731"
+  },
+  {
+    "airportId": "JFK",
+    "groundStop": null,
+    "groundDelay": null,
+    "airportClosure": {
+      "airportId": "JFK",
+      "startTime": "2026-09-29T20:00:00Z",
+      "endTime": "2026-09-30T04:00:00Z",
+      "updatedAt": "2026-09-29T19:30:00Z",
+      "text": "CLOSED EXC EMERGENCY AND MILITARY"
+    },
+    "freeForm": null,
+    "arrivalDelay": null,
+    "departureDelay": null,
+    "airportConfig": null,
+    "deicing": null,
+    "airportLongName": "John F Kennedy International",
+    "latitude": "40.6398",
+    "longitude": "-73.7789"
+  },
+  {
+    "airportId": "BOS",
+    "groundStop": null,
+    "groundDelay": null,
+    "airportClosure": null,
+    "freeForm": null,
+    "arrivalDelay": {
+      "airportId": "BOS",
+      "reason": "WEATHER:Low Ceilings",
+      "updateTime": "2026-09-29T23:45:00Z",
+      "averageDelay": "30",
+      "trend": "decreasing"
+    },
+    "departureDelay": null,
+    "airportConfig": null,
+    "deicing": null,
+    "airportLongName": "General Edward Lawrence Logan International",
+    "latitude": "42.3643",
+    "longitude": "-71.0052"
+  },
+  {
+    "airportId": "MSP",
+    "groundStop": null,
+    "groundDelay": null,
+    "airportClosure": null,
+    "freeForm": null,
+    "arrivalDelay": null,
+    "departureDelay": null,
+    "airportConfig": null,
+    "deicing": { "airportId": "MSP", "eventTime": "2026-09-29T21:00:00Z" },
+    "airportLongName": "Minneapolis-St Paul International",
+    "latitude": "44.8820",
+    "longitude": "-93.2218"
+  },
+  {
+    "airportId": "ATL",
+    "groundStop": null,
+    "groundDelay": {
+      "airportId": "ATL",
+      "updatedAt": "2026-09-29T23:00:00Z",
+      "impactingCondition": "volume",
+      "avgDelay": 20.5,
+      "maxDelay": 40,
+      "startTime": "2026-09-29T23:00:00Z",
+      "endTime": "2026-09-30T03:00:00Z",
+      "center": "ZTL",
+      "advisoryUrl": "https://www.fly.faa.gov/adv/adv_otherdis.jsp?advn=7&adv_date=09292026&facId=ATL&title=ATCSCC ADVZY 007 ATL/ZTL 09/29/2026 CDM GROUND DELAY PROGRAM&titleDate=09/29/2026"
+    },
+    "airportClosure": null,
+    "freeForm": null,
+    "arrivalDelay": null,
+    "departureDelay": null,
+    "airportConfig": null,
+    "deicing": null,
+    "airportLongName": "Hartsfield-Jackson Atlanta International",
+    "latitude": "33.6367",
+    "longitude": "-84.4281"
+  }
+]

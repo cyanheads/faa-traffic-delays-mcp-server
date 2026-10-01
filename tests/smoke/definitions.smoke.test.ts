@@ -1,45 +1,35 @@
 /**
- * @fileoverview Smoke coverage for every definition shipped by the scaffold.
+ * @fileoverview Offline smoke coverage for the shipped tool definitions: the static
+ * faa_delays_list_reference topics, and faa_delays_get_airport_status rejecting an unknown code
+ * before any upstream request.
  * @module tests/smoke/definitions.smoke.test
  */
 
 import { createMockContext } from '@cyanheads/mcp-ts-core/testing';
 import { describe, expect, it } from 'vitest';
-import { echoPrompt } from '@/mcp-server/prompts/definitions/echo.prompt.js';
-import { echoResource } from '@/mcp-server/resources/definitions/echo.resource.js';
-import { echoAppUiResource } from '@/mcp-server/resources/definitions/echo-app-ui.app-resource.js';
-import { echoTool } from '@/mcp-server/tools/definitions/echo.tool.js';
-import { echoAppTool } from '@/mcp-server/tools/definitions/echo-app.app-tool.js';
+import { getAirportStatus } from '@/mcp-server/tools/definitions/get-airport-status.tool.js';
+import { listReference } from '@/mcp-server/tools/definitions/list-reference.tool.js';
 
-describe('scaffold definition smoke test', () => {
-  it('executes the shipped tool, resource, and prompt definitions', async () => {
-    // `echoTool` declares an error contract, so its handler wants a context
-    // typed against it — passing `errors` narrows what `createMockContext` returns.
-    const ctx = createMockContext({ errors: echoTool.errors });
-    const toolResult = await echoTool.handler(echoTool.input.parse({ message: 'smoke' }), ctx);
-    const resourceResult = await echoResource.handler(
-      echoResource.params!.parse({ message: 'smoke' }),
-      ctx,
-    );
-    const promptMessages = await echoPrompt.generate(echoPrompt.args!.parse({ message: 'smoke' }));
-    const appResult = await echoAppTool.handler(
-      echoAppTool.input.parse({ message: 'smoke app' }),
-      ctx,
-    );
-    const appContent = echoAppTool.format?.(appResult);
-    const appHtml = await echoAppUiResource.handler(
-      echoAppUiResource.params!.parse({}),
-      createMockContext({ uri: new URL('ui://template-echo-app/app.html') }),
-    );
+describe('definition smoke test', () => {
+  it.each(['event_types', 'terms', 'artccs', 'identifiers'])(
+    'answers the static reference topic %s',
+    async (topic) => {
+      const ctx = createMockContext({ errors: listReference.errors });
+      const result = await listReference.handler(listReference.input.parse({ topic }), ctx);
+      const content = listReference.format?.(result);
 
-    expect(toolResult).toEqual({ message: 'smoke' });
-    expect(resourceResult).toEqual({ message: 'smoke' });
-    expect(promptMessages).toEqual([
-      { role: 'user', content: { type: 'text', text: 'Echo: smoke' } },
-    ]);
-    expect(appResult).toEqual(expect.schemaMatching(echoAppTool.output));
-    expect(appContent?.[0]).toEqual({ type: 'text', text: JSON.stringify(appResult) });
-    expect(appHtml).toContain('<title>Echo App</title>');
-    expect(appHtml).toContain('app.callServerTool');
+      expect(result).toEqual(expect.schemaMatching(listReference.output));
+      expect(result.topic).toBe(topic);
+      expect(content?.[0]).toMatchObject({ type: 'text', text: expect.stringContaining(topic) });
+    },
+  );
+
+  it('rejects an unknown airport code without calling the FAA', async () => {
+    const ctx = createMockContext({ errors: getAirportStatus.errors });
+    const input = getAirportStatus.input.parse({ airports: ['SEA', 'ZZZ'] });
+
+    await expect(getAirportStatus.handler(input, ctx)).rejects.toMatchObject({
+      data: { reason: 'unknown_airport', unknownCodes: ['ZZZ'] },
+    });
   });
 });
