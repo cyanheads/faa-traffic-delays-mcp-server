@@ -6,6 +6,7 @@
  * @module tests/mcp-server/tools/list-active-events.tool.test
  */
 
+import { z } from '@cyanheads/mcp-ts-core';
 import { JsonRpcErrorCode, rateLimited } from '@cyanheads/mcp-ts-core/errors';
 import { runToolContract } from '@cyanheads/mcp-ts-core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -115,6 +116,35 @@ describe('event_types input', () => {
   it('rejects a non-string, non-array value', async () => {
     expect(listActiveEvents.input.safeParse({ event_types: 7 }).success).toBe(false);
   });
+
+  it.each([
+    ['a string of 10,000 whitespace-separated pieces', `${'- '.repeat(10_000)}x`],
+    [
+      'an array of 10,000 distinct unknown types',
+      Array.from({ length: 10_000 }, (_, i) => `t${i}`),
+    ],
+  ])('bounds the rejection of %s to one issue per type plus one', async (_label, eventTypes) => {
+    const result = await run({ event_types: eventTypes });
+
+    const issues = errorOf(result).data?.issues as unknown[] | undefined;
+    expect(errorOf(result).code).toBe(JsonRpcErrorCode.InvalidParams);
+    expect(issues?.length).toBeLessThanOrEqual(EVENT_TYPES.length + 1);
+    expect(JSON.stringify(result).length).toBeLessThan(10_000);
+  });
+
+  it('dedupes before bounding the list, so repeats never push a valid type out', () => {
+    expect(parse([...Array(20).fill('gs'), 'gdp'])).toEqual([
+      'ground_stop',
+      'ground_delay_program',
+    ]);
+  });
+
+  it.each(['constructor', '__proto__'])(
+    'passes %j to the enum as the word sent, never an inherited object member',
+    (name) => {
+      expect(z.parse(listActiveEvents.input.shape.event_types.in, name)).toEqual([name]);
+    },
+  );
 });
 
 describe('results', () => {
@@ -240,6 +270,34 @@ describe('results', () => {
     const [event] = structured(await run()).events;
     expect(event).toMatchObject({ eventType: 'departure_delay', location: 'SEA' });
     expect(event?.delayRangeMinutes).toEqual(range);
+  });
+
+  it('omits feed numbers too large to represent instead of failing the list', async () => {
+    services.dispose();
+    setup({
+      'airport-events': `[
+        {"airportId": "SEA", "groundDelay": {"avgDelay": 55,
+          "advisoryUrl": "https://www.fly.faa.gov/adv/adv_otherdis.jsp?advn=${'9'.repeat(25)}&adv_date=09302026"}},
+        {"airportId": "ORD", "departureDelay": {"arrivalDeparture":
+          {"min": "${'9'.repeat(400)} minutes", "max": "30 minutes"}}},
+        {"airportId": "BOS", "arrivalDelay": {"averageDelay": 1e999, "trend": "increasing"}}
+      ]`,
+      'enroute-events': [],
+    });
+
+    const result = await run();
+
+    expect(result.isError).toBeFalsy();
+    const byKey = new Map(
+      structured(result).events.map((event) => [`${event.eventType}:${event.location}`, event]),
+    );
+    expect(byKey.get('ground_delay_program:SEA')).toEqual({
+      averageDelayMinutes: 55,
+      eventType: 'ground_delay_program',
+      location: 'SEA',
+    });
+    expect(byKey.get('departure_delay:ORD')?.delayRangeMinutes).toEqual({ max: 30 });
+    expect(byKey.get('arrival_delay:BOS')).not.toHaveProperty('delayRangeMinutes');
   });
 
   it('sorts a one-sided band by its known bound, ahead of a delay with no band', async () => {

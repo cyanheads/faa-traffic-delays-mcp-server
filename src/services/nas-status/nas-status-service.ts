@@ -36,11 +36,16 @@ import type {
 const BASE_URL = 'https://nasstatus.faa.gov/api/';
 const FEED_TTL_MS = 60_000;
 const PACING_TTL_MS = 6 * 60 * 60 * 1000;
+/** Distinct drift signals logged per process; signals past this are dropped. */
+const MAX_DRIFT_SIGNALS = 256;
+/** Characters of an unknown row key kept in its drift signal and log record. */
+const MAX_KEY_CHARS = 64;
 
 const PROFILE: UpstreamProfile = {
   accept: 'application/json',
   contractChangedReason: 'feed_contract_changed',
   htmlIsMaintenance: true,
+  maxBodyBytes: 4 * 1024 * 1024,
   pacer: {
     cooldown: { baseMs: 5_000, maxMs: 60_000 },
     limits: [{ perMs: 60_000, requests: 30 }],
@@ -134,10 +139,14 @@ export class NasStatusService implements Disposable {
     );
   }
 
-  /** Logs each distinct drift signal once per process. */
+  /**
+   * Logs each distinct drift signal once per process, up to `MAX_DRIFT_SIGNALS`; an unknown key is
+   * kept to its first `MAX_KEY_CHARS` characters. Keys come from the upstream body, so neither the
+   * set nor its entries may grow with it.
+   */
   private reporter(logContext: RequestContext): ParseReporter {
     const once = (key: string, message: string, details: Record<string, unknown>): void => {
-      if (this.reported.has(key)) return;
+      if (this.reported.has(key) || this.reported.size >= MAX_DRIFT_SIGNALS) return;
       this.reported.add(key);
       logger.warning(message, withExtra(logContext, details));
     };
@@ -147,8 +156,10 @@ export class NasStatusService implements Disposable {
           fieldPath: path,
           observedType,
         }),
-      unknownKey: (feed, key) =>
-        once(`key:${feed}:${key}`, 'NAS Status row carries an unknown key', { feed, key }),
+      unknownKey: (feed, key) => {
+        const shown = key.slice(0, MAX_KEY_CHARS);
+        once(`key:${feed}:${shown}`, 'NAS Status row carries an unknown key', { feed, key: shown });
+      },
     };
   }
 }

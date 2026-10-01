@@ -116,6 +116,40 @@ describe('input', () => {
     expect(contentText(result)).toContain('YYYY-MM-DD');
     expect(contentText(result)).toContain('M/D/YYYY');
   });
+
+  describe('latest date', () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-09-30T23:30:00Z'));
+    });
+
+    it.each([
+      ['today (UTC)', '2026-09-30'],
+      ['tomorrow (UTC), for a caller whose clock runs ahead of UTC', '2026-10-01'],
+      ['an old date', '2004-06-15'],
+    ])('accepts %s', (_label, date) => {
+      expect(parse({ advisory_number: 3, date }).success).toBe(true);
+    });
+
+    it.each([
+      ['the day after tomorrow (UTC)', '2026-10-02'],
+      ['a far-future date', '9999-12-31'],
+      ['a far-future date as MM/DD/YYYY', '12/31/9999'],
+    ])('rejects %s before any upstream request', async (_label, date) => {
+      const result = await run({ advisory_number: 3, date });
+
+      expect(errorOf(result).code).toBe(JsonRpcErrorCode.InvalidParams);
+      expect(errorOf(result).data?.issues).toHaveLength(1);
+      expect(contentText(result)).toContain('later than tomorrow');
+      expect(harness.calls).toHaveLength(0);
+    });
+
+    it('reports a malformed date once, not also as a date past tomorrow', async () => {
+      const result = await run({ advisory_number: 3, date: '2026-13-01' });
+      expect(errorOf(result).data?.issues).toHaveLength(1);
+      expect(contentText(result)).not.toContain('later than tomorrow');
+    });
+  });
 });
 
 describe('found advisory', () => {
@@ -368,5 +402,29 @@ describe('format', () => {
     expect(lines.some((line) => line.startsWith('## Title injection'))).toBe(false);
     expect(lines.some((line) => line.startsWith('## Time injection'))).toBe(false);
     expect(lines).toContain('## Body');
+  });
+
+  it('renders link, image, and HTML syntax in inline slots as text and drops control characters', async () => {
+    services.dispose();
+    setup({
+      [GDP_URL]: () =>
+        htmlResponse(
+          `<TH class=header>ATCSCC ADVZY 003 SEA/ZSE 09/30/2026 ![x](https://evil.example/p?q=1) &lt;img src=x onerror=alert(1)&gt; &#27;[2J &#x202E;GDP</TH><PRE>BODY</PRE><TD class=nam>EFFECTIVE TIME:</TD><TD class=val>[here](https://evil.example)\u{1B}[31m\u{202E}</TD>`,
+        ),
+    });
+
+    const result = await run({ advisory_number: 3, date: '2026-09-30' });
+    const text = contentText(result);
+
+    expect(text).toContain(
+      '**Subject:** !\\[x\\](https://evil.example/p?q=1) \\<img src=x onerror=alert(1)\\> &#27;\\[2J &#x202E;GDP',
+    );
+    expect(text).toContain('**Effective:** \\[here\\](https://evil.example)\\[31m');
+    expect(text).not.toMatch(/(?<!\\)[[\]<>]/);
+    expect(text).not.toMatch(/[\u{1B}\u{202E}]/u);
+    expect(structured(result)).toMatchObject({
+      effectiveTime: '[here](https://evil.example)\u{1B}[31m\u{202E}',
+      subject: '![x](https://evil.example/p?q=1) <img src=x onerror=alert(1)> &#27;[2J &#x202E;GDP',
+    });
   });
 });

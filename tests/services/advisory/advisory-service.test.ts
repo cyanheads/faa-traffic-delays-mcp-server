@@ -33,9 +33,24 @@ describe('decodeEntities', () => {
     ['&unknown;', '&unknown;'],
     ['&#0;', '&#0;'],
     ['&#x110000;', '&#x110000;'],
+    ['A&constructor;B', 'A&constructor;B'],
     ['plain text', 'plain text'],
   ])('decodes %j to %j', (input, expected) => {
     expect(decodeEntities(input)).toBe(expected);
+  });
+
+  it.each([
+    ['ESC', '&#27;[2J'],
+    ['ESC in hex', '&#x1b;'],
+    ['NUL-range C0', '&#1;&#8;&#11;&#31;'],
+    ['DEL and C1', '&#127;&#133;&#x9B;'],
+    ['bidi overrides and isolates', '&#x202A;&#8238;&#x2066;&#x2069;'],
+  ])('leaves %s encoded', (_label, input) => {
+    expect(decodeEntities(input)).toBe(input);
+  });
+
+  it('decodes tab, line feed, and carriage return', () => {
+    expect(decodeEntities('A&#9;B&#10;C&#x0D;D')).toBe('A\tB\nC\rD');
   });
 });
 
@@ -160,6 +175,48 @@ describe('parseAdvisoryPage', () => {
   it('raises advisory_service_unavailable for an empty page', () => {
     expect(() => parseAdvisoryPage('', URL_UNDER_TEST)).toThrow(/neither an advisory/);
   });
+
+  describe('time on hostile markup', () => {
+    const TITLE = 'ATCSCC ADVZY 003 SEA/ZSE 09/30/2026 GDP';
+
+    function elapsedMs(run: () => void): number {
+      const started = performance.now();
+      run();
+      return performance.now() - started;
+    }
+
+    it.each([
+      ['label cells with no value cell', page(TITLE, 'TEXT', 'EFFECTIVE TIME:'.repeat(20_000))],
+      [
+        'value cells with no closing tag',
+        page(TITLE, 'TEXT', `EFFECTIVE TIME:${'<TD class=val>'.repeat(20_000)}`),
+      ],
+      [
+        'unclosed tags inside a value cell',
+        page(
+          TITLE,
+          'TEXT',
+          `<TD class=nam>EFFECTIVE TIME:</TD><TD class=val>${'<'.repeat(40_000)}</TD>`,
+        ),
+      ],
+      ['header cells with no closing tag', `${'<TH class=header>'.repeat(20_000)}<PRE>T</PRE>`],
+    ])('reads a page of %s in linear time', (_label, html) => {
+      expect(
+        elapsedMs(() => expect(parseAdvisoryPage(html, URL_UNDER_TEST).found).toBe(true)),
+      ).toBeLessThan(250);
+    });
+
+    it.each([
+      ['unterminated PRE tags', '<PRE'.repeat(30_000)],
+      ['PRE blocks with no closing tag', '<PRE>'.repeat(30_000)],
+    ])('rejects a page of %s in linear time', (_label, html) => {
+      expect(
+        elapsedMs(() =>
+          expect(() => parseAdvisoryPage(html, URL_UNDER_TEST)).toThrow(/neither an advisory/),
+        ),
+      ).toBeLessThan(250);
+    });
+  });
 });
 
 describe('AdvisoryService', () => {
@@ -236,6 +293,44 @@ describe('AdvisoryService', () => {
     clock.advance(1);
     await service.getAdvisory(3, '2026-09-30', ctx);
     expect(harness.calls).toHaveLength(2);
+  });
+
+  it('caches a miss for 6 h once its UTC date has been over for an hour', async () => {
+    const past = advisoryUrl(3, '09282026');
+    const { clock, harness } = makeService({
+      [past]: () => htmlResponse(readFixture('advisory-miss.page')),
+    });
+    const ctx = createMockContext();
+
+    await expect(service.getAdvisory(3, '2026-09-28', ctx)).resolves.toEqual({ found: false });
+    clock.advance(6 * 60 * 60_000 - 1);
+    await service.getAdvisory(3, '2026-09-28', ctx);
+    expect(harness.calls).toHaveLength(1);
+
+    clock.advance(1);
+    await service.getAdvisory(3, '2026-09-28', ctx);
+    expect(harness.calls).toHaveLength(2);
+  });
+
+  it('keeps the 60 s miss cache until the UTC date has been over for an hour', async () => {
+    const { clock, harness } = makeService({
+      [URL_UNDER_TEST]: () => htmlResponse(readFixture('advisory-miss.page')),
+    });
+    const ctx = createMockContext();
+    // 2026-10-01T00:30Z: the 2026-09-30 UTC day ended 30 minutes ago.
+    clock.advance(22.5 * 60 * 60_000);
+
+    await service.getAdvisory(3, '2026-09-30', ctx);
+    clock.advance(60_000);
+    await service.getAdvisory(3, '2026-09-30', ctx);
+    expect(harness.calls).toHaveLength(2);
+
+    // 01:01Z: over an hour since the day ended, so this miss is kept for 6 h.
+    clock.advance(30 * 60_000);
+    await service.getAdvisory(3, '2026-09-30', ctx);
+    clock.advance(60 * 60_000);
+    await service.getAdvisory(3, '2026-09-30', ctx);
+    expect(harness.calls).toHaveLength(3);
   });
 
   it('keys the cache by date and number', async () => {
@@ -371,6 +466,23 @@ describe('AdvisoryService', () => {
         url: URL_UNDER_TEST,
       });
       expect(harness.calls).toHaveLength(1);
+    });
+
+    it('reads a page over 2 MiB as advisory_service_unavailable, with the url', async () => {
+      vi.useFakeTimers();
+      const { harness } = makeService({
+        [URL_UNDER_TEST]: () =>
+          htmlResponse(readFixture('advisory-gdp.page').padEnd(2 * 1024 * 1024 + 1)),
+      });
+
+      const { error } = await settle(service.getAdvisory(3, '2026-09-30', createMockContext()));
+
+      expect(error).toMatchObject({ code: JsonRpcErrorCode.ServiceUnavailable });
+      expect((error as McpError).data).toMatchObject({
+        reason: 'advisory_service_unavailable',
+        url: URL_UNDER_TEST,
+      });
+      expect(harness.calls).toHaveLength(3);
     });
 
     it('does not cache a failure', async () => {

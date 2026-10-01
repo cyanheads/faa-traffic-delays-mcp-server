@@ -35,9 +35,17 @@ const STATUSES = [
   'no_active_events',
 ] as const;
 
-/** Splits a comma- or whitespace-separated string into codes; arrays and other values pass through. */
+/** Most airports one call accepts. */
+const MAX_AIRPORTS = 25;
+
+/**
+ * Splits a comma- or whitespace-separated string into codes; other values pass through. A list is
+ * cut to one past MAX_AIRPORTS, so an oversized one fails the size check with at most that many
+ * code issues rather than one per code sent.
+ */
 function splitList(value: unknown): unknown {
-  return typeof value === 'string' ? value.split(/[\s,]+/).filter(Boolean) : value;
+  const list = typeof value === 'string' ? value.split(/[\s,]+/).filter(Boolean) : value;
+  return Array.isArray(list) ? list.slice(0, MAX_AIRPORTS + 1) : list;
 }
 
 const AirportCode = z
@@ -288,7 +296,7 @@ export const getAirportStatus = tool('faa_delays_get_airport_status', {
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
   input: z.object({
     airports: z
-      .preprocess(splitList, z.array(AirportCode).min(1).max(25))
+      .preprocess(splitList, z.array(AirportCode).min(1).max(MAX_AIRPORTS))
       .describe(
         '1–25 US airports, each a 3-character FAA location identifier (SEA, ORD, 0S9) or its ICAO code (KSEA, PHNL, TJSJ), case-insensitive; a comma-separated string is also accepted. City and airport names are not accepted.',
       ),

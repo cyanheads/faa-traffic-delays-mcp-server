@@ -1,16 +1,37 @@
 /**
  * @fileoverview Markdown rendering helpers for FAA-authored text in `format()`. Inline slots get
- * CR/LF/TAB flattened to one space; table cells also escape `\` then `|`; free text renders as a
- * `>` blockquote or a fenced block; a value the FAA did not report is named or left out, never
- * shown as a placeholder. `structuredContent` always keeps the verbatim value.
+ * CR/LF/TAB flattened to one space, other control and bidi characters removed, and `[`, `]`, `<`,
+ * `>` escaped so the text cannot form a link, image, or HTML tag; table cells escape every `\` and
+ * `|` as well. Free text renders as a `>` blockquote or a fenced block; a value the FAA did not
+ * report is named or left out, never shown as a placeholder. `structuredContent` always keeps the
+ * verbatim value.
  * @module mcp-server/tools/format-helpers
  */
 
 import type { AdvisoryRef } from '@/services/advisory/advisory-ref.js';
 
-/** Flattens CR, LF, and TAB runs to a single space for headings, labels, and list items. */
+/** C0 and C1 controls, DEL, and the bidi embedding, override, and isolate controls. */
+const isControl = (code: number): boolean =>
+  code <= 0x1f ||
+  (code >= 0x7f && code <= 0x9f) ||
+  (code >= 0x202a && code <= 0x202e) ||
+  (code >= 0x2066 && code <= 0x2069);
+
+/** CR/LF/TAB runs → one space, then every remaining control or bidi character removed. */
+function flatten(value: string): string {
+  let kept = '';
+  for (const char of value.replace(/[\r\n\t]+/g, ' ')) {
+    if (!isControl(char.charCodeAt(0))) kept += char;
+  }
+  return kept;
+}
+
+/**
+ * Text safe in a heading, label, or list item: flattened, with `[`, `]`, `<`, and `>` escaped and
+ * a backslash run directly before one doubled, so the text cannot cancel the escape.
+ */
 export function inline(value: string): string {
-  return value.replace(/[\r\n\t]+/g, ' ');
+  return flatten(value).replace(/(?<!\\)(\\*)([[\]<>])/g, '$1$1\\$2');
 }
 
 /** `start → end` for an upstream time window, naming whichever bound the FAA did not report. */
@@ -41,10 +62,12 @@ export function delayBand(min: number | undefined, max: number | undefined): str
   return;
 }
 
-/** An inline value safe inside a Markdown table cell. */
+/** An inline value safe inside a Markdown table cell: every `\` doubled, then `|[]<>` escaped. */
 export function cell(value: string | number | boolean | undefined): string {
   if (value === undefined) return '—';
-  return inline(String(value)).replaceAll('\\', '\\\\').replaceAll('|', '\\|');
+  return flatten(String(value))
+    .replaceAll('\\', '\\\\')
+    .replace(/[|[\]<>]/g, '\\$&');
 }
 
 /** Renders free text as a blockquote, every line prefixed. */

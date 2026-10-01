@@ -63,6 +63,10 @@ type Obj = Record<string, unknown>;
 const describeType = (value: unknown): string =>
   value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value;
 
+/** `value` when it is a finite number; anything else, Infinity and NaN included, reads as absent. */
+const finite = (value: unknown): number | undefined =>
+  typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+
 /** The error every unrecognizable feed body raises. */
 function feedContractChanged(feed: Feed, detail: string): Error {
   return serializationError(
@@ -208,10 +212,10 @@ function parseDelayProfile(fields: Fields | undefined): DelayProfile | undefined
   const entries = Array.isArray(rawDelays) ? rawDelays : [rawDelays];
   const values: { delay: number; seq: number }[] = [];
   for (const entry of entries) {
-    if (!isRecord(entry) || typeof entry.delay !== 'number' || typeof entry.seq !== 'number') {
-      return dasDelays?.flag('dasDelay[]', entry);
-    }
-    values.push({ delay: entry.delay, seq: entry.seq });
+    const delay = isRecord(entry) ? finite(entry.delay) : undefined;
+    const seq = isRecord(entry) ? finite(entry.seq) : undefined;
+    if (delay === undefined || seq === undefined) return dasDelays?.flag('dasDelay[]', entry);
+    values.push({ delay, seq });
   }
   if (values.length === 0) return;
   values.sort((a, b) => a.seq - b.seq);
@@ -232,11 +236,15 @@ function parseTrend(value: string | undefined): Trend | undefined {
   return lower === 'increasing' || lower === 'decreasing' ? lower : undefined;
 }
 
-/** `"16 minutes"`, `"1 hour and 57 minutes"` → minutes; `undefined` when neither unit appears. */
+/**
+ * `"16 minutes"`, `"1 hour and 57 minutes"` → minutes; `undefined` when neither unit follows a count
+ * of one to four digits. A count must start the digit run, so a longer one reads as absent rather
+ * than as its last four digits, and each pattern runs in linear time on a long digit run.
+ */
 export function parseDurationMinutes(value: string | undefined): number | undefined {
   if (!value) return;
-  const hours = /(\d+)\s*hours?/i.exec(value)?.[1];
-  const minutes = /(\d+)\s*minutes?/i.exec(value)?.[1];
+  const hours = /(?<!\d)(\d{1,4})\s*hours?/i.exec(value)?.[1];
+  const minutes = /(?<!\d)(\d{1,4})\s*minutes?/i.exec(value)?.[1];
   if (hours === undefined && minutes === undefined) return;
   return Number(hours ?? 0) * 60 + Number(minutes ?? 0);
 }
@@ -310,12 +318,11 @@ function parseDelayBand(f: Fields): DelayBand {
     maxMinutes = parseDurationMinutes(band.string('max'));
   } else {
     const rawAverage = f.raw('averageDelay');
-    const average =
-      typeof rawAverage === 'number'
-        ? rawAverage
-        : typeof rawAverage === 'string' && /^\s*\d+\s*$/.test(rawAverage)
-          ? Number(rawAverage)
-          : undefined;
+    const average = finite(
+      typeof rawAverage === 'string' && /^\s*\d+\s*$/.test(rawAverage)
+        ? Number(rawAverage)
+        : rawAverage,
+    );
     if (average !== undefined && trend === 'increasing') {
       minMinutes = average + 1;
       maxMinutes = average + 15;

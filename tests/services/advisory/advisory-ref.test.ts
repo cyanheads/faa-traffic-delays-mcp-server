@@ -51,9 +51,15 @@ describe('parseAdvisoryLink', () => {
     ['a link without adv_date', 'https://x.test/a?advn=3'],
     ['a malformed adv_date', 'https://x.test/a?advn=3&adv_date=2026-09-30'],
     ['advn 0', 'https://x.test/a?advn=0&adv_date=09302026'],
+    ['advn 1000, past the last advisory number', 'https://x.test/a?advn=1000&adv_date=09302026'],
+    ['a 25-digit advn', `https://x.test/a?advn=${'9'.repeat(25)}&adv_date=09302026`],
     ['a non-numeric advn', 'https://x.test/a?advn=abc&adv_date=09302026'],
   ])('returns undefined for %s', (_label, link) => {
     expect(parseAdvisoryLink(link)).toBeUndefined();
+  });
+
+  it('reads advn 999, the last advisory number', () => {
+    expect(parseAdvisoryLink('https://x.test/a?advn=999&adv_date=09302026')?.number).toBe(999);
   });
 
   it('does not match advn as the tail of another parameter', () => {

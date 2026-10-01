@@ -1,9 +1,10 @@
 /**
  * @fileoverview Fetch boundary shared by the FAA HTTP services. One client per upstream host:
  * a pacer bounds the request rate, `withRetry` wraps fetch + parse under a 20 s deadline, and each
- * attempt runs its own timer across the header phase and body read. Statuses are classified here
- * against an accept-list of 200 only, because a 404 on a known path means the contract changed and a
- * 200 can carry an HTML maintenance page.
+ * attempt runs its own timer across the header phase and body read. The body is read as a stream
+ * under the host's byte ceiling, counted after gzip decoding. Statuses are classified here against
+ * an accept-list of 200 only, because a 404 on a known path means the contract changed and a 200
+ * can carry an HTML maintenance page.
  * @module services/upstream/faa-http-client
  */
 
@@ -27,6 +28,28 @@ const ATTEMPT_TIMEOUT_MS = 8_000;
 const MAX_QUEUE_WAIT_MS = 10_000;
 const RETRY_DEADLINE_MS = 20_000;
 
+/**
+ * The body as UTF-8 text, or `undefined` once it passes `maxBytes`, when the rest is cancelled
+ * unread. Bytes are counted as decoded, so a small compressed body cannot expand past the ceiling.
+ */
+async function readBody(response: Response, maxBytes: number): Promise<string | undefined> {
+  if (!response.body) return '';
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let bytes = 0;
+  let text = '';
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) return text + decoder.decode();
+    bytes += value.byteLength;
+    if (bytes > maxBytes) {
+      await reader.cancel();
+      return;
+    }
+    text += decoder.decode(value, { stream: true });
+  }
+}
+
 /** Injectable seams shared by the HTTP services (tests pass a fake `fetch` and clock). */
 export interface HttpServiceOptions {
   fetch?: typeof fetch;
@@ -43,6 +66,8 @@ export interface UpstreamProfile {
   contractChangedReason: string;
   /** A 200 `text/html` response is a maintenance page, not data (JSON feeds). */
   htmlIsMaintenance: boolean;
+  /** Largest decoded body read; a larger one is cut off and fails as `unavailableReason`. */
+  maxBodyBytes: number;
   /** Pacer settings; `name` reaches caller-facing shed messages, so write it as words. */
   pacer: PacerOptions;
   /** Name used in error messages. */
@@ -147,11 +172,18 @@ export class FaaHttpClient implements Disposable {
         );
       }
 
-      let body: string;
+      const { maxBodyBytes, service, unavailableReason } = this.profile;
+      let body: string | undefined;
       try {
-        body = await response.text();
+        body = await readBody(response, maxBodyBytes);
       } catch (error) {
         throw this.fetchFailure(error, request, signal, timer.signal, timeoutMs);
+      }
+      if (body === undefined) {
+        throw serviceUnavailable(
+          `${service} returned a response larger than ${maxBodyBytes.toLocaleString('en-US')} bytes, more than this server reads.`,
+          { ...request.errorData, reason: unavailableReason },
+        );
       }
       return request.parse(body);
     } finally {
@@ -183,7 +215,8 @@ export class FaaHttpClient implements Disposable {
   /**
    * Classifies a thrown fetch or body read. The attempt's own timer is a retried `Timeout`; an
    * abort from the retry deadline passes through for `withRetry` to report; anything else is a
-   * network failure.
+   * network failure, whose runtime text (resolver, proxy, socket detail) stays on `cause` for the
+   * log record and out of the caller-facing message.
    */
   private fetchFailure(
     error: unknown,
@@ -200,9 +233,8 @@ export class FaaHttpClient implements Disposable {
         { cause: error },
       );
     }
-    const detail = error instanceof Error ? error.message : String(error);
     return serviceUnavailable(
-      `${this.profile.service} is unreachable (${detail}).`,
+      `${this.profile.service} is unreachable.`,
       { ...request.errorData, reason: this.profile.unavailableReason },
       { cause: error },
     );

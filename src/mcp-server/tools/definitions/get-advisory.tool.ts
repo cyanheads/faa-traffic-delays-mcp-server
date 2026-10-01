@@ -8,7 +8,7 @@
 
 import { tool, z } from '@cyanheads/mcp-ts-core';
 import { JsonRpcErrorCode } from '@cyanheads/mcp-ts-core/errors';
-import { buildAdvisoryUrl } from '@/services/advisory/advisory-ref.js';
+import { buildAdvisoryUrl, MAX_ADVISORY_NUMBER } from '@/services/advisory/advisory-ref.js';
 import { getAdvisoryService } from '@/services/advisory/advisory-service.js';
 import { fenced, inline } from '../format-helpers.js';
 
@@ -40,6 +40,14 @@ function normalizeDate(value: unknown): unknown {
     );
 }
 
+/**
+ * Latest date accepted, `YYYY-MM-DD`: tomorrow in UTC. An advisory carries the UTC date it was
+ * issued, so a later date holds none yet; the extra day covers a caller whose clock runs ahead of
+ * UTC.
+ */
+const latestAdvisoryDate = (): string =>
+  new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
 export const getAdvisory = tool('faa_delays_get_advisory', {
   title: 'faa_delays_get_advisory',
   description:
@@ -47,14 +55,22 @@ export const getAdvisory = tool('faa_delays_get_advisory', {
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
   input: z.object({
     advisory_number: z
-      .preprocess(stripAdvzy, z.number().int().min(1).max(999))
+      .preprocess(stripAdvzy, z.number().int().min(1).max(MAX_ADVISORY_NUMBER))
       .describe(
         'ATCSCC advisory number, 1–999: advisory.number from an advisory reference on faa_delays_list_active_events, faa_delays_get_airport_status, or faa_delays_get_operations_plan. The printed forms "ADVZY 082" and "082" are also accepted.',
       ),
     date: z
       .preprocess(
         normalizeDate,
-        z.iso.date({ error: 'Must be a real UTC date as YYYY-MM-DD, MM/DD/YYYY, or M/D/YYYY.' }),
+        z.iso
+          .date({
+            abort: true,
+            error: 'Must be a real UTC date as YYYY-MM-DD, MM/DD/YYYY, or M/D/YYYY.',
+          })
+          .refine((date) => date <= latestAdvisoryDate(), {
+            error:
+              'Must be no later than tomorrow (UTC): an advisory carries the UTC date it was issued.',
+          }),
       )
       .describe(
         'UTC date the advisory was issued, YYYY-MM-DD: advisory.date from the same advisory reference. MM/DD/YYYY, as advisory titles print it, and M/D/YYYY are also accepted.',

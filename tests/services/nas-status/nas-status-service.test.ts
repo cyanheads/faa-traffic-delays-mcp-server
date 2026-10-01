@@ -252,6 +252,27 @@ describe('NasStatusService', () => {
       expect(callsTo(made.harness, feedUrl('operations-plan'))).toBe(3);
     });
 
+    it('reads a feed body up to 4 MiB and one past it as feed_unavailable', async () => {
+      const LIMIT = 4 * 1024 * 1024;
+      let size = LIMIT;
+      const made = makeService(
+        feedHarness({ 'airport-events': () => jsonResponse(`[${' '.repeat(size - 2)}]`) }),
+      );
+      service = made.service;
+
+      await expect(service.getAirportEvents(createMockContext())).resolves.toMatchObject({
+        rows: [],
+      });
+
+      size = LIMIT + 1;
+      made.clock.advance(MINUTE);
+      const { error } = await settle(service.getAirportEvents(createMockContext()));
+
+      expect(error).toMatchObject({ code: JsonRpcErrorCode.ServiceUnavailable });
+      expect(dataOf(error)).toMatchObject({ reason: 'feed_unavailable' });
+      expect(callsTo(made.harness, feedUrl('airport-events'))).toBe(4);
+    });
+
     it('names the feed in caller-readable words when the retry deadline runs out', async () => {
       const made = makeService(feedHarness({ 'operations-plan': hangUntilAborted }));
       service = made.service;
@@ -422,6 +443,45 @@ describe('NasStatusService', () => {
       expect(keyLogs).toHaveLength(1);
       expect(keyLogs[0]?.[1]).toMatchObject({
         extra: { feed: 'airport-events', key: 'newEvent' },
+      });
+    });
+
+    it('logs at most 256 distinct drift signals per process', async () => {
+      const warning = vi.spyOn(logger, 'warning').mockImplementation(() => undefined);
+      const rowWithKeys = (prefix: string) =>
+        Object.fromEntries([
+          ['airportId', 'SEA'],
+          ...Array.from({ length: 1_000 }, (_, index) => [`${prefix}${index}`, 1]),
+        ]);
+      let prefix = 'a';
+      const made = makeService(
+        feedHarness({ 'airport-events': () => jsonResponse([rowWithKeys(prefix)]) }),
+      );
+      service = made.service;
+
+      await service.getAirportEvents(createMockContext());
+      prefix = 'b';
+      made.clock.advance(MINUTE);
+      await service.getAirportEvents(createMockContext());
+
+      const keyLogs = warning.mock.calls.filter(([message]) => /unknown key/.test(message));
+      expect(keyLogs).toHaveLength(256);
+    });
+
+    it('logs an unknown key by its first 64 characters', async () => {
+      const warning = vi.spyOn(logger, 'warning').mockImplementation(() => undefined);
+      const longKey = 'k'.repeat(10_000);
+      const made = makeService(
+        feedHarness({ 'airport-events': [{ airportId: 'SEA', [longKey]: 1 }] }),
+      );
+      service = made.service;
+
+      await service.getAirportEvents(createMockContext());
+
+      const keyLogs = warning.mock.calls.filter(([message]) => /unknown key/.test(message));
+      expect(keyLogs).toHaveLength(1);
+      expect(keyLogs[0]?.[1]).toMatchObject({
+        extra: { feed: 'airport-events', key: 'k'.repeat(64) },
       });
     });
 

@@ -1,8 +1,9 @@
 /**
  * @fileoverview ATCSCC advisories database client (`https://www.fly.faa.gov/adv/adv_otherdis`):
  * fetches one advisory page by number and UTC date through the paced, retried fetch boundary and
- * reads its title, text block, effective time, and signature. Issued advisories are cached for 6 h
- * (an advisory number is immutable once issued), misses for 60 s, at most 200 entries.
+ * reads its title, text block, effective time, and signature. Issued advisories, and misses on a UTC
+ * date over for an hour, are cached for 6 h (neither can change); other misses for 60 s; at most
+ * 200 entries.
  * @module services/advisory/advisory-service
  */
 
@@ -20,11 +21,16 @@ import { buildAdvisoryUrl } from './advisory-ref.js';
 const FOUND_TTL_MS = 6 * 60 * 60 * 1000;
 const MISS_TTL_MS = 60_000;
 const MAX_CACHED = 200;
+/** How long after a UTC day ends before a miss on that date is final, allowing for late entry. */
+const DATE_SETTLES_AFTER_MS = 60 * 60 * 1000;
+
+const utcDate = (ms: number): string => new Date(ms).toISOString().slice(0, 10);
 
 const PROFILE: UpstreamProfile = {
   accept: 'text/html',
   contractChangedReason: 'advisory_contract_changed',
   htmlIsMaintenance: false,
+  maxBodyBytes: 2 * 1024 * 1024,
   pacer: {
     cooldown: { baseMs: 5_000, maxMs: 60_000 },
     limits: [{ perMs: 60_000, requests: 20 }],
@@ -47,41 +53,72 @@ export interface AdvisoryPage {
   title?: string;
 }
 
-const NAMED_ENTITIES: Record<string, string> = {
-  amp: '&',
-  apos: "'",
-  gt: '>',
-  lt: '<',
-  nbsp: ' ',
-  quot: '"',
-};
+const NAMED_ENTITIES: ReadonlyMap<string, string> = new Map([
+  ['amp', '&'],
+  ['apos', "'"],
+  ['gt', '>'],
+  ['lt', '<'],
+  ['nbsp', ' '],
+  ['quot', '"'],
+]);
 
-/** Decodes the HTML entities the advisory pages use (named, decimal, and hex). */
+/** Code points a numeric entity stays encoded for: controls except TAB, LF, CR; bidi controls. */
+const isUndecoded = (code: number): boolean =>
+  (code <= 0x1f && code !== 0x09 && code !== 0x0a && code !== 0x0d) ||
+  (code >= 0x7f && code <= 0x9f) ||
+  (code >= 0x202a && code <= 0x202e) ||
+  (code >= 0x2066 && code <= 0x2069);
+
+/**
+ * Decodes the HTML entities the advisory pages use (named, decimal, and hex). A numeric entity for
+ * a control or bidi character stays encoded, so the decoded text carries none it did not already.
+ */
 export function decodeEntities(value: string): string {
   return value.replace(/&(#\d+|#x[0-9a-f]+|[a-z]+);/gi, (match, entity: string) => {
     if (entity.startsWith('#')) {
       const isHex = entity[1] === 'x' || entity[1] === 'X';
       const code = Number.parseInt(entity.slice(isHex ? 2 : 1), isHex ? 16 : 10);
-      return Number.isInteger(code) && code > 0 && code <= 0x10ffff
-        ? String.fromCodePoint(code)
-        : match;
+      if (!Number.isInteger(code) || code > 0x10ffff || isUndecoded(code)) return match;
+      return String.fromCodePoint(code);
     }
-    return NAMED_ENTITIES[entity.toLowerCase()] ?? match;
+    return NAMED_ENTITIES.get(entity.toLowerCase()) ?? match;
   });
 }
 
 const cellText = (html: string): string =>
-  decodeEntities(html.replace(/<[^>]*>/g, ' '))
+  decodeEntities(html.replace(/<[^<>]*>/g, ' '))
     .replace(/\s+/g, ' ')
     .trim();
 
+/**
+ * The content of the first element whose opening tag matches `open`, up to the next `</tag>`, and
+ * the offset just past that closing tag. Each tag is found by its own search, so the work stays
+ * linear in the page; one lazy `open([\s\S]*?)close` pattern rescans the rest of the page from
+ * every opening tag that has no closing tag.
+ */
+function element(
+  html: string,
+  open: RegExp,
+  tag: string,
+): { content: string; end: number } | undefined {
+  const opening = open.exec(html);
+  if (!opening) return;
+  const start = opening.index + opening[0].length;
+  const closing = new RegExp(`</${tag}>`, 'gi');
+  closing.lastIndex = start;
+  const close = closing.exec(html);
+  if (!close) return;
+  return { content: html.slice(start, close.index), end: closing.lastIndex };
+}
+
+const HEADER_CELL = /<TH\s+class=["']?header["']?[^<>]*>/i;
+const PRE_BLOCK = /<PRE[^<>]*>/i;
+const VALUE_CELL = /<TD\s+class=["']?val["']?[^<>]*>/i;
+
 /** The `TD class=val` cell that follows a `LABEL:` cell, as plain text. */
 function labelledValue(html: string, label: string): string | undefined {
-  const pattern = new RegExp(
-    `${label}:[\\s\\S]*?<TD\\s+class=["']?val["']?[^>]*>([\\s\\S]*?)</TD>`,
-    'i',
-  );
-  const value = pattern.exec(html)?.[1];
+  const at = html.search(new RegExp(`${label}:`, 'i'));
+  const value = at < 0 ? undefined : element(html.slice(at), VALUE_CELL, 'TD')?.content;
   const text = value === undefined ? undefined : cellText(value);
   return text || undefined;
 }
@@ -94,9 +131,9 @@ const TITLE_PATTERN = /^ATCSCC ADVZY (\d+) (\S+) (\d{2}\/\d{2}\/\d{4}) (.+)$/;
  * three is not an advisory page at all (an error or maintenance page) and reads as unavailable.
  */
 export function parseAdvisoryPage(html: string, url: string): AdvisoryPage {
-  const titleCell = /<TH\s+class=["']?header["']?[^>]*>([\s\S]*?)<\/TH>/i.exec(html)?.[1];
+  const titleCell = element(html, HEADER_CELL, 'TH')?.content;
   const title = titleCell === undefined ? undefined : cellText(titleCell) || undefined;
-  const pre = /<PRE[^>]*>([\s\S]*?)<\/PRE>/i.exec(html);
+  const pre = element(html, PRE_BLOCK, 'PRE');
   if (!pre) {
     if (title) {
       throw serializationError(
@@ -110,8 +147,8 @@ export function parseAdvisoryPage(html: string, url: string): AdvisoryPage {
       { reason: 'advisory_service_unavailable', url },
     );
   }
-  const text = decodeEntities(pre[1] ?? '').trim();
-  const afterText = html.slice(pre.index + pre[0].length);
+  const text = decodeEntities(pre.content).trim();
+  const afterText = html.slice(pre.end);
   const titleMatch = title ? TITLE_PATTERN.exec(title) : null;
   const effectiveTime = labelledValue(afterText, 'EFFECTIVE TIME');
   const sentAt = labelledValue(afterText, 'SIGNATURE');
@@ -157,7 +194,8 @@ export class AdvisoryService implements Disposable {
           parse: (html) => parseAdvisoryPage(html, url),
           url,
         });
-        return { ttlMs: page.found ? FOUND_TTL_MS : MISS_TTL_MS, value: page };
+        const settled = date < utcDate(this.now() - DATE_SETTLES_AFTER_MS);
+        return { ttlMs: page.found || settled ? FOUND_TTL_MS : MISS_TTL_MS, value: page };
       },
       ctx.signal,
     );

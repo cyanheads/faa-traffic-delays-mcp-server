@@ -100,6 +100,23 @@ describe('input', () => {
       data: { reason: 'invalid_arguments' },
     });
   });
+
+  it.each([
+    ['a comma-separated string', (n: number) => Array(n).fill('A').join(',')],
+    ['an array', (n: number) => Array(n).fill('A')],
+  ])(
+    'rejects 10,000 malformed codes in %s with the same bounded error as 26',
+    async (_label, codes) => {
+      const atLimit = await run({ airports: codes(26) });
+      const result = await run({ airports: codes(10_000) });
+
+      expect(errorOf(result)).toEqual(errorOf(atLimit));
+      expect(errorOf(result).code).toBe(JsonRpcErrorCode.InvalidParams);
+      // One issue per code kept (26) plus the list-size issue.
+      expect(errorOf(result).data?.issues).toHaveLength(27);
+      expect(JSON.stringify(result).length).toBeLessThan(20_000);
+    },
+  );
 });
 
 describe('airport resolution', () => {
@@ -305,6 +322,26 @@ describe('empty and partial feeds', () => {
     expect(row).not.toHaveProperty('latitude');
     expect(row).not.toHaveProperty('runwayConfiguration');
     expect(contentText(result)).not.toMatch(/undefined|NaN/);
+  });
+
+  it('omits feed numbers too large to represent instead of failing the call', async () => {
+    services.dispose();
+    setup({
+      'airport-events': `[{"airportId": "SEA",
+        "groundDelay": {"avgDelay": 55,
+          "advisoryUrl": "https://www.fly.faa.gov/adv/adv_otherdis.jsp?advn=${'9'.repeat(25)}&adv_date=09302026",
+          "fuelFlowAdvisoryDelayTime": {"startTime": "2026-09-30T01:00:00Z",
+            "dasDelays": {"dasDelay": [{"delay": 1e999, "seq": 1}]}}},
+        "departureDelay": {"arrivalDeparture": {"min": "${'9'.repeat(400)} minutes"}}}]`,
+    });
+
+    const result = await run({ airports: ['SEA'] });
+
+    expect(result.isError).toBeFalsy();
+    const [row] = rowsOf(result);
+    expect(row?.groundDelayProgram).toEqual({ averageDelayMinutes: 55 });
+    expect(row?.departureDelay).toEqual({});
+    expect(contentText(result)).not.toMatch(/Infinity|NaN/);
   });
 
   it('reports skipped feed rows in the notice', async () => {
@@ -646,5 +683,30 @@ describe('format', () => {
     const result = await run({ airports: ['SEA'] });
 
     expect(rowsOf(result)[0]).toMatchObject({ closure: { text: 'A\r\nB' } });
+  });
+
+  it('renders link, image, and HTML syntax in inline slots as text and drops control characters', async () => {
+    services.dispose();
+    const reason = '[click](https://evil.example) <b>x</b>\u{1B}[31m\u{202E}';
+    setup({
+      'airport-events': [
+        {
+          airportId: 'SEA',
+          airportLongName: '![x](https://evil.example/p.png)',
+          groundDelay: { impactingCondition: reason },
+        },
+      ],
+    });
+
+    const result = await run({ airports: ['SEA'] });
+    const text = contentText(result);
+
+    expect(text).toContain('## SEA — !\\[x\\](https://evil.example/p.png)');
+    expect(text).toContain('- Reason: \\[click\\](https://evil.example) \\<b\\>x\\</b\\>\\[31m');
+    expect(text).not.toMatch(/[\u{1B}\u{202E}]/u);
+    expect(rowsOf(result)[0]).toMatchObject({
+      airportName: '![x](https://evil.example/p.png)',
+      groundDelayProgram: { reason },
+    });
   });
 });

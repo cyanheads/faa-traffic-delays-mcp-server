@@ -231,6 +231,28 @@ describe('parseAirportEvents', () => {
     ]);
   });
 
+  it.each([
+    ['delay', { delay: Number.POSITIVE_INFINITY, seq: 2 }],
+    ['seq', { delay: 12, seq: Number.NaN }],
+  ])(
+    'drops the delay profile when an entry %s is not a finite number, and reports it',
+    (_label, entry) => {
+      const { drift, row } = parseOneAirport({
+        groundDelay: {
+          fuelFlowAdvisoryDelayTime: {
+            dasDelays: { dasDelay: [{ delay: 10, seq: 1 }, entry] },
+            startTime: '2026-09-30T01:00:00Z',
+          },
+        },
+      });
+      expect(row.groundDelayProgram?.delayProfile).toBeUndefined();
+      expect(drift).toContainEqual([
+        'airport-events[].groundDelay.fuelFlowAdvisoryDelayTime.dasDelays.dasDelay[]',
+        'object',
+      ]);
+    },
+  );
+
   it('trims padding around runway configurations', () => {
     const { row } = parseOneAirport({
       airportConfig: { arrivalRunwayConfig: ' 25L/24R ', departureRunwayConfig: ' 24L/25R' },
@@ -435,6 +457,19 @@ describe('parseAirportEvents', () => {
     it('ignores an unrecognized trend value', () => {
       expect(band({ averageDelay: '30', trend: 'steady' })).toEqual({});
     });
+
+    it.each([
+      ['a numeric string too long to represent', '9'.repeat(400)],
+      ['a non-finite number', Number.POSITIVE_INFINITY],
+    ])('leaves the band unset for an averageDelay that is %s', (_label, averageDelay) => {
+      expect(band({ averageDelay, trend: 'increasing' })).toEqual({ trend: 'increasing' });
+    });
+
+    it('drops a bound too large to represent and keeps the other', () => {
+      expect(
+        band({ arrivalDeparture: { max: '30 minutes', min: `${'9'.repeat(400)} minutes` } }),
+      ).toEqual({ maxMinutes: 30 });
+    });
   });
 
   it('reads deicing without an eventTime as present with no start', () => {
@@ -472,6 +507,29 @@ describe('parseDurationMinutes', () => {
 
   it.each([undefined, '', 'n/a', '16'])('returns undefined for %j', (input) => {
     expect(parseDurationMinutes(input)).toBeUndefined();
+  });
+
+  it.each([
+    ['minutes', `${'9'.repeat(400)} minutes`],
+    ['hours', `${'9'.repeat(308)} hours`],
+  ])('returns undefined for a count of %s too large to represent', (_label, input) => {
+    expect(parseDurationMinutes(input)).toBeUndefined();
+  });
+
+  it.each(['12345 minutes', '10000 hours'])(
+    'returns undefined for %j, a count longer than four digits',
+    (input) => {
+      expect(parseDurationMinutes(input)).toBeUndefined();
+    },
+  );
+
+  it.each([
+    ['a long digit run with no unit', '1'.repeat(30_000)],
+    ['a long digit run before another word', `${'1'.repeat(30_000)} x`],
+  ])('reads %s in linear time', (_label, input) => {
+    const started = performance.now();
+    expect(parseDurationMinutes(input)).toBeUndefined();
+    expect(performance.now() - started).toBeLessThan(250);
   });
 });
 

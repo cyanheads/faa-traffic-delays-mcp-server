@@ -22,6 +22,7 @@ const PROFILE: UpstreamProfile = {
   accept: 'application/json',
   contractChangedReason: 'feed_contract_changed',
   htmlIsMaintenance: true,
+  maxBodyBytes: 1_024,
   pacer: {
     cooldown: { baseMs: 5_000, maxMs: 60_000 },
     limits: [{ perMs: 60_000, requests: 1_000 }],
@@ -354,8 +355,8 @@ describe('FaaHttpClient', () => {
       client.dispose();
     });
 
-    it('reports a network failure as unavailable with the cause kept', async () => {
-      const cause = new TypeError('fetch failed: ECONNRESET');
+    it('reports a network failure as unavailable, keeping its detail in the cause, not the message', async () => {
+      const cause = new TypeError('fetch failed: getaddrinfo ENOTFOUND proxy.corp.internal');
       const { impl } = fakeFetch(() => {
         throw cause;
       });
@@ -373,7 +374,12 @@ describe('FaaHttpClient', () => {
 
       expect(error).toMatchObject({ code: JsonRpcErrorCode.ServiceUnavailable });
       expect(mcpData(error)).toMatchObject({ feed: 'demo', reason: 'feed_unavailable' });
-      expect((error as McpError).message).toContain('ECONNRESET');
+      expect((error as McpError).message).toMatch(/^The test feed is unreachable\./);
+      expect((error as McpError).message).not.toMatch(/ENOTFOUND|proxy|fetch failed/);
+      expect(JSON.stringify(mcpData(error))).not.toMatch(/ENOTFOUND|proxy/);
+      const chain: unknown[] = [];
+      for (let link: unknown = error; link instanceof Error; link = link.cause) chain.push(link);
+      expect(chain).toContain(cause);
       client.dispose();
     });
 
@@ -415,6 +421,75 @@ describe('FaaHttpClient', () => {
       expect(error).toMatchObject({ code: JsonRpcErrorCode.SerializationError });
       expect(mcpData(error)).toMatchObject({ reason: 'feed_contract_changed' });
       expect(mock).toHaveBeenCalledTimes(1);
+      client.dispose();
+    });
+  });
+
+  describe('body size ceiling', () => {
+    const request = (client: FaaHttpClient) =>
+      client.request({
+        context,
+        errorData: { feed: 'demo' },
+        operation: 'op',
+        parse: read,
+        url: URL_UNDER_TEST,
+      });
+
+    it('reads a body of exactly the ceiling', async () => {
+      const body = 'x'.repeat(1_024);
+      const client = makeClient(fakeFetch(() => jsonResponse(body)).impl);
+
+      await expect(request(client)).resolves.toBe(body);
+      client.dispose();
+    });
+
+    it.each([
+      ['one byte over', 'x'.repeat(1_025)],
+      ['over in bytes though not in characters', '€'.repeat(400)],
+    ])('reads a body %s as unavailable, like any unreadable response', async (_label, body) => {
+      const { impl, mock } = fakeFetch(() => jsonResponse(body));
+      const client = makeClient(impl);
+
+      const { error } = await settle(request(client));
+
+      expect(error).toMatchObject({ code: JsonRpcErrorCode.ServiceUnavailable });
+      expect(mcpData(error)).toMatchObject({ feed: 'demo', reason: 'feed_unavailable' });
+      expect((error as McpError).message).toContain('larger than 1,024 bytes');
+      expect(mock).toHaveBeenCalledTimes(3);
+      client.dispose();
+    });
+
+    it('stops reading an oversized body at the ceiling and cancels the rest', async () => {
+      const CHUNK = 256;
+      const streams: { cancelled: boolean; pulledBytes: number }[] = [];
+      const { impl } = fakeFetch(() => {
+        const stream = { cancelled: false, pulledBytes: 0 };
+        streams.push(stream);
+        const body = new ReadableStream<Uint8Array>({
+          cancel() {
+            stream.cancelled = true;
+          },
+          pull(controller) {
+            if (stream.pulledBytes >= 64 * CHUNK) {
+              controller.close();
+              return;
+            }
+            stream.pulledBytes += CHUNK;
+            controller.enqueue(new Uint8Array(CHUNK).fill(0x20));
+          },
+        });
+        return new Response(body, { headers: { 'content-type': 'application/json' } });
+      });
+      const client = makeClient(impl);
+
+      const { error } = await settle(request(client));
+
+      expect(mcpData(error)).toMatchObject({ reason: 'feed_unavailable' });
+      expect(streams).toHaveLength(3);
+      for (const stream of streams) {
+        expect(stream.cancelled).toBe(true);
+        expect(stream.pulledBytes).toBeLessThanOrEqual(1_024 + 2 * CHUNK);
+      }
       client.dispose();
     });
   });

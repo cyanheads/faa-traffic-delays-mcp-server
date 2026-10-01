@@ -29,11 +29,11 @@ import {
   renderDelayProfile,
 } from '../schemas.js';
 
-const EVENT_TYPE_ALIASES: Record<string, EventType> = {
-  afp: 'airspace_flow_program',
-  gdp: 'ground_delay_program',
-  gs: 'ground_stop',
-};
+const EVENT_TYPE_ALIASES: ReadonlyMap<string, EventType> = new Map<string, EventType>([
+  ['afp', 'airspace_flow_program'],
+  ['gdp', 'ground_delay_program'],
+  ['gs', 'ground_stop'],
+]);
 
 /** Trimmed, lowercased, `-`/space → `_`, and the gs/gdp/afp aliases expanded. */
 function normalizeEventType(item: string): string {
@@ -41,8 +41,16 @@ function normalizeEventType(item: string): string {
     .trim()
     .toLowerCase()
     .replace(/[\s-]+/g, '_');
-  return EVENT_TYPE_ALIASES[normalized] ?? normalized;
+  return EVENT_TYPE_ALIASES.get(normalized) ?? normalized;
 }
+
+/**
+ * Drops duplicates, then cuts to one past the type count. A distinct list longer than the type
+ * count names an invalid type within that many entries, so the cut never changes whether it
+ * validates, and an oversized list fails with a handful of issues rather than one per value sent.
+ */
+const distinctBounded = (values: unknown[]): unknown[] =>
+  [...new Set(values)].slice(0, EVENT_TYPES.length + 1);
 
 /**
  * Splits on commas first: a piece naming one type stays whole (`departure delay`), and any other
@@ -59,18 +67,20 @@ function splitEventTypes(value: string): string[] {
 
 /**
  * A string naming no types (blank, or only commas) or an empty array → unset; a string is split
- * into types; each value is normalized. Anything else reaches the enum and fails with its options
- * listed.
+ * into types; each value is normalized, then the list is deduped and bounded. Anything else
+ * reaches the enum and fails with its options listed.
  */
 function normalizeEventTypes(value: unknown): unknown {
   if (value === undefined || value === null) return;
   if (typeof value === 'string') {
     const types = splitEventTypes(value);
-    return types.length > 0 ? types : undefined;
+    return types.length > 0 ? distinctBounded(types) : undefined;
   }
   if (!Array.isArray(value)) return value;
   if (value.length === 0) return;
-  return value.map((item) => (typeof item === 'string' ? normalizeEventType(item) : item));
+  return distinctBounded(
+    value.map((item) => (typeof item === 'string' ? normalizeEventType(item) : item)),
+  );
 }
 
 /** Sort rank: arrival and departure delays share one group, sorted together by band maximum. */
@@ -467,7 +477,7 @@ export const listActiveEvents = tool('faa_delays_list_active_events', {
   ],
 
   async handler(input, ctx) {
-    const filter = input.event_types ? [...new Set(input.event_types)] : undefined;
+    const filter = input.event_types;
     const applied: EventType[] = filter ?? [...EVENT_TYPES];
     const onlyAfp = filter?.length === 1 && filter[0] === 'airspace_flow_program';
 
