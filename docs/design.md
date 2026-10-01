@@ -394,7 +394,7 @@ Each step is independently testable.
 - **Delay entries can outlive the delay.** A departure delay last updated ~26 h earlier was still listed at probe, and it cleared within the hour. `updatedAt` is surfaced, and both `faa_delays_get_airport_status` and `faa_delays_list_active_events` add a notice past 6 h.
 - **The operations-plan JSON is partial**, and its times are `HHMM` UTC with no date. The plan's day is its event window in the advisory text (the `EVENT TIME` line), which can start on the UTC day after the advisory date, so `timeUtc` alone cannot be placed on a calendar day.
 - **No per-flight EDCTs, no program history in the feed.** Past programs are reachable only through `get_advisory` by number and date. The FAA's guide states 15-day retention, but probes returned advisories back to 2004, so retention is undocumented.
-- **One advisories pacer for every caller.** Advisory reads share the `fly.faa.gov` pacer (20 per minute). Distinct number-and-date pairs are cache misses, so one caller cycling through past dates can fill it and leave other callers with `pacer_shed` until the minute rolls over. A hosted deployment needs a per-client rate limit at its edge.
+- **One advisories pacer for every caller.** Advisory reads share the `fly.faa.gov` pacer (20 per minute). Distinct number-and-date pairs are cache misses, so one caller cycling through past dates can fill it and leave other callers with `pacer_shed` until the minute rolls over.
 - **US airports only.**
 - **Informational, not operational.** No substitute for an official preflight briefing or airline operations data.
 
