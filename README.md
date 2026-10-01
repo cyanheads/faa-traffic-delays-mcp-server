@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>faa-traffic-delays-mcp-server</h1>
+  <h1>@cyanheads/faa-traffic-delays-mcp-server</h1>
   <p><b>Track FAA ground stops, delay programs, airport delays, the operations plan, and ATCSCC advisories via MCP. STDIO or Streamable HTTP.</b>
   <div>5 Tools</div>
   </p>
