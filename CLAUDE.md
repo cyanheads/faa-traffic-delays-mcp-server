@@ -1,6 +1,7 @@
 # Developer Protocol
 
 **Server:** faa-traffic-delays-mcp-server
+**Package:** `@cyanheads/faa-traffic-delays-mcp-server`
 **Version:** 0.1.0
 **Framework:** [@cyanheads/mcp-ts-core](https://www.npmjs.com/package/@cyanheads/mcp-ts-core) `^0.13.10`
 **Engines:** Bun ≥1.4.0, Node ≥24.0.0
@@ -9,18 +10,7 @@
 
 > **Read the framework docs first:** `node_modules/@cyanheads/mcp-ts-core/CLAUDE.md` contains the full API reference — builders, Context, error codes, exports, patterns. This file covers server-specific conventions only.
 
----
-
-## First Session
-
-This project was just scaffolded with `bunx @cyanheads/mcp-ts-core init`. You're holding a production-grade MCP framework with the hard parts already solved — error handling, telemetry, auth, transport, validation, lifecycle. What's missing is the **domain**. Your job: design the tool, resource, and service surface with the user, then implement it as small pure handlers that throw — the framework catches, classifies, and instruments the rest. Design before code; the user's first messages set direction, so wait for them before scaffolding definitions.
-
-> **Remove this section** from CLAUDE.md / AGENTS.md after completing these steps. The skills and conventions below remain — this block is one-time onboarding only.
-
-1. **Get your bearings.** Take stock of the project tree, the skills in `framework-skills/`, and the tools/MCP servers available. Light tool use is fine for context-building — you're mapping the territory, not committing yet.
-2. **Read the framework docs** — `node_modules/@cyanheads/mcp-ts-core/CLAUDE.md` (builders, Context, errors, exports, conventions)
-3. **Run the `setup` skill** — read `framework-skills/setup/SKILL.md` and follow its checklist (project orientation, agent protocol file selection, echo definition cleanup, skill sync)
-4. **Design the server** — read `framework-skills/design-mcp-server/SKILL.md` and work through it with the user to map the domain into tools, resources, and services before scaffolding
+The server wraps two FAA upstreams: the NAS Status dashboard's undocumented JSON backend (`https://nasstatus.faa.gov/api/*`) and the ATCSCC advisories database (`https://www.fly.faa.gov/adv/adv_otherdis`). Five tools, no resources, no prompts. [`docs/design.md`](docs/design.md) is the design record — tool contracts, upstream shapes, design decisions, and known limitations; read the relevant section before changing a tool.
 
 ---
 
@@ -28,16 +18,13 @@ This project was just scaffolded with `bunx @cyanheads/mcp-ts-core init`. You're
 
 When the user asks what's next or needs direction, suggest options based on the current project state. Common next steps:
 
-1. **Re-run the `setup` skill** — ensures CLAUDE.md, skills, structure, and metadata are populated and up to date with the current codebase
-2. **Run the `design-mcp-server` skill** — if the tool/resource surface hasn't been mapped yet, work through domain design
-3. **Add tools/resources/prompts** — scaffold new definitions using the `add-tool`, `add-app-tool`, `add-resource`, `add-prompt` skills
-4. **Add services** — scaffold domain service integrations using the `add-service` skill
-5. **Add tests** — scaffold tests for existing definitions using the `add-test` skill
-6. **Field-test definitions** — exercise tools/resources/prompts with real inputs using the `field-test` skill, get a report of issues and pain points
-7. **Run `devcheck`** — lint, format, typecheck, and security audit
-8. **Run the `security-pass` skill** — audit handlers for MCP-specific security gaps: output injection, scope blast radius, input sinks, tenant isolation
-9. **Run the `polish-docs-meta` skill** — finalize README, CHANGELOG, metadata, and agent protocol for shipping
-10. **Run the `maintenance` skill** — investigate changelogs, adopt upstream changes, and sync skills after `bun update --latest`
+1. **Field-test the first live Airspace Flow Program** — the en-route row shape is inferred from the dashboard bundle (`docs/design.md` Known Limitations); exercise `faa_delays_list_active_events` with the `field-test` skill when one is active
+2. **Refresh the airport directory** — `bun run refresh:airports` at maintenance releases picks up the current FAA NASR cycle
+3. **Add tests** — scaffold tests for new or changed definitions using the `add-test` skill
+4. **Run `devcheck`** — lint, format, typecheck, and security audit
+5. **Run the `security-pass` skill** — audit handlers for MCP-specific security gaps: output injection, scope blast radius, input sinks, tenant isolation
+6. **Run the `polish-docs-meta` skill** — reconcile README, metadata, and agent protocol after the surface changes
+7. **Run the `maintenance` skill** — investigate changelogs, adopt upstream changes, and sync skills after `bun update --latest`
 
 Tailor suggestions to what's actually missing or stale — don't recite the full list every time.
 
@@ -57,157 +44,47 @@ Tailor suggestions to what's actually missing or stale — don't recite the full
 
 ## Patterns
 
-### Tool
+Use the existing definitions as the server-specific examples:
 
-```ts
-import { tool, z } from '@cyanheads/mcp-ts-core';
+- [get-airport-status.tool.ts](src/mcp-server/tools/definitions/get-airport-status.tool.ts) validates every airport code against the bundled NASR directory before any upstream request (`ctx.fail('unknown_airport', …)`), fetches the primary and secondary feeds with `Promise.allSettled`, rethrows only the primary leg (or any leg once `ctx.signal.aborted`), and reports a degraded secondary leg through `ctx.enrich.notice()`.
+- [list-active-events.tool.ts](src/mcp-server/tools/definitions/list-active-events.tool.ts) declares required enrichment fields (`totalActive`, `shown`, `countsByType`, `appliedEventTypes`, `enRouteFeed`) written in one `ctx.enrich({ … })` call, with `enrichmentTrailer` labels and renders for `content[]`.
+- [get-advisory.tool.ts](src/mcp-server/tools/definitions/get-advisory.tool.ts) normalizes inputs in `z.preprocess` (`"ADVZY 082"` → `82`, `MM/DD/YYYY` → `YYYY-MM-DD`), accepts the advisory reference's own field name via `inputAliases`, returns a missing advisory as `found: false` with `guidance` rather than an error, and discloses a cut text with `ctx.enrich.truncated()`.
 
-export const searchItems = tool('search_items', {
-  description: 'Search inventory items by query.',
-  annotations: { readOnlyHint: true },
-  input: z.object({
-    query: z.string().describe('Search terms'),
-    limit: z.number().int().min(1).max(100).default(10).describe('Max results (1–100)'),
-  }),
-  output: z.object({
-    items: z.array(z.object({
-      id: z.string().describe('Item ID'),
-      name: z.string().describe('Item name'),
-    })).describe('Matching items'),
-  }),
-  auth: ['inventory:read'],
+Server-specific conventions:
 
-  async handler(input, ctx) {
-    const items = await findItems(input.query, input.limit);
-    ctx.log.info('Search completed', { query: input.query, count: items.length });
-    return { items };
-  },
-
-  // format() populates content[] — the markdown twin of structuredContent.
-  // Different clients read different surfaces (Claude Code → structuredContent,
-  // Claude Desktop → content[]); both must carry the same data.
-  // Enforced at lint time: every field in `output` must appear in the rendered text.
-  format: (result) => [{
-    type: 'text',
-    text: result.items.map(i => `**${i.id}**: ${i.name}`).join('\n'),
-  }],
-});
-```
-
-### Resource
-
-```ts
-import { resource, z } from '@cyanheads/mcp-ts-core';
-import { notFound } from '@cyanheads/mcp-ts-core/errors';
-
-export const itemData = resource('inventory://{itemId}', {
-  description: 'Fetch an inventory item by ID.',
-  params: z.object({ itemId: z.string().describe('Item identifier') }),
-  auth: ['inventory:read'],
-  async handler(params, ctx) {
-    const item = await ctx.state.get(`item/${params.itemId}`);
-    if (!item) throw notFound(`Item ${params.itemId} not found`, { itemId: params.itemId });
-    return item;
-  },
-});
-```
-
-### Prompt
-
-```ts
-import { prompt, z } from '@cyanheads/mcp-ts-core';
-
-export const reviewCode = prompt('review_code', {
-  description: 'Review code for issues and best practices.',
-  args: z.object({
-    code: z.string().describe('Code to review'),
-    language: z.string().optional().describe('Programming language'),
-  }),
-  generate: (args) => [
-    { role: 'user', content: { type: 'text', text: `Review this ${args.language ?? ''} code:\n${args.code}` } },
-  ],
-});
-```
+- **Upstream fetch boundary.** Both HTTP services go through [`FaaHttpClient`](src/services/upstream/faa-http-client.ts): plain `fetch` with a 200-only accept-list (a 404 on a known path means the contract changed; a 200 can be an HTML maintenance page), `withRetry` under a 20 s deadline, a per-host `createPacer`, an 8 s per-attempt timer, and a per-host body ceiling (`maxBodyBytes`) the streamed read stops at. Never swap in `fetchWithTimeout` — it would classify a contract change as `NotFound`.
+- **Failure reasons come from the service.** Services throw with `data.reason` (`feed_unavailable`, `upstream_rate_limited`, `retry_deadline_exceeded`, `pacer_shed`, `feed_contract_changed`, `advisory_service_unavailable`, `advisory_contract_changed`). Every calling tool declares each reason it can receive, with `thrownBy: 'service'` and a recovery that names that tool.
+- **Tolerant parsing.** Feed bodies are `unknown`, read field by field in [`feed-parsers.ts`](src/services/nas-status/feed-parsers.ts). A wrong top-level shape is `feed_contract_changed`; a row without its key is skipped and counted (`skippedRows` → a `notice`); a wrong-typed field is omitted and logged once, never coerced.
+- **Cache, not `ctx.state`.** The feeds are public and identical for every tenant, so they live in the in-process [`TtlCache`](src/services/upstream/ttl-cache.ts) with single-flight loading (feeds 60 s, pacing airports 6 h, advisories 6 h, advisory misses 60 s). The shared fetch never takes one caller's signal and logs through the global `logger` with a `RequestContext`; an expired entry is never served when a refresh fails.
+- **FAA-authored text in `format()`.** Render reasons, NOTAMs, comments, announcements, and advisory text through [`format-helpers.ts`](src/mcp-server/tools/format-helpers.ts) (`inline`, `cell`, `blockquote`, `fenced`), never raw. A value the FAA did not report is named or left out, never shown as a placeholder.
+- **Advisory URLs are server-built.** Feed links carry unencoded spaces and are only mined for `advn` and `adv_date` ([`advisory-ref.ts`](src/services/advisory/advisory-ref.ts)); no caller- or upstream-supplied URL reaches `fetch` or the output.
+- **Airport directory.** [`nasr-airports.generated.ts`](src/services/airport-directory/nasr-airports.generated.ts) is generated by `bun run refresh:airports` from the FAA NASR subscription — never hand-edited, never fetched at runtime.
 
 ### Server config
 
-```ts
-// src/config/server-config.ts — lazy-parsed, separate from framework config
-import { z } from '@cyanheads/mcp-ts-core';
-import { parseEnvConfig } from '@cyanheads/mcp-ts-core/config';
-
-const ServerConfigSchema = z.object({
-  apiKey: z.string().describe('External API key'),
-  maxResults: z.coerce.number().default(100),
-  verboseLogging: z.stringbool().default(false).describe('Enable verbose logging'),
-});
-
-let _config: z.infer<typeof ServerConfigSchema> | undefined;
-export function getServerConfig() {
-  _config ??= parseEnvConfig(ServerConfigSchema, {
-    apiKey: 'MY_API_KEY',
-    maxResults: 'MY_MAX_RESULTS',
-    verboseLogging: 'MY_VERBOSE_LOGGING',
-  });
-  return _config;
-}
-```
-
-`parseEnvConfig` maps Zod schema paths → env var names so errors name the variable (`MY_API_KEY`) not the path (`apiKey`). Throws `ConfigurationError`, which the framework prints as a clean startup banner.
-
-For env booleans use `z.stringbool()`, never `z.coerce.boolean()` — `Boolean("false")` is `true`, so a coerced flag can't be disabled through the environment. `z.stringbool()` parses `true/false/1/0/yes/no/on/off` and rejects anything else, so `=false` actually disables.
+No server-specific environment variables. FAA hosts, cache TTLs, retry budgets, and pacer limits are constants in the services, so there is no `src/config/`. Adding a variable means a `server-config.ts` with `parseEnvConfig` plus entries in `.env.example`, `server.json`, `manifest.json`, both plugin manifests, and the README configuration table.
 
 ### Server identity and instructions
 
-`createApp()` accepts optional identity fields forwarded to the SDK's `initialize` response and the server manifest (`/.well-known/mcp.json`):
+[src/index.ts](src/index.ts) sets `name` and `title` to `faa-traffic-delays-mcp-server` (the package name is scoped, so both are explicit) and carries the server `instructions` string — the orientation an agent reads on `initialize`. Keep it in step with the tool descriptions when the surface changes. `setup()` builds both upstream clients with a `faa-traffic-delays-mcp-server/<version>` User-Agent; `teardown()` disposes their pacers.
 
-```ts
-await createApp({
-  name: 'my-mcp-server',
-  title: 'My Server',                         // human-readable display name
-  websiteUrl: 'https://github.com/owner/repo', // canonical homepage URL
-  description: 'One-line description.',        // wins over MCP_SERVER_DESCRIPTION
-  icons: [{ src: 'https://example.com/icon.png', sizes: ['48x48'], mimeType: 'image/png' }],
-  instructions: 'Use shortcut alpha for the most common case.', // session-level context
-});
-```
+### Session mode
 
-`instructions` is optional server-level orientation, sent on every `initialize` as session-level context. Use it for deployment guidance (connection aliases, regional notes, scope hints) instead of repeating the same context across tool descriptions. Client adoption is uneven, but there's no downside when set.
-
-### Session posture and shutdown
-
-Two more `createApp()` options shape how the server runs rather than how it presents itself:
-
-```ts
-await createApp({
-  sessionMode: 'stateless',          // or { default: 'stateful', require: 'stateful' }
-  setup(core) { startMyWatcher(core.config); },
-  async teardown() { await stopMyWatcher(); },
-});
-```
-
-`sessionMode` declares the HTTP session posture in `src/` instead of leaving it to a deployment's `MCP_SESSION_MODE`, which still wins whenever it carries a meaningful value (an empty string and an unsubstituted `${…}` placeholder read as unset and fall through to the option). Add `require: 'stateful'` when a tool asks the caller for input mid-handler via `ctx.requestInput`: startup then fails with a `ConfigurationError` rather than serving a mode in which a 2025-era client can never answer the prompt. Stdio is never refused.
-
-`teardown(core)` is the `setup()` counterpart — release a watcher, socket, or non-`unref()`'d timer there. It runs after the transport stops and before the logger closes, on every shutdown path, and a signal-triggered shutdown then exits the process explicitly (0, or 1 if a step never settles within the framework's 10 s ceiling).
+No handler requests additional input, so `createApp()` declares `sessionMode: 'stateless'` — the posture travels with the code rather than with each deployment. `MCP_SESSION_MODE` still overrides it. Introducing `ctx.requestInput` means switching to `stateful` here, and declaring `require: 'stateful'` if the handler cannot degrade.
 
 ---
 
 ## Context
 
-Handlers receive a unified `ctx` object. Key properties:
+Handlers receive a unified `ctx` object. The properties this server uses:
 
 | Property | Description |
 |:---------|:------------|
 | `ctx.log` | Request-scoped logger — `.debug()`, `.info()`, `.notice()`, `.warning()`, `.error()`. Auto-correlates requestId, traceId, tenantId. Dual-sink: Pino **and** `notifications/message` to the client, so treat it as client-visible. |
-| `ctx.state` | Tenant-scoped KV — `.get(key)`, `.set(key, value, { ttl? })`, `.delete(key)`, `.getMany(keys)`, `.list(prefix, { cursor, limit })`. Accepts any JSON-serializable value; reads return its JSON form (a `Date` comes back as an ISO string). |
-| `ctx.requestInput` | Suspend and ask the caller for more input — `return ctx.requestInput({ inputRequests: { key: inputRequired.elicit({ message, requestedSchema }) } })`. Never returns; the handler is re-entered with the answers. Always present. |
-| `ctx.inputs` | The request's responses — `.accepted(key, schema)`, `.view(key)`, `.state()`, `.dropped` — limited to what the client declared (`elicitation` and its form/url modes, `sampling`, `roots`). Client-supplied: a consent gate trusts only a `ctx.state` record it stored when it asked, bound to the operation, caller, and target (see the `api-context` skill). |
-| `ctx.clientCapabilities` | What the client declared for this request, `undefined` when no view exists. Decides whether to ask for optional context (e.g. roots); never a reason to skip a consent prompt. |
-| `ctx.enrich` | Success-path agent context (empty-result notices, query echo, pagination totals) — `ctx.enrich(...)` or `.notice()` / `.total()` / `.echo()` / `.truncated()`. Reaches `structuredContent` and `content[]`; lands only when the definition declares an `enrichment` block (no-op otherwise). |
-| `ctx.content` | Non-text content blocks — `.image(data, mimeType)`, `.audio(data, mimeType)`, or `ctx.content(block)` for a raw block. Prepended to `content[]` after `format()`; never enters `structuredContent`. |
-| `ctx.signal` | `AbortSignal` for cancellation. |
-| `ctx.requestId` | Request ID — the one every log record of the call carries and its error envelope returns as `data.requestId`. |
-| `ctx.tenantId` | Tenant ID from JWT; `'default'` for stdio or HTTP with auth off. |
+| `ctx.enrich` | Success-path agent context — `ctx.enrich(...)` or `.notice()` / `.truncated()`. Reaches `structuredContent` and `content[]`; lands only when the definition declares an `enrichment` block (no-op otherwise). |
+| `ctx.fail` | Typed failure from the definition's `errors[]` contract (`ctx.fail('unknown_airport', …)`). |
+| `ctx.signal` | `AbortSignal` for cancellation. Each caller races the shared single-flight fetch against its own signal. |
+| `ctx.requestId` / `ctx.traceId` | Correlation ids, copied into the `RequestContext` the services log under. |
 
 ---
 
@@ -259,20 +136,34 @@ See framework CLAUDE.md and the `api-errors` skill for the full auto-classificat
 
 ```text
 src/
-  index.ts                              # createApp() entry point
-  config/
-    server-config.ts                    # Server-specific env vars (Zod schema)
+  index.ts                              # createApp() entry point, server instructions, upstream client lifecycle
   services/
-    [domain]/
-      [domain]-service.ts               # Domain service (init/accessor pattern)
-      types.ts                          # Domain types
+    upstream/
+      faa-http-client.ts                # Shared fetch boundary: pacer, retry, per-attempt timer, status classification
+      ttl-cache.ts                      # In-process TTL cache with single-flight loading
+    nas-status/
+      nas-status-service.ts             # NAS Status feed client (airport/en-route events, ops plan, announcements, pacing airports)
+      feed-parsers.ts                   # Tolerant feed parsers
+      types.ts                          # Normalized feed domain types
+    advisory/
+      advisory-service.ts               # ATCSCC advisories database client and page parser
+      advisory-ref.ts                   # Advisory references mined from feed links; server-built advisory URL
+    airport-directory/
+      airport-directory.ts              # NASR directory lookup and ICAO → FAA crosswalk
+      nasr-airports.generated.ts        # Generated by `bun run refresh:airports` — do not edit
   mcp-server/
-    tools/definitions/
-      [tool-name].tool.ts               # Tool definitions
-    resources/definitions/
-      [resource-name].resource.ts       # Resource definitions
-    prompts/definitions/
-      [prompt-name].prompt.ts           # Prompt definitions
+    tools/
+      definitions/
+        index.ts                        # allToolDefinitions barrel
+        [tool-name].tool.ts             # Tool definitions
+      schemas.ts                        # Shared output schemas (advisory ref, delay profile, event types)
+      notices.ts                        # Shared notice fragments (stale delay, skipped rows)
+      format-helpers.ts                 # Markdown rendering for FAA-authored text
+scripts/
+  refresh-airport-directory.ts          # Regenerates the NASR airport directory module
+tests/
+  fixtures/                             # Synthetic FAA feed and advisory page fixtures
+  helpers/                              # Fetch fakes and feed-failure helpers
 ```
 
 ---
@@ -281,10 +172,10 @@ src/
 
 | What | Convention | Example |
 |:-----|:-----------|:--------|
-| Files | kebab-case with suffix | `search-docs.tool.ts` |
-| Tool/resource/prompt names | snake_case | `search_docs` |
-| Directories | kebab-case | `src/services/doc-search/` |
-| Descriptions | Single string or template literal, no `+` concatenation | `'Search items by query and filter.'` |
+| Files | kebab-case with suffix | `get-airport-status.tool.ts` |
+| Tool names | snake_case, `faa_delays_` prefix | `faa_delays_get_airport_status` |
+| Directories | kebab-case | `src/services/nas-status/` |
+| Descriptions | Single string or template literal, no `+` concatenation | `'Get the full text of one ATCSCC advisory…'` |
 
 ---
 
@@ -357,11 +248,15 @@ When you complete a skill's checklist, check the boxes and add a completion time
 | `bun run format` | Auto-fix formatting (safe fixes only) |
 | `bun run format:unsafe` | Also apply Biome's unsafe autofixes — review the diff; they can change behavior |
 | `bun run test` | Run tests (Vitest — use `bun run test`, not `bun test`) |
+| `bun run test:coverage` | Run tests with coverage |
 | `bun run start:stdio` | Production mode (stdio) |
 | `bun run start:http` | Production mode (HTTP) |
 | `bun run changelog:build` | Regenerate `CHANGELOG.md` from `changelog/*.md` |
 | `bun run changelog:check` | Verify `CHANGELOG.md` is in sync (used by devcheck) |
 | `bun run bundle` | Build, pack, and clean a `.mcpb` for one-click Claude Desktop install |
+| `bun run release:github` | Create the GitHub Release on the version tag and attach the `.mcpb` bundle (release step) |
+| `bun run publish-mcp` | Publish `server.json` to the MCP Registry (release step) |
+| `bun run refresh:airports` | Regenerate the NASR airport directory from the current FAA cycle (maintenance; needs network and the system `unzip`). `-- --zip <path>` reads an already-downloaded `APT_CSV.zip` |
 
 **CI is one file.** `.github/workflows/codeql.yml` (scaffolded) is the only GitHub Actions workflow: CodeQL is GitHub-owned end to end, and the file runs only while the repo's CodeQL *default setup* is turned off. Verification — `devcheck`, tests, the release gates — runs locally; don't add a workflow that re-runs it.
 
@@ -418,7 +313,7 @@ import { tool, z } from '@cyanheads/mcp-ts-core';
 import { McpError, JsonRpcErrorCode } from '@cyanheads/mcp-ts-core/errors';
 
 // Server's own code — via path alias
-import { getMyService } from '@/services/my-domain/my-service.js';
+import { getNasStatusService } from '@/services/nas-status/nas-status-service.js';
 ```
 
 ---
@@ -428,13 +323,15 @@ import { getMyService } from '@/services/my-domain/my-service.js';
 - [ ] Zod schemas: all fields have `.describe()`, only JSON-Schema-serializable types (no `z.custom()`, `z.date()`, `z.transform()`, `z.bigint()`, `z.symbol()`, `z.void()`, `z.map()`, `z.set()`, `z.function()`, `z.nan()`)
 - [ ] Optional nested objects: handler guards for empty inner values from form-based clients (`if (input.obj?.field && ...)`, not just `if (input.obj)`). When regex/length constraints matter, use `z.union([z.literal(''), z.string().regex(...).describe(...)])` — literal variants are exempt from `describe-on-fields`.
 - [ ] JSDoc `@fileoverview` + `@module` on every file
-- [ ] `ctx.log` for logging, `ctx.state` for storage
+- [ ] `ctx.log` for request-scoped logging; shared single-flight fetches log through `logger` with a `RequestContext`
 - [ ] Handlers throw on failure — error factories or plain `Error`, no try/catch
+- [ ] Every service failure reason a tool can receive is declared on that tool with `thrownBy: 'service'` and a recovery naming the tool
 - [ ] `format()` renders all data the LLM needs — different clients forward different surfaces (Claude Code → `structuredContent`, Claude Desktop → `content[]`); both must carry the same data
-- [ ] If wrapping external API: raw/domain/output schemas reviewed against real upstream sparsity/nullability before finalizing required vs optional fields
-- [ ] If wrapping external API: normalization and `format()` preserve uncertainty; do not fabricate facts from missing upstream data
-- [ ] If wrapping external API: tests include at least one sparse payload case with omitted upstream fields
-- [ ] Registered in `createApp()` arrays (directly or via barrel exports)
+- [ ] FAA-authored text rendered through `format-helpers.ts`; a value the FAA did not report is named or left out, never a placeholder
+- [ ] Upstream fields optional unless they are a row's key; parsers omit wrong-typed fields rather than coerce them
+- [ ] Tests include at least one sparse payload case with omitted upstream fields, driven by the fixtures in `tests/fixtures/` and `createFetchMock`
+- [ ] Registered in `allToolDefinitions` (`src/mcp-server/tools/definitions/index.ts`)
+- [ ] `src/index.ts` `instructions` and `docs/design.md` updated when the surface changes
 - [ ] Tests use `createMockContext()` from `@cyanheads/mcp-ts-core/testing`
 - [ ] `.codex-plugin/plugin.json` populated — `name`, `version`, `description`, `repository`, `license` from `package.json`; `interface.displayName` = the unscoped repo name (never the npm scope — `lint:packaging` enforces this); `interface.shortDescription` from `package.json` description
 - [ ] `.codex-plugin/mcp.json` updated — server name key is the unscoped repo name; every user-supplied variable (API key, contact email, instance URL) is listed in `env_vars` so Codex forwards it from the user's environment. Never write `"KEY": ""` into `env` — an empty value replaces the user's exported key and is read as unset

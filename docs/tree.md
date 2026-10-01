@@ -1,6 +1,6 @@
 # faa-traffic-delays-mcp-server - Directory Structure
 
-Generated on: 2026-10-01 01:08:16
+Generated on: 2026-10-01 03:05:02
 
 ```text
 faa-traffic-delays-mcp-server/
@@ -24,6 +24,7 @@ faa-traffic-delays-mcp-server/
 │   ├── extensions.json
 │   └── settings.json
 ├── changelog/
+│   ├── 0.1.x/
 │   └── template.md
 ├── docs/
 │   └── design.md
@@ -143,6 +144,7 @@ faa-traffic-delays-mcp-server/
 │   │       │   ├── list-active-events.tool.ts
 │   │       │   └── list-reference.tool.ts
 │   │       ├── format-helpers.ts
+│   │       ├── notices.ts
 │   │       └── schemas.ts
 │   ├── services/
 │   │   ├── advisory/
@@ -175,6 +177,7 @@ faa-traffic-delays-mcp-server/
 │   │   └── feed-failures.ts
 │   ├── mcp-server/
 │   │   └── tools/
+│   │       ├── format-helpers.test.ts
 │   │       ├── get-advisory.tool.test.ts
 │   │       ├── get-airport-status.tool.test.ts
 │   │       ├── get-operations-plan.tool.test.ts
@@ -205,12 +208,14 @@ faa-traffic-delays-mcp-server/
 ├── biome.json
 ├── bun.lock
 ├── bunfig.toml
+├── CHANGELOG.md
 ├── CLAUDE.md
 ├── devcheck.config.json
 ├── Dockerfile
 ├── LICENSE
 ├── manifest.json
 ├── package.json
+├── README.md
 ├── server.json
 ├── tsconfig.build.json
 ├── tsconfig.json

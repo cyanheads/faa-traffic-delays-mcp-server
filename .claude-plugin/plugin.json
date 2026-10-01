@@ -2,13 +2,13 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "faa-traffic-delays-mcp-server",
   "version": "0.1.0",
-  "description": "MCP server for FAA Air Traffic Control System Command Center status: ground stops, ground delay programs, airspace flow programs, and airport arrival/departure delays.",
+  "description": "Track FAA ground stops, delay programs, airport delays, the operations plan, and ATCSCC advisories.",
   "author": {
     "name": "cyanheads",
     "email": "casey@caseyjhand.com",
     "url": "https://github.com/cyanheads"
   },
-  "homepage": "https://github.com/cyanheads/faa-traffic-delays-mcp-server",
+  "homepage": "https://github.com/cyanheads/faa-traffic-delays-mcp-server#readme",
   "repository": "https://github.com/cyanheads/faa-traffic-delays-mcp-server",
   "license": "Apache-2.0",
   "keywords": [
@@ -16,10 +16,12 @@
     "mcp-server",
     "model-context-protocol",
     "faa",
+    "aviation",
     "air-traffic",
     "flight-delays",
     "ground-stop",
-    "aviation"
+    "ground-delay-program",
+    "atcscc"
   ],
   "mcpServers": {
     "faa-traffic-delays-mcp-server": {
