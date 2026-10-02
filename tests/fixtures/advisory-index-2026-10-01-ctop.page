@@ -1,0 +1,37 @@
+<html>
+<head>
+<title>Database Results</title>
+</head>
+<BODY>
+<TABLE border="1" cellpadding="3" cellspacing="0">
+ 
+ 
+    
+
+		
+			<tr valign="top">
+				<th class=caption colspan='5'>CTOP PROGRAMS</th>
+			</tr>
+			<tr valign="top">
+				<th class=header>NUMBER</th>
+				<th class=header>CONTROL<BR>ELEMENT
+				</th>
+				<th class=header>DATE</th>
+				<th class=header>BRIEF TITLE</th>
+				<th class=header>SEND TIME</th>
+			</tr>
+			
+			
+				<tr>
+					<th colspan=5 class=warning>NO ADVISORIES MATCH YOUR SELECTION
+						CRITERIA!</th>
+				</tr>
+			
+		
+
+	<BR>
+
+
+	</TABLE>
+</BODY>
+</HTML>

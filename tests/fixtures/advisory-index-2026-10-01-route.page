@@ -1,0 +1,285 @@
+<html>
+<head>
+<title>Database Results</title>
+</head>
+<BODY>
+<TABLE border="1" cellpadding="3" cellspacing="0">
+ 
+ 
+    
+
+		
+			<tr valign="top">
+				<th class=caption colspan='5'>ROUTE ADVISORIES</th>
+			</tr>
+			<tr valign="top">
+				<th class=header>NUMBER</th>
+				<th class=header>CONTROL<BR>ELEMENT
+				</th>
+				<th class=header>DATE</th>
+				<th class=header>BRIEF TITLE</th>
+				<th class=header>SEND TIME</th>
+			</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=152">152</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;152&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: IAH_DOOBI_NORTH_PARTIAL<BR>CONSTRAINED AREA: ZHU<BR>VALID: ETD 011830 TO 020000</td>
+					<td>10/01/26 22:27</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=150">150</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>REROUTE CANCELLATION</td>
+					<td>10/01/26 22:16</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=149">149</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>REROUTE CANCELLATION</td>
+					<td>10/01/26 22:15</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=145">145</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>REROUTE CANCELLATION</td>
+					<td>10/01/26 21:39</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=142">142</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;142&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: IAH_WEST_MODIFIED<BR>CONSTRAINED AREA: ZFW/ZHU<BR>VALID: ETD 011900 TO 020000</td>
+					<td>10/01/26 21:26</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=139">139</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;139&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: EAST_TO_SAT_AUS<BR>CONSTRAINED AREA: ZFW / ZHU<BR>VALID: ETD 012130 TO 020100</td>
+					<td>10/01/26 21:18</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=138">138</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;138&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: DFW_VKTRY_PARTIAL<BR>CONSTRAINED AREA: ZFW<BR>VALID: ETD 011815 TO 020100</td>
+					<td>10/01/26 21:12</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=126">126</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;126&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: DFW_EAST_1_SOUTH_FLOW_PARTIAL<BR>CONSTRAINED AREA: ZFW<BR>VALID: ETD 011340 TO 012300</td>
+					<td>10/01/26 20:26</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=122">122</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;122&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: IAH_WEST_MODIFIED<BR>CONSTRAINED AREA: ZFW/ZHU<BR>VALID: ETD 011900 TO 012200</td>
+					<td>10/01/26 20:22</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=120">120</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>REROUTE CANCELLATION</td>
+					<td>10/01/26 20:00</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=104">104</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;104&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: IAH_DOOBI_NORTH_PARTIAL<BR>CONSTRAINED AREA: ZHU<BR>VALID: ETD 011830 TO 012300</td>
+					<td>10/01/26 18:26</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=103">103</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;103&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: IAH_WEST_MODIFIED<BR>CONSTRAINED AREA: ZFW/ZHU<BR>VALID: ETD 011900 TO 012200</td>
+					<td>10/01/26 18:24</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=95">095</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;095&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: DFW_VKTRY_PARTIAL<BR>CONSTRAINED AREA: ZFW<BR>VALID: ETD 011815 TO 012200</td>
+					<td>10/01/26 17:53</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=91">091</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;091&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: FLORIDA_TO_TEXAS_MODIFIED<BR>CONSTRAINED AREA: ZFW<BR>VALID: ETD 011800 TO 012230</td>
+					<td>10/01/26 17:39</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=87">087</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;087&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: NE_TO_FLORIDA_VIA_Q75_2_PARTIAL_2<BR>CONSTRAINED AREA: ZMA<BR>VALID: ETD 011400 TO 012100</td>
+					<td>10/01/26 17:29</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=85">085</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;085&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: DFW_EAST_1_SOUTH_FLOW_PARTIAL<BR>CONSTRAINED AREA: ZFW<BR>VALID: ETD 011340 TO 012100</td>
+					<td>10/01/26 17:22</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=65">065</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;065&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: NE_TO_FLORIDA_VIA_Q75_2_PARTIAL_2<BR>CONSTRAINED AREA: ZMA<BR>VALID: ETD 011400 TO 011800</td>
+					<td>10/01/26 15:39</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=57">057</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;057&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: IAH_KOBLE_PARTIAL<BR>CONSTRAINED AREA: ZHU<BR>VALID: ETD 011430 TO 011900</td>
+					<td>10/01/26 14:11</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=50">050</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;050&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: DFW_EAST_1_SOUTH_FLOW_PARTIAL<BR>CONSTRAINED AREA: ZFW<BR>VALID: ETD 011340 TO 011800</td>
+					<td>10/01/26 13:40</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=42">042</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;042&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: NE_TO_FLORIDA_VIA_Q75_2_PARTIAL<BR>CONSTRAINED AREA: ZMA/ZJX<BR>VALID: ETD 011215 TO 011500</td>
+					<td>10/01/26 12:55</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=40">040</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;040&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: NE_TO_FLORIDA_VIA_Q75_2_PARTIAL<BR>CONSTRAINED AREA: ZMA/ZJX<BR>VALID: ETD 011215 TO 011500</td>
+					<td>10/01/26 12:24</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=39">039</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;039&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: NE_TO_FLORIDA_VIA_Q75_2_PARTIAL<BR>CONSTRAINED AREA: ZMA/ZJX<BR>VALID: ETD 011215 TO 011500</td>
+					<td>10/01/26 12:17</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=34">034</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>EN ROUTE TCA/HOTLINE ISSUE REQUEST PAGE ACTIVATION</td>
+					<td>10/01/26 11:49</td>
+				</tr>
+			
+			
+		
+
+	<BR>
+
+
+	</TABLE>
+</BODY>
+</HTML>

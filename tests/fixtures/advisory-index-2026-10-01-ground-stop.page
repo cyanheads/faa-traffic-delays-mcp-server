@@ -1,0 +1,395 @@
+<html>
+<head>
+<title>Database Results</title>
+</head>
+<BODY>
+<TABLE border="1" cellpadding="3" cellspacing="0">
+ 
+ 
+    
+
+		
+			<tr valign="top">
+				<th class=caption colspan='5'>GROUND STOPS</th>
+			</tr>
+			<tr valign="top">
+				<th class=header>NUMBER</th>
+				<th class=header>CONTROL<BR>ELEMENT
+				</th>
+				<th class=header>DATE</th>
+				<th class=header>BRIEF TITLE</th>
+				<th class=header>SEND TIME</th>
+			</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=140">140</a>
+					</td>
+					<td>SAT/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GS CNX</td>
+					<td>10/01/26 21:18</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=133">133</a>
+					</td>
+					<td>DFW/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 20:55</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=132">132</a>
+					</td>
+					<td>SAT/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 20:53</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=129">129</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 20:42</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=124">124</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 20:25</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=123">123</a>
+					</td>
+					<td>DFW/ZFW</td>
+					<td>10/01/26</td>
+					<td>DFW GROUND STOP CANCELLATION</td>
+					<td>10/01/26 20:23</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=121">121</a>
+					</td>
+					<td>SAT/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 20:05</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=119">119</a>
+					</td>
+					<td>SAT/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 19:47</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=118">118</a>
+					</td>
+					<td>AUS/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 19:45</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=115">115</a>
+					</td>
+					<td>DFW/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 19:18</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=112">112</a>
+					</td>
+					<td>AUS/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 18:59</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=111">111</a>
+					</td>
+					<td>SAT/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 18:50</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=107">107</a>
+					</td>
+					<td>HOU/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GS CNX</td>
+					<td>10/01/26 18:31</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=106">106</a>
+					</td>
+					<td>IAH/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GS CNX</td>
+					<td>10/01/26 18:30</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=102">102</a>
+					</td>
+					<td>DFW/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 18:21</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=99">099</a>
+					</td>
+					<td>SAT/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 18:05</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=93">093</a>
+					</td>
+					<td>AUS/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 17:40</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=89">089</a>
+					</td>
+					<td>HOU/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 17:31</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=88">088</a>
+					</td>
+					<td>SFO/ZOA</td>
+					<td>10/01/26</td>
+					<td>SFO GROUND STOP CANCELLATION</td>
+					<td>10/01/26 17:30</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=86">086</a>
+					</td>
+					<td>IAH/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 17:29</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=84">084</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 17:16</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=83">083</a>
+					</td>
+					<td>SAT/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 17:11</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=81">081</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 17:07</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=80">080</a>
+					</td>
+					<td>SAT/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GS CNX</td>
+					<td>10/01/26 17:07</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=73">073</a>
+					</td>
+					<td>AUS/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 16:38</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=71">071</a>
+					</td>
+					<td>SFO/ZOA</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 16:20</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=70">070</a>
+					</td>
+					<td>DFW/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 16:12</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=69">069</a>
+					</td>
+					<td>DAL/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 15:53</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=62">062</a>
+					</td>
+					<td>DAL/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 15:00</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=52">052</a>
+					</td>
+					<td>DAL/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 13:41</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=44">044</a>
+					</td>
+					<td>DFW/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 13:05</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=43">043</a>
+					</td>
+					<td>DAL/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 12:58</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=38">038</a>
+					</td>
+					<td>DFW/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 12:12</td>
+				</tr>
+			
+			
+		
+
+	<BR>
+
+
+	</TABLE>
+</BODY>
+</HTML>

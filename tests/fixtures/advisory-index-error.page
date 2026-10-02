@@ -1,0 +1,69 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Error Page</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+
+    <style>
+      body,
+      html {
+        height: 100%;
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background-color: #f0f0f0;
+      }
+
+      .container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+
+      .error-content {
+        background-color: white;
+        padding: 40px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        max-width: 500px;
+        width: 100%;
+      }
+
+      h1 {
+        color: #e74c3c;
+        margin-top: 0;
+      }
+
+      p {
+        color: #333;
+        line-height: 1.6;
+      }
+
+      .error-details {
+        margin-top: 20px;
+        font-size: 1.0em;
+        color: #666;
+      }
+    </style>
+  </head>
+ 
+    <body>
+    <div class="container">
+      <div class="error-content">
+        <h1>A <span class="statusCode">500</span> error was encountered. </h1>
+        <p>We're sorry, but we couldn't find the page you are looking for.</p>
+        <div class="error-details">
+          <p>Error code: <span class="statusCode" style="font-weight:bold;">500</span></p>
+          <p>Error message: <span class="errorMessage" style="font-weight:bold;"></span></p>
+        </div>
+        <div class="go-to-home-page">
+        <a href="/adv/">Home Page</a>
+        </div>
+	   </div>
+    </div>
+  </body>
+</html>

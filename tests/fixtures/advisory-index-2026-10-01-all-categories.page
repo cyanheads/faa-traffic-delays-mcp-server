@@ -1,0 +1,1806 @@
+<html>
+<head>
+<title>Database Results</title>
+</head>
+<BODY>
+<TABLE border="1" cellpadding="3" cellspacing="0">
+ 
+ 
+    
+
+		
+			<tr valign="top">
+				<th class=caption colspan='5'>AIRSPACE FLOW PROGRAMS</th>
+			</tr>
+			<tr valign="top">
+				<th class=header>NUMBER</th>
+				<th class=header>CONTROL<BR>ELEMENT
+				</th>
+				<th class=header>DATE</th>
+				<th class=header>BRIEF TITLE</th>
+				<th class=header>SEND TIME</th>
+			</tr>
+			
+			
+				<tr>
+					<th colspan=5 class=warning>NO ADVISORIES MATCH YOUR SELECTION
+						CRITERIA!</th>
+				</tr>
+			
+		
+			<tr valign="top">
+				<th class=caption colspan='5'>GROUND STOPS</th>
+			</tr>
+			<tr valign="top">
+				<th class=header>NUMBER</th>
+				<th class=header>CONTROL<BR>ELEMENT
+				</th>
+				<th class=header>DATE</th>
+				<th class=header>BRIEF TITLE</th>
+				<th class=header>SEND TIME</th>
+			</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=140">140</a>
+					</td>
+					<td>SAT/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GS CNX</td>
+					<td>10/01/26 21:18</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=133">133</a>
+					</td>
+					<td>DFW/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 20:55</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=132">132</a>
+					</td>
+					<td>SAT/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 20:53</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=129">129</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 20:42</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=124">124</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 20:25</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=123">123</a>
+					</td>
+					<td>DFW/ZFW</td>
+					<td>10/01/26</td>
+					<td>DFW GROUND STOP CANCELLATION</td>
+					<td>10/01/26 20:23</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=121">121</a>
+					</td>
+					<td>SAT/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 20:05</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=119">119</a>
+					</td>
+					<td>SAT/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 19:47</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=118">118</a>
+					</td>
+					<td>AUS/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 19:45</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=115">115</a>
+					</td>
+					<td>DFW/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 19:18</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=112">112</a>
+					</td>
+					<td>AUS/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 18:59</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=111">111</a>
+					</td>
+					<td>SAT/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 18:50</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=107">107</a>
+					</td>
+					<td>HOU/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GS CNX</td>
+					<td>10/01/26 18:31</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=106">106</a>
+					</td>
+					<td>IAH/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GS CNX</td>
+					<td>10/01/26 18:30</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=102">102</a>
+					</td>
+					<td>DFW/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 18:21</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=99">099</a>
+					</td>
+					<td>SAT/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 18:05</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=93">093</a>
+					</td>
+					<td>AUS/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 17:40</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=89">089</a>
+					</td>
+					<td>HOU/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 17:31</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=88">088</a>
+					</td>
+					<td>SFO/ZOA</td>
+					<td>10/01/26</td>
+					<td>SFO GROUND STOP CANCELLATION</td>
+					<td>10/01/26 17:30</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=86">086</a>
+					</td>
+					<td>IAH/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 17:29</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=84">084</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 17:16</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=83">083</a>
+					</td>
+					<td>SAT/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 17:11</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=81">081</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 17:07</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=80">080</a>
+					</td>
+					<td>SAT/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GS CNX</td>
+					<td>10/01/26 17:07</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=73">073</a>
+					</td>
+					<td>AUS/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 16:38</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=71">071</a>
+					</td>
+					<td>SFO/ZOA</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 16:20</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=70">070</a>
+					</td>
+					<td>DFW/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 16:12</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=69">069</a>
+					</td>
+					<td>DAL/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 15:53</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=62">062</a>
+					</td>
+					<td>DAL/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 15:00</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=52">052</a>
+					</td>
+					<td>DAL/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 13:41</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=44">044</a>
+					</td>
+					<td>DFW/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 13:05</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=43">043</a>
+					</td>
+					<td>DAL/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 12:58</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=38">038</a>
+					</td>
+					<td>DFW/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND STOP</td>
+					<td>10/01/26 12:12</td>
+				</tr>
+			
+			
+		
+			<tr valign="top">
+				<th class=caption colspan='5'>GROUND DELAY PROGRAMS</th>
+			</tr>
+			<tr valign="top">
+				<th class=header>NUMBER</th>
+				<th class=header>CONTROL<BR>ELEMENT
+				</th>
+				<th class=header>DATE</th>
+				<th class=header>BRIEF TITLE</th>
+				<th class=header>SEND TIME</th>
+			</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=153">153</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>10/01/26 22:30</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=148">148</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>10/01/26</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>10/01/26 22:03</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=147">147</a>
+					</td>
+					<td>DAL/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>10/01/26 21:58</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=146">146</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>10/01/26 21:42</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=143">143</a>
+					</td>
+					<td>DFW/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>10/01/26 21:29</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=141">141</a>
+					</td>
+					<td>DFW/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>10/01/26 21:20</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=130">130</a>
+					</td>
+					<td>AUS/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>10/01/26 20:47</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=105">105</a>
+					</td>
+					<td>AUS/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>10/01/26 18:28</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=101">101</a>
+					</td>
+					<td>AUS/ZHU</td>
+					<td>10/01/26</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>10/01/26 18:18</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=100">100</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>10/01/26 18:06</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=98">098</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>10/01/26</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>10/01/26 18:01</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=94">094</a>
+					</td>
+					<td>SFO/ZOA</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>10/01/26 17:47</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=82">082</a>
+					</td>
+					<td>DAL/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>10/01/26 17:09</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=75">075</a>
+					</td>
+					<td>DFW/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>10/01/26 16:56</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=74">074</a>
+					</td>
+					<td>DFW/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>10/01/26 16:49</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=63">063</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>10/01/26 15:06</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=56">056</a>
+					</td>
+					<td>DFW/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>10/01/26 13:55</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=49">049</a>
+					</td>
+					<td>SAN/ZLA</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>10/01/26 13:32</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=46">046</a>
+					</td>
+					<td>SAN/ZLA</td>
+					<td>10/01/26</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>10/01/26 13:11</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=45">045</a>
+					</td>
+					<td>SFO/ZOA</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>10/01/26 13:08</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=41">041</a>
+					</td>
+					<td>SFO/ZOA</td>
+					<td>10/01/26</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>10/01/26 12:54</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=33">033</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>10/01/26 11:43</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=31">031</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>10/01/26</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>10/01/26 11:26</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=24">024</a>
+					</td>
+					<td>DFW/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>10/01/26 10:30</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=23">023</a>
+					</td>
+					<td>DFW/ZFW</td>
+					<td>10/01/26</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>10/01/26 10:25</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=2">002</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>10/01/26</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>10/01/26 00:38</td>
+				</tr>
+			
+			
+		
+			<tr valign="top">
+				<th class=caption colspan='5'>ROUTE ADVISORIES</th>
+			</tr>
+			<tr valign="top">
+				<th class=header>NUMBER</th>
+				<th class=header>CONTROL<BR>ELEMENT
+				</th>
+				<th class=header>DATE</th>
+				<th class=header>BRIEF TITLE</th>
+				<th class=header>SEND TIME</th>
+			</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=152">152</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;152&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: IAH_DOOBI_NORTH_PARTIAL<BR>CONSTRAINED AREA: ZHU<BR>VALID: ETD 011830 TO 020000</td>
+					<td>10/01/26 22:27</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=150">150</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>REROUTE CANCELLATION</td>
+					<td>10/01/26 22:16</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=149">149</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>REROUTE CANCELLATION</td>
+					<td>10/01/26 22:15</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=145">145</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>REROUTE CANCELLATION</td>
+					<td>10/01/26 21:39</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=142">142</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;142&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: IAH_WEST_MODIFIED<BR>CONSTRAINED AREA: ZFW/ZHU<BR>VALID: ETD 011900 TO 020000</td>
+					<td>10/01/26 21:26</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=139">139</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;139&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: EAST_TO_SAT_AUS<BR>CONSTRAINED AREA: ZFW / ZHU<BR>VALID: ETD 012130 TO 020100</td>
+					<td>10/01/26 21:18</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=138">138</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;138&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: DFW_VKTRY_PARTIAL<BR>CONSTRAINED AREA: ZFW<BR>VALID: ETD 011815 TO 020100</td>
+					<td>10/01/26 21:12</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=126">126</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;126&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: DFW_EAST_1_SOUTH_FLOW_PARTIAL<BR>CONSTRAINED AREA: ZFW<BR>VALID: ETD 011340 TO 012300</td>
+					<td>10/01/26 20:26</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=122">122</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;122&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: IAH_WEST_MODIFIED<BR>CONSTRAINED AREA: ZFW/ZHU<BR>VALID: ETD 011900 TO 012200</td>
+					<td>10/01/26 20:22</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=120">120</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>REROUTE CANCELLATION</td>
+					<td>10/01/26 20:00</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=104">104</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;104&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: IAH_DOOBI_NORTH_PARTIAL<BR>CONSTRAINED AREA: ZHU<BR>VALID: ETD 011830 TO 012300</td>
+					<td>10/01/26 18:26</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=103">103</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;103&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: IAH_WEST_MODIFIED<BR>CONSTRAINED AREA: ZFW/ZHU<BR>VALID: ETD 011900 TO 012200</td>
+					<td>10/01/26 18:24</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=95">095</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;095&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: DFW_VKTRY_PARTIAL<BR>CONSTRAINED AREA: ZFW<BR>VALID: ETD 011815 TO 012200</td>
+					<td>10/01/26 17:53</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=91">091</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;091&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: FLORIDA_TO_TEXAS_MODIFIED<BR>CONSTRAINED AREA: ZFW<BR>VALID: ETD 011800 TO 012230</td>
+					<td>10/01/26 17:39</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=87">087</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;087&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: NE_TO_FLORIDA_VIA_Q75_2_PARTIAL_2<BR>CONSTRAINED AREA: ZMA<BR>VALID: ETD 011400 TO 012100</td>
+					<td>10/01/26 17:29</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=85">085</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;085&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: DFW_EAST_1_SOUTH_FLOW_PARTIAL<BR>CONSTRAINED AREA: ZFW<BR>VALID: ETD 011340 TO 012100</td>
+					<td>10/01/26 17:22</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=65">065</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;065&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: NE_TO_FLORIDA_VIA_Q75_2_PARTIAL_2<BR>CONSTRAINED AREA: ZMA<BR>VALID: ETD 011400 TO 011800</td>
+					<td>10/01/26 15:39</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=57">057</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;057&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: IAH_KOBLE_PARTIAL<BR>CONSTRAINED AREA: ZHU<BR>VALID: ETD 011430 TO 011900</td>
+					<td>10/01/26 14:11</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=50">050</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;050&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: DFW_EAST_1_SOUTH_FLOW_PARTIAL<BR>CONSTRAINED AREA: ZFW<BR>VALID: ETD 011340 TO 011800</td>
+					<td>10/01/26 13:40</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=42">042</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;042&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: NE_TO_FLORIDA_VIA_Q75_2_PARTIAL<BR>CONSTRAINED AREA: ZMA/ZJX<BR>VALID: ETD 011215 TO 011500</td>
+					<td>10/01/26 12:55</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=40">040</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;040&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: NE_TO_FLORIDA_VIA_Q75_2_PARTIAL<BR>CONSTRAINED AREA: ZMA/ZJX<BR>VALID: ETD 011215 TO 011500</td>
+					<td>10/01/26 12:24</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=39">039</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;039&nbsp;DCC&nbsp;10/01/26&nbsp;ROUTE RQD /FL<BR>NAME: NE_TO_FLORIDA_VIA_Q75_2_PARTIAL<BR>CONSTRAINED AREA: ZMA/ZJX<BR>VALID: ETD 011215 TO 011500</td>
+					<td>10/01/26 12:17</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=34">034</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>EN ROUTE TCA/HOTLINE ISSUE REQUEST PAGE ACTIVATION</td>
+					<td>10/01/26 11:49</td>
+				</tr>
+			
+			
+		
+			<tr valign="top">
+				<th class=caption colspan='5'>CTOP PROGRAMS</th>
+			</tr>
+			<tr valign="top">
+				<th class=header>NUMBER</th>
+				<th class=header>CONTROL<BR>ELEMENT
+				</th>
+				<th class=header>DATE</th>
+				<th class=header>BRIEF TITLE</th>
+				<th class=header>SEND TIME</th>
+			</tr>
+			
+			
+				<tr>
+					<th colspan=5 class=warning>NO ADVISORIES MATCH YOUR SELECTION
+						CRITERIA!</th>
+				</tr>
+			
+		
+			<tr valign="top">
+				<th class=caption colspan='5'>OTHER ADVISORIES</th>
+			</tr>
+			<tr valign="top">
+				<th class=header>NUMBER</th>
+				<th class=header>CONTROL<BR>ELEMENT
+				</th>
+				<th class=header>DATE</th>
+				<th class=header>BRIEF TITLE</th>
+				<th class=header>SEND TIME</th>
+			</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=154">154</a>
+					</td>
+					<td>PHLC/ZNY</td>
+					<td>10/01/26</td>
+					<td>EWR AND SATELLITE AIRPORTS ARRIVAL DELAYS</td>
+					<td>10/01/26 22:42</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=151">151</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>VOLCANIC ACTIVITY BULLETIN - REVENTADOR</td>
+					<td>10/01/26 22:26</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=144">144</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>OPERATIONS PLAN</td>
+					<td>10/01/26 21:31</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=137">137</a>
+					</td>
+					<td>DCC/ZFW</td>
+					<td>10/01/26</td>
+					<td>ZFW CAPPING/TUNNELING_FYI</td>
+					<td>10/01/26 21:12</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=136">136</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;136&nbsp;DCC&nbsp;10/01/26&nbsp;FCA RQD<BR>NAME: FCA007:DEN_GCK_2_PARTIAL<BR>CONSTRAINED AREA: ZDV<BR>VALID: FCA ENTRY TIME FROM 012200 TO 020200</td>
+					<td>10/01/26 21:10</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=135">135</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>VOLCANIC ACTIVITY BULLETIN - TELICA</td>
+					<td>10/01/26 20:57</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=134">134</a>
+					</td>
+					<td>DCC/ZFW</td>
+					<td>10/01/26</td>
+					<td>DFW DAL CDRS_FYI</td>
+					<td>10/01/26 20:56</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=131">131</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>TTCA/HOTLINE ISSUE REQUEST PAGE ACTIVATION</td>
+					<td>10/01/26 20:49</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=128">128</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>TTCA/HOTLINE WEB PAGE TERMINATION</td>
+					<td>10/01/26 20:33</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=127">127</a>
+					</td>
+					<td>EWR AND SATS/ZNY</td>
+					<td>10/01/26</td>
+					<td>EWR AND SATS AIRPORT ARRIVAL DELAYS</td>
+					<td>10/01/26 20:30</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=125">125</a>
+					</td>
+					<td>ZHU</td>
+					<td>10/01/26</td>
+					<td>EXTENDED FLIGHT PLAN DROP TIMES IMPLEMENTED</td>
+					<td>10/01/26 20:25</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=117">117</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>VOLCANIC ACTIVITY BULLETIN - PURACE</td>
+					<td>10/01/26 19:39</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=116">116</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>OPERATIONS PLAN</td>
+					<td>10/01/26 19:37</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=114">114</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>VOLCANIC ACTIVITY BULLETIN - SANGAY</td>
+					<td>10/01/26 19:12</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=113">113</a>
+					</td>
+					<td>DCC/ZHU</td>
+					<td>10/01/26</td>
+					<td>IAH HOU CDRS_FYI</td>
+					<td>10/01/26 19:05</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=110">110</a>
+					</td>
+					<td>AUS/ZHU</td>
+					<td>10/01/26</td>
+					<td>AUS AIRPORT ARRIVAL DELAYS</td>
+					<td>10/01/26 18:45</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=109">109</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>TEXAS AIRPORTS DIVERSION RECOVERY ACTIVATED</td>
+					<td>10/01/26 18:45</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=108">108</a>
+					</td>
+					<td>DCC/ZFW</td>
+					<td>10/01/26</td>
+					<td>DFW DAL CDRS_FYI</td>
+					<td>10/01/26 18:35</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=97">097</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>OPERATIONS PLAN</td>
+					<td>10/01/26 17:56</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=96">096</a>
+					</td>
+					<td>AUS/ZHU</td>
+					<td>10/01/26</td>
+					<td>AUS AIRPORT DIVERSION RECOVERY ACTIVATED</td>
+					<td>10/01/26 17:53</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=92">092</a>
+					</td>
+					<td>HOU/ZHU</td>
+					<td>10/01/26</td>
+					<td>HOU AIRPORT ARRIVAL DELAYS</td>
+					<td>10/01/26 17:39</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=90">090</a>
+					</td>
+					<td>IAH/ZHU</td>
+					<td>10/01/26</td>
+					<td>IAH AIRPORT ARRIVAL DELAYS</td>
+					<td>10/01/26 17:36</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=79">079</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>10/01/26</td>
+					<td>ORD AIRPORT ARRIVAL DELAYS</td>
+					<td>10/01/26 17:06</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=78">078</a>
+					</td>
+					<td>DFW/ZFW</td>
+					<td>10/01/26</td>
+					<td>DFW AIRPORT DIVERSION RECOVERY EXTENDED</td>
+					<td>10/01/26 17:00</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=77">077</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>VOLCANIC ACTIVITY BULLETIN - FUEGO</td>
+					<td>10/01/26 16:59</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=76">076</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>VOLCANIC ACTIVITY BULLETIN - GARELOI</td>
+					<td>10/01/26 16:58</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=72">072</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>VOLCANIC ACTIVITY BULLETIN - REVENTADOR</td>
+					<td>10/01/26 16:24</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=68">068</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;068&nbsp;DCC&nbsp;10/01/26&nbsp;FCA RQD /FL<BR>NAME: FCA002:LAKE_ERIE_WEST_PARTIAL<BR>CONSTRAINED AREA: CZY<BR>VALID: FCA ENTRY TIME FROM 011100 TO 020300</td>
+					<td>10/01/26 15:51</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=67">067</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>OPERATIONS PLAN</td>
+					<td>10/01/26 15:50</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=66">066</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;066&nbsp;DCC&nbsp;10/01/26&nbsp;FCA RQD<BR>NAME: FCA001:LAKE_ERIE_EAST_PARTIAL<BR>CONSTRAINED AREA: CZY<BR>VALID: FCA ENTRY TIME FROM 011100 TO 020300</td>
+					<td>10/01/26 15:48</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=64">064</a>
+					</td>
+					<td>SAN/ZLA</td>
+					<td>10/01/26</td>
+					<td>SAN AIRPORT ARRIVAL DELAYS</td>
+					<td>10/01/26 15:15</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=61">061</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>VOLCANIC ACTIVITY BULLETIN - TELICA</td>
+					<td>10/01/26 14:57</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=60">060</a>
+					</td>
+					<td>DEN/ZDV</td>
+					<td>10/01/26</td>
+					<td>DEN AIRPORT ARRIVAL DELAYS</td>
+					<td>10/01/26 14:53</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=59">059</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>US/MEXICO OUTLOOK_FYI</td>
+					<td>10/01/26 14:35</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=58">058</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>NATOTS_RQD</td>
+					<td>10/01/26 14:19</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=55">055</a>
+					</td>
+					<td>DCA/ZDC</td>
+					<td>10/01/26</td>
+					<td>DCA AIRPORT ARRIVAL DELAYS</td>
+					<td>10/01/26 13:49</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=54">054</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>OPERATIONS PLAN</td>
+					<td>10/01/26 13:43</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=53">053</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>VOLCANIC ACTIVITY BULLETIN - PURACE</td>
+					<td>10/01/26 13:43</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=51">051</a>
+					</td>
+					<td>DCC/ZMA</td>
+					<td>10/01/26</td>
+					<td>ZMA SWAP_FYI</td>
+					<td>10/01/26 13:41</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=48">048</a>
+					</td>
+					<td>ZMA/DCC</td>
+					<td>10/01/26</td>
+					<td>SOUTH FLORIDA AIRPORTS ARRIVAL DELAYS</td>
+					<td>10/01/26 13:27</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=47">047</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>VOLCANIC ACTIVITY BULLETIN - SANGAY</td>
+					<td>10/01/26 13:22</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=37">037</a>
+					</td>
+					<td>DCA/ZDC</td>
+					<td>10/01/26</td>
+					<td>DCA AIRPORT ARRIVAL DELAYS</td>
+					<td>10/01/26 12:04</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=36">036</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>TTCA/HOTLINE ISSUE REQUEST PAGE ACTIVATION</td>
+					<td>10/01/26 12:03</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=35">035</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>10/01/26</td>
+					<td>ORD AIRPORT ARRIVAL DELAYS</td>
+					<td>10/01/26 11:58</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=32">032</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>OPERATIONS PLAN</td>
+					<td>10/01/26 11:40</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=30">030</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>VOLCANIC ACTIVITY BULLETIN - FUEGO</td>
+					<td>10/01/26 11:02</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=29">029</a>
+					</td>
+					<td>DCC/ZMA</td>
+					<td>10/01/26</td>
+					<td>SOUTH FLORIDA CDRS_FYI</td>
+					<td>10/01/26 10:59</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=28">028</a>
+					</td>
+					<td>DFW/ZFW</td>
+					<td>10/01/26</td>
+					<td>DFW/DAL AIRPORT DIVERSION RECOVERY ACTIVATED</td>
+					<td>10/01/26 10:56</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=27">027</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;027&nbsp;DCC&nbsp;10/01/26&nbsp;FCA RQD<BR>NAME: FCA002:LAKE_ERIE_WEST_PARTIAL<BR>CONSTRAINED AREA: CZY<BR>VALID: FCA ENTRY TIME FROM 011100 TO 011600</td>
+					<td>10/01/26 10:52</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=26">026</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;026&nbsp;DCC&nbsp;10/01/26&nbsp;FCA RQD<BR>NAME: FCA001:LAKE_ERIE_EAST<BR>CONSTRAINED AREA: CZY<BR>VALID: FCA ENTRY TIME FROM 011100 TO 011600</td>
+					<td>10/01/26 10:50</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=25">025</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>VOLCANIC ACTIVITY BULLETIN - REVENTADOR</td>
+					<td>10/01/26 10:31</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=22">022</a>
+					</td>
+					<td>DCC/ZHU</td>
+					<td>10/01/26</td>
+					<td>IAH HOU CDRS_FYI</td>
+					<td>10/01/26 10:22</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=21">021</a>
+					</td>
+					<td>DAL/ZFW</td>
+					<td>10/01/26</td>
+					<td>DAL AIRPORT ARRIVAL DELAYS</td>
+					<td>10/01/26 10:11</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=20">020</a>
+					</td>
+					<td>DFW/ZFW</td>
+					<td>10/01/26</td>
+					<td>DFW AIRPORT ARRIVAL DELAYS</td>
+					<td>10/01/26 10:11</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=19">019</a>
+					</td>
+					<td>DCC/ZFW</td>
+					<td>10/01/26</td>
+					<td>ZFW SWAP_FYI</td>
+					<td>10/01/26 10:07</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=18">018</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>TEXAS HOTLINE_FYI</td>
+					<td>10/01/26 09:51</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=17">017</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>OPERATIONS PLAN</td>
+					<td>10/01/26 09:02</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=16">016</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;016&nbsp;DCC&nbsp;10/01/26&nbsp;FCA RQD<BR>NAME: FCA011:CARIBBEAN_NORTH_CREW13<BR>CONSTRAINED AREA: ZJX ZMA<BR>VALID: FCA ENTRY TIME FROM 011500 TO 011550</td>
+					<td>10/01/26 08:36</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=15">015</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;015&nbsp;DCC&nbsp;10/01/26&nbsp;FCA RQD<BR>NAME: FCA010:CAPE_LAUNCH_1B_CREW13<BR>CONSTRAINED AREA: ZJX ZMA<BR>VALID: FCA ENTRY TIME FROM 011500 TO 011550</td>
+					<td>10/01/26 08:36</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=14">014</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;014&nbsp;DCC&nbsp;10/01/26&nbsp;FCA FYI<BR>NAME: FCA008:CAPE_LAUNCH_WEST_COAST_1<BR>CONSTRAINED AREA: ZJX ZMA<BR>VALID: FCA ENTRY TIME FROM 011500 TO 011550</td>
+					<td>10/01/26 08:35</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=13">013</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;013&nbsp;DCC&nbsp;10/01/26&nbsp;FCA RQD<BR>NAME: FCA007:CAPE_LAUNCH_1A_PARTIAL<BR>CONSTRAINED AREA: ZJX ZMA<BR>VALID: FCA ENTRY TIME FROM 011500 TO 011550</td>
+					<td>10/01/26 08:34</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=12">012</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;012&nbsp;DCC&nbsp;10/01/26&nbsp;FCA RQD<BR>NAME: FCA006:NO_AR_ATLANTIC_Y-RTES_TO_MCO_TPA_RSW_AREAS<BR>CONSTRAINED AREA: ZJX/ZMA<BR>VALID: FCA ENTRY TIME FROM 011415 TO 011550</td>
+					<td>10/01/26 08:32</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=11">011</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>VOLCANIC ACTIVITY BULLETIN - PURACE</td>
+					<td>10/01/26 08:02</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=10">010</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>VOLCANIC ACTIVITY BULLETIN - SANGAY</td>
+					<td>10/01/26 07:47</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=9">009</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>VOLCANIC ACTIVITY BULLETIN - TELICA</td>
+					<td>10/01/26 07:26</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=8">008</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>VOLCANIC ACTIVITY BULLETIN - FUEGO</td>
+					<td>10/01/26 05:19</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=7">007</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>VOLCANIC ACTIVITY BULLETIN - REVENTADOR</td>
+					<td>10/01/26 04:41</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=6">006</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>VOLCANIC ACTIVITY BULLETIN - PURACE</td>
+					<td>10/01/26 02:24</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=5">005</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>VOLCANIC ACTIVITY BULLETIN - SANGAY</td>
+					<td>10/01/26 02:00</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=4">004</a>
+					</td>
+					<td>DCC/ZFW</td>
+					<td>10/01/26</td>
+					<td>TEXAS HOTLINE DEACTIVATED</td>
+					<td>10/01/26 01:39</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=3">003</a>
+					</td>
+					<td>DCC</td>
+					<td>10/01/26</td>
+					<td>VOLCANIC ACTIVITY BULLETIN - TELICA</td>
+					<td>10/01/26 01:28</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=10012026&advn=1">001</a>
+					</td>
+					<td>DCC/ZDC</td>
+					<td>10/01/26</td>
+					<td>ZDC NRP SUSPENSION_RQD</td>
+					<td>10/01/26 00:07</td>
+				</tr>
+			
+			
+		
+
+	<BR>
+
+
+	</TABLE>
+</BODY>
+</HTML>

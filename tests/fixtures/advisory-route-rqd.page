@@ -1,0 +1,78 @@
+<html>
+<head>
+<title>ATCSCC Advisory</title>
+</head>
+<BODY>
+<TABLE id="Table3" BORDER=0 CELLSPACING=2 CELLPADDING=1>
+							
+								
+								
+									<TR VALIGN="top" ALIGN="left">
+										<TH class=header align="center" colspan=2>ATCSCC&nbsp;ADVZY&nbsp;152&nbsp;DCC&nbsp;10/01/2026&nbsp;ROUTE RQD /FL</TH>
+									</TR>
+									<TR VALIGN="top" ALIGN="left">
+
+										
+											
+												<TD class=nam>
+													<P align=right>RAW TEXT:&nbsp;</P>
+												</TD>
+												<TD class=val>
+													<PRE>NAME: IAH_DOOBI_NORTH_PARTIAL
+CONSTRAINED AREA: ZHU
+REASON: WEATHER
+INCLUDE TRAFFIC: KATL/KBWI/KCLT/KDCA/KGSO/KIAD/KORF/KRDU/KRIC/ZTL 
+                 DEPARTURES TO KHOU/KIAH
+FACILITIES INCLUDED: ZDC/ZHU/ZTL
+FLIGHT STATUS: ALL_FLIGHTS
+VALID: ETD 011830 TO 020000
+PROBABILITY OF EXTENSION: LOW
+REMARKS: REPLACES ADVZY104, TIME EXTENDED. CONVENTIONAL NAVIGATION 
+         AIRCRAFT LANDING IAH/HOU FROM THE WEST VIA SAT MUST BE AOA 
+         FL240 OR MUST FILE SAT CRP (STAR).
+         IAH CONVENTIONAL DUUUK STAR // HOU CONVENTIONAL TCHDN STAR  
+            CONVENTIONAL NAVIGATION AIRCRAFT VIA SJI LANDING IAH 
+         FILE GILCO STAR.
+ASSOCIATED RESTRICTIONS: 
+MODIFICATIONS: 
+ROUTES:
+
+ORIG                DEST                 ROUTE
+----                ----                 -----
+KATL                KIAH                 >GRGIA ARNNY SJI< LINKK1   
+KATL                KHOU                 >GRGIA ARNNY SJI< PUCKS4   
+KCLT                KIAH                 >CHOPZ MGMRY CATLN Q56 SJI<
+                                         LINKK1                     
+KCLT                KHOU                 >CHOPZ MGMRY CATLN Q56 SJI<
+                                         PUCKS4                     
+KGSO                KHOU                 >IPTAY CHOPZ MGMRY CATLN   
+                                         Q56 SJI< PUCKS4            
+KGSO                KIAH                 >IPTAY CHOPZ MGMRY CATLN   
+                                         Q56 SJI< LINKK1            
+KIAD KDCA KBWI      KHOU                 >MAULS Q40 NIOLA SJI<      
+                                         PUCKS4                     
+KIAD KDCA KBWI      KIAH                 >MAULS Q40 NIOLA SJI<      
+                                         LINKK1                     
+KRIC KORF KRDU      KIAH                 >IPTAY CHOPZ MGMRY SJI<    
+                                         LINKK1                     
+KRIC KORF KRDU      KHOU                 >IPTAY CHOPZ MGMRY SJI<    
+                                         PUCKS4                     
+ZTL(-ATL -CLT       KHOU                 >MGMRY SJI< PUCKS4         
+-GSO)                                    
+ZTL(-ATL -CLT       KIAH                 >MGMRY SJI< LINKK1         
+-GSO)                                    
+
+
+TMI ID: RRDCC509
+012227-020000
+26/10/01 22:27  DCCOPS.lxstn20</PRE>
+												</TD>
+									</TR>
+									
+									
+							
+							
+							
+						</TABLE>
+</BODY>
+</HTML>
