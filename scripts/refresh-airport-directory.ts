@@ -3,7 +3,8 @@
  * FAA NASR 28-day subscription. Picks the newest cycle already in effect, downloads that cycle's
  * `APT_CSV.zip` with GET (the host answers HEAD with 503), extracts `APT_BASE.csv` with the system
  * `unzip`, keeps US rows with a 3-character location identifier, and writes the module sorted by
- * identifier. Refuses to write a table under 5,000 rows or one missing any FAA pacing airport.
+ * identifier, each airport with its responsible ARTCC and its coordinates rounded to 4 decimal
+ * places. Refuses to write a table under 5,000 rows or one missing any FAA pacing airport.
  *
  * Usage: `bun run refresh:airports` (live), or `bun run refresh:airports -- --zip <path>` to read an
  * already-downloaded `APT_CSV.zip`.
@@ -41,9 +42,12 @@ const MONTHS = [
 const USER_AGENT = 'faa-traffic-delays-mcp-server/refresh-airport-directory';
 
 interface AirportRow {
+  artcc: string;
   city: string;
   faaId: string;
   icaoId: string;
+  latitude: string;
+  longitude: string;
   name: string;
   state: string;
 }
@@ -138,6 +142,17 @@ function clean(value: string | undefined): string {
   return (value ?? '').replace(/\s+/g, ' ').trim();
 }
 
+/**
+ * A decimal-degree coordinate rounded to 4 places (about 11 m), or empty when NASR's value is not
+ * a plain decimal number within ±`limit`.
+ */
+function coordinate(value: string | undefined, limit: number): string {
+  const text = clean(value);
+  if (!/^-?\d+(\.\d+)?$/.test(text)) return '';
+  const degrees = Number(text);
+  return Math.abs(degrees) <= limit ? String(Number(degrees.toFixed(4))) : '';
+}
+
 function extractAirports(csv: string): { effectiveDate: string; rows: AirportRow[] } {
   const [header, ...records] = parseCsv(csv);
   if (!header) throw new Error('APT_BASE.csv is empty');
@@ -147,11 +162,14 @@ function extractAirports(csv: string): { effectiveDate: string; rows: AirportRow
     return index;
   };
   const cols = {
+    artcc: col('RESP_ARTCC_ID'),
     city: col('CITY'),
     country: col('COUNTRY_CODE'),
     effDate: col('EFF_DATE'),
     faaId: col('ARPT_ID'),
     icaoId: col('ICAO_ID'),
+    latitude: col('LAT_DECIMAL'),
+    longitude: col('LONG_DECIMAL'),
     name: col('ARPT_NAME'),
     state: col('STATE_CODE'),
   };
@@ -172,9 +190,12 @@ function extractAirports(csv: string): { effectiveDate: string; rows: AirportRow
       icaoOwners.set(icaoId, faaId);
     }
     byFaa.set(faaId, {
+      artcc: clean(record[cols.artcc]).toUpperCase(),
       city: clean(record[cols.city]),
       faaId,
       icaoId,
+      latitude: coordinate(record[cols.latitude], 90),
+      longitude: coordinate(record[cols.longitude], 180),
       name: clean(record[cols.name]),
       state: clean(record[cols.state]),
     });
@@ -217,7 +238,9 @@ function escapeForTemplate(value: string): string {
 
 function renderModule(effectiveDate: string, rows: AirportRow[]): string {
   const lines = rows.map((row) =>
-    [row.faaId, row.icaoId, row.name, row.city, row.state].map(escapeForTemplate).join('\\t'),
+    [row.faaId, row.icaoId, row.name, row.city, row.state, row.artcc, row.latitude, row.longitude]
+      .map(escapeForTemplate)
+      .join('\\t'),
   );
   return `/**
  * @fileoverview FAA NASR airport directory snapshot (APT_BASE.csv, cycle ${effectiveDate}).
@@ -231,9 +254,11 @@ export const NASR_EFFECTIVE_DATE = '${effectiveDate}';
 
 /**
  * One US airport per line, tab-separated: FAA identifier, ICAO code (empty when NASR assigns
- * none), airport name, city, state. Sorted by FAA identifier.
+ * none), airport name, city, state, responsible ARTCC, latitude, longitude (decimal degrees,
+ * rounded to 4 places). A field NASR leaves blank, or a coordinate it gives in another form, is
+ * empty. Sorted by FAA identifier.
  */
-export const NASR_AIRPORTS_TSV = \`${lines.join('\n')}\`;
+export const NASR_AIRPORTS_TSV: string = \`${lines.join('\n')}\`;
 `;
 }
 
