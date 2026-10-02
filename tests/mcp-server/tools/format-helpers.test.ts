@@ -46,10 +46,34 @@ describe('inline', () => {
     );
   });
 
-  it('runs in linear time on a long backslash run', () => {
-    const started = performance.now();
-    inline(`${'\\'.repeat(200_000)}x`);
-    expect(performance.now() - started).toBeLessThan(250);
+  /**
+   * Times `inline` on a backslash run of 5k, 20k, and 80k characters and keeps each size's fastest
+   * per-call time over every round, so a pause that lands in one round never counts. Each timed
+   * loop renders 80k characters in all (16 calls at 5k, 4 at 20k, 1 at 80k), so every size is as
+   * exposed to a collection or a preemption, and the size order alternates each round. Linear work
+   * grows 16× from 5k to 80k and quadratic work 256×, so the 64× bound sits between them.
+   */
+  it('grows linearly with the length of a backslash run', () => {
+    const SIZES = [5_000, 20_000, 80_000] as const;
+    const ROUNDS = 21;
+    /** Slowest acceptable fastest-call time at 80k characters; a linear pass takes about 1.5 ms. */
+    const MAX_80K_MS = 100;
+    const inputs = SIZES.map((size) => `${'\\'.repeat(size)}x`);
+    const fastest = SIZES.map(() => Number.POSITIVE_INFINITY);
+    for (let round = 0; round < ROUNDS; round++) {
+      for (const i of round % 2 === 0 ? [0, 1, 2] : [2, 1, 0]) {
+        const input = inputs[i] as string;
+        const calls = 80_000 / (SIZES[i] as number);
+        const started = performance.now();
+        for (let call = 0; call < calls; call++) inline(input);
+        fastest[i] = Math.min(fastest[i] as number, (performance.now() - started) / calls);
+      }
+    }
+    const [t5k, , t80k] = fastest as [number, number, number];
+
+    expect(t80k / t5k, `${t5k.toFixed(3)} ms at 5k, ${t80k.toFixed(3)} ms at 80k`).toBeLessThan(64);
+    expect(t80k).toBeLessThan(MAX_80K_MS);
+    expect(inline(inputs[2] as string)).toBe(inputs[2]);
   });
 });
 
