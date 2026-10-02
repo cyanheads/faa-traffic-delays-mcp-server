@@ -97,6 +97,12 @@ const RowSchema = z
       ),
     city: z.string().optional().describe('City from the NASR directory.'),
     state: z.string().optional().describe('State or territory code from the NASR directory.'),
+    artcc: z
+      .string()
+      .optional()
+      .describe(
+        "Air Route Traffic Control Center responsible for the airport, from the NASR directory (ZSE), in the form a program's includedFacilities lists ARTCCs. A few airports belong to a foreign or oceanic facility (ZVR, NZZO); faa_delays_list_reference topic artccs decodes every code.",
+      ),
     status: z
       .enum(STATUSES)
       .describe(
@@ -107,11 +113,18 @@ const RowSchema = z
       .describe(
         'Whether the FAA feed lists this airport; it lists only airports with an active event.',
       ),
-    latitude: z.number().optional().describe('Latitude in decimal degrees (listed airports only).'),
+    latitude: z
+      .number()
+      .optional()
+      .describe(
+        "Latitude in decimal degrees: the feed's value for a listed airport, else the NASR directory's (4 decimal places).",
+      ),
     longitude: z
       .number()
       .optional()
-      .describe('Longitude in decimal degrees (listed airports only).'),
+      .describe(
+        "Longitude in decimal degrees: the feed's value for a listed airport, else the NASR directory's (4 decimal places).",
+      ),
     isPacingAirport: z
       .boolean()
       .optional()
@@ -157,10 +170,10 @@ const RowSchema = z
             'Likelihood the stop is extended: low <30 %, medium 30–60 %, high >60 % per the FAA.',
           ),
         includedFacilities: z
-          .array(z.string().describe('ARTCC code or ICAO airport code.'))
+          .array(z.string().describe('ARTCC code, as in artcc, or 4-character ICAO airport code.'))
           .optional()
           .describe(
-            'Departure facilities in scope: ARTCC codes for a tier-scoped stop, ICAO codes for named airports.',
+            "Departure facilities in scope: ARTCC codes for a tier-scoped stop, in the form of each row's artcc, and 4-character ICAO codes for named airports.",
           ),
         updatedAt: z.string().optional().describe('Last FAA update (UTC ISO).'),
         advisory: AdvisoryRefSchema.optional(),
@@ -179,7 +192,16 @@ const RowSchema = z
         reason: z.string().optional().describe('Stated cause (FAA-authored text).'),
         averageDelayMinutes: z.number().optional().describe('Average assigned delay in minutes.'),
         maximumDelayMinutes: z.number().optional().describe('Maximum assigned delay in minutes.'),
-        startTime: z.string().optional().describe('Program start (UTC ISO).'),
+        startTime: z
+          .string()
+          .optional()
+          .describe(
+            "Start of the current revision's arrival window (UTC ISO); a revised program keeps its earlier start in programStartTime.",
+          ),
+        programStartTime: z
+          .string()
+          .optional()
+          .describe('When the program began, before any revision (UTC ISO).'),
         endTime: z.string().optional().describe('Program end (UTC ISO).'),
         updatedAt: z.string().optional().describe('Last FAA update (UTC ISO).'),
         controllingCenter: z.string().optional().describe('Controlling ARTCC code (ZSE).'),
@@ -188,10 +210,10 @@ const RowSchema = z
           .optional()
           .describe('Departure scope: departures within this many nautical miles are included.'),
         includedFacilities: z
-          .array(z.string().describe('ARTCC code or ICAO airport code.'))
+          .array(z.string().describe('ARTCC code, as in artcc, or 4-character ICAO airport code.'))
           .optional()
           .describe(
-            'Additional departure facilities in scope, such as Canadian airports by ICAO code.',
+            "Departure facilities in scope: ARTCC codes, in the form of each row's artcc, and 4-character ICAO codes for named airports, such as Canadian airports.",
           ),
         includedFlights: z
           .string()
@@ -258,16 +280,18 @@ function buildRow(
   pacing: Map<string, { timezone?: string }> | undefined,
 ): Row {
   const pacingEntry = pacing?.get(airport.faaId);
+  const located = events ?? airport;
   return {
     airportId: airport.faaId,
     ...(requestedAs && { requestedAs }),
     airportName: events?.airportName ?? airport.name,
     ...(airport.city && { city: airport.city }),
     ...(airport.state && { state: airport.state }),
+    ...(airport.artcc && { artcc: airport.artcc }),
     status: deriveStatus(events),
     listedInFeed: events !== undefined,
-    ...(events?.latitude !== undefined && { latitude: events.latitude }),
-    ...(events?.longitude !== undefined && { longitude: events.longitude }),
+    ...(located.latitude !== undefined && { latitude: located.latitude }),
+    ...(located.longitude !== undefined && { longitude: located.longitude }),
     ...(pacing && { isPacingAirport: pacingEntry !== undefined }),
     ...(pacingEntry?.timezone && { timezone: pacingEntry.timezone }),
     ...(events?.runwayConfiguration && { runwayConfiguration: events.runwayConfiguration }),
@@ -281,6 +305,17 @@ function buildRow(
   };
 }
 
+/** `47.4502, -122.3088`, or the one coordinate a row carries, named. */
+function coordinates(
+  latitude: number | undefined,
+  longitude: number | undefined,
+): string | undefined {
+  if (latitude !== undefined && longitude !== undefined) return `${latitude}, ${longitude}`;
+  if (latitude !== undefined) return `latitude ${latitude}`;
+  if (longitude !== undefined) return `longitude ${longitude}`;
+  return;
+}
+
 function renderDelayBand(label: string, band: z.infer<typeof DelayBandSchema>): string[] {
   const range = delayBand(band.minMinutes, band.maxMinutes) ?? 'band not reported';
   const lines = [`**${label}:** ${range}${band.trend ? `, ${band.trend}` : ''}`];
@@ -290,9 +325,9 @@ function renderDelayBand(label: string, band: z.infer<typeof DelayBandSchema>): 
 }
 
 export const getAirportStatus = tool('faa_delays_get_airport_status', {
-  title: 'faa_delays_get_airport_status',
+  title: 'Get FAA Airport Status',
   description:
-    'Get the current FAA traffic management status for one or more US airports: a headline status, every active event (ground stop, Ground Delay Program with its delay profile, arrival or departure delay, closure, deicing) with reason and times, and the runway configuration and airport arrival rate. Airports are FAA 3-character identifiers (SEA, ORD, JFK) or their ICAO codes (KSEA, PHNL); a code that names no US airport is rejected. The FAA feed lists only airports with an active event, so a known airport absent from it returns status no_active_events, and runway configuration is available only for listed airports.',
+    "Get the current FAA traffic management status for one or more US airports: a headline status, every active event (ground stop, Ground Delay Program with its delay profile, arrival or departure delay, closure, deicing) with reason and times, and the runway configuration and airport arrival rate. Every row carries the airport's ARTCC, and its coordinates come from the feed when the airport is listed (absent when the feed omits them) and from the NASR directory otherwise; both place a departure airport against a program's includedFacilities and departureScopeNm. Airports are FAA 3-character identifiers (SEA, ORD, JFK) or their ICAO codes (KSEA, PHNL); a code that names no US airport is rejected. The FAA feed lists only airports with an active event, so a known airport absent from it returns status no_active_events, and runway configuration is available only for listed airports.",
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
   input: z.object({
     airports: z
@@ -367,7 +402,7 @@ export const getAirportStatus = tool('faa_delays_get_airport_status', {
       code: JsonRpcErrorCode.SerializationError,
       when: 'The feed path returned 404/410, or a body whose shape this server no longer recognizes',
       recovery:
-        "The FAA NAS Status feed is not serving the format this server reads, which usually means the FAA changed it, so an immediate retry will not help; faa_delays_get_advisory still reads ATCSCC advisories, numbered from 1 each UTC day, so today's program advisories can be read by advisory_number with today's UTC date.",
+        "The FAA NAS Status feed is not serving the format this server reads, which usually means the FAA changed it, so an immediate retry will not help; faa_delays_list_advisories with control_element set to the airport still lists today's ATCSCC advisories for it (ground stops, delay programs, and their cancellations), and faa_delays_get_advisory reads any of them in full by number and date.",
       retryable: false,
       thrownBy: 'service',
     },
@@ -461,13 +496,12 @@ export const getAirportStatus = tool('faa_delays_get_airport_status', {
         `## ${row.airportId} — ${inline(row.airportName)}${place.length > 0 ? ` (${place.join(', ')})` : ''}`,
         `**Status:** ${row.status} · **Listed in feed:** ${row.listedInFeed ? 'yes' : 'no'}${row.requestedAs ? ` · **Requested as:** ${row.requestedAs}` : ''}`,
       );
-      if (row.latitude !== undefined && row.longitude !== undefined) {
-        lines.push(`**Coordinates:** ${row.latitude}, ${row.longitude}`);
-      } else if (row.latitude !== undefined) {
-        lines.push(`**Coordinates:** latitude ${row.latitude}`);
-      } else if (row.longitude !== undefined) {
-        lines.push(`**Coordinates:** longitude ${row.longitude}`);
-      }
+      const position = coordinates(row.latitude, row.longitude);
+      const location = [
+        ...(row.artcc ? [`**ARTCC:** ${inline(row.artcc)}`] : []),
+        ...(position ? [`**Coordinates:** ${position}`] : []),
+      ];
+      if (location.length > 0) lines.push(location.join(' · '));
       if (row.isPacingAirport !== undefined) {
         lines.push(
           `**Pacing airport:** ${row.isPacingAirport ? 'yes' : 'no'}${row.timezone ? ` · **Time zone:** ${inline(row.timezone)}` : ''}`,
@@ -509,6 +543,12 @@ export const getAirportStatus = tool('faa_delays_get_airport_status', {
       const gdp = row.groundDelayProgram;
       if (gdp) {
         lines.push('', `**Ground Delay Program:** ${span(gdp.startTime, gdp.endTime)}`);
+        if (gdp.programStartTime) {
+          const revised = gdp.startTime !== undefined && gdp.startTime !== gdp.programStartTime;
+          lines.push(
+            `- Program start: ${inline(gdp.programStartTime)}${revised ? ' (the window above is the current revision)' : ''}`,
+          );
+        }
         if (gdp.reason) lines.push(`- Reason: ${inline(gdp.reason)}`);
         const delay = delayFigures(gdp.averageDelayMinutes, gdp.maximumDelayMinutes);
         if (delay) lines.push(`- Delay: ${delay}`);

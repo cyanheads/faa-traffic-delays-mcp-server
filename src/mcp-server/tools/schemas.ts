@@ -39,7 +39,11 @@ export const AdvisoryRefSchema = z
 
 export const DelayProfileSchema = z
   .object({
-    startTime: z.string().describe('UTC ISO start of the first interval, as the FAA reports it.'),
+    startTime: z
+      .string()
+      .describe(
+        'UTC ISO start of the first 15-minute interval. The FAA aligns intervals to the quarter hour, so it can precede the program start by up to 14 minutes.',
+      ),
     intervalMinutes: z.literal(15).describe('Length of each interval in minutes; always 15.'),
     averageDelayMinutes: z
       .array(z.number().describe('Average delay in minutes for one 15-minute arrival interval.'))

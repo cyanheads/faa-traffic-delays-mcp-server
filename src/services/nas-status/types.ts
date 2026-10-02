@@ -39,6 +39,8 @@ export interface GroundDelayProgram {
   includedFacilities?: string[];
   includedFlights?: string;
   maximumDelayMinutes?: number;
+  /** The program's cumulative start; `startTime` is the current revision's. */
+  programStartTime?: string;
   reason?: string;
   startTime?: string;
   updatedAt?: string;

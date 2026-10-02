@@ -1,7 +1,8 @@
 /**
  * @fileoverview Tests for faa_delays_get_airport_status: input normalization and validation,
- * ICAO crosswalk, unknown_airport before any upstream call, status precedence, degrade paths,
- * staleness and skipped-row notices, declared feed errors, and format() fidelity and sanitizing.
+ * ICAO crosswalk, unknown_airport before any upstream call, each row's ARTCC and the coordinate
+ * fallback to the NASR directory, status precedence, degrade paths, staleness and skipped-row
+ * notices, declared feed errors, and format() fidelity and sanitizing.
  * @module tests/mcp-server/tools/get-airport-status.tool.test
  */
 
@@ -46,7 +47,10 @@ const rowsOf = (result: Awaited<ReturnType<typeof run>>): Row[] =>
 const noticeOf = (result: Awaited<ReturnType<typeof run>>): string | undefined =>
   (result.structuredContent as { notice?: string }).notice;
 
-beforeEach(() => setup());
+beforeEach(() => {
+  vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('unmocked fetch'));
+  setup();
+});
 afterEach(() => {
   services.dispose();
   vi.useRealTimers();
@@ -157,6 +161,11 @@ describe('airport resolution', () => {
     expect(row?.airportName).toBe('Seattle-Tacoma International');
   });
 
+  it("keeps a listed airport's feed coordinates", async () => {
+    const [row] = rowsOf(await run({ airports: ['SEA'] }));
+    expect(row).toMatchObject({ latitude: 47.4502, longitude: -122.3088 });
+  });
+
   describe('unknown_airport', () => {
     it('fails the whole batch with typed data before any upstream request', async () => {
       const result = await run({ airports: ['SEA', 'zzz', 'K0S9', 'ZZZ', 'CYVR'] });
@@ -206,6 +215,151 @@ describe('airport resolution', () => {
         expect('severity' in entry ? entry.severity : undefined, entry.reason).toBe(
           entry.reason === 'unknown_airport' ? 'notice' : undefined,
         );
+      }
+    });
+  });
+});
+
+describe('ARTCC and coordinates', () => {
+  it('gives an unlisted airport its NASR ARTCC and coordinates', async () => {
+    const result = await run({ airports: ['BOI'] });
+
+    expect(rowsOf(result)[0]).toMatchObject({
+      airportId: 'BOI',
+      artcc: 'ZLC',
+      latitude: 43.5644,
+      listedInFeed: false,
+      longitude: -116.2229,
+      status: 'no_active_events',
+    });
+    expect(contentText(result)).toContain('**ARTCC:** ZLC · **Coordinates:** 43.5644, -116.2229');
+  });
+
+  it("keeps a listed airport's feed coordinates and adds its NASR ARTCC", async () => {
+    services.dispose();
+    setup({
+      'airport-events': [
+        {
+          airportId: 'DFW',
+          airportLongName: 'Dallas-Fort Worth International',
+          departureDelay: { averageDelay: '15', trend: 'increasing' },
+          latitude: '32.8998',
+          longitude: '-97.0403',
+        },
+      ],
+    });
+
+    const result = await run({ airports: ['KDFW'] });
+
+    expect(rowsOf(result)[0]).toMatchObject({
+      airportId: 'DFW',
+      artcc: 'ZFW',
+      latitude: 32.8998,
+      listedInFeed: true,
+      longitude: -97.0403,
+      requestedAs: 'KDFW',
+    });
+    expect(contentText(result)).toContain('**ARTCC:** ZFW · **Coordinates:** 32.8998, -97.0403');
+  });
+
+  it('decodes an airport under a facility outside the 25 US ARTCCs', async () => {
+    const [row] = rowsOf(await run({ airports: ['GUM'] }));
+    expect(row).toMatchObject({ artcc: 'ZUA', latitude: 13.484, longitude: 144.7971 });
+  });
+
+  it("leaves out a listed airport's coordinates the feed omits rather than mixing in NASR's", async () => {
+    services.dispose();
+    setup({ 'airport-events': [{ airportId: 'SEA' }] });
+
+    const result = await run({ airports: ['SEA'] });
+    const [row] = rowsOf(result);
+
+    expect(row).toMatchObject({ artcc: 'ZSE', listedInFeed: true });
+    expect(row).not.toHaveProperty('latitude');
+    expect(row).not.toHaveProperty('longitude');
+    expect(contentText(result)).toContain('**ARTCC:** ZSE\n');
+    expect(contentText(result)).not.toContain('**Coordinates:**');
+  });
+
+  it('describes where each row gets its ARTCC and coordinates, as the rows above follow it', () => {
+    const { description } = getAirportStatus;
+
+    expect(description).toContain("Every row carries the airport's ARTCC");
+    expect(description).toContain(
+      'coordinates come from the feed when the airport is listed (absent when the feed omits them) and from the NASR directory otherwise',
+    );
+    expect(description).not.toContain("Rows carry the airport's ARTCC and coordinates");
+  });
+
+  it('renders the ARTCC and coordinates of every row, listed or not', async () => {
+    const result = await run({ airports: ['SEA', 'BOI', 'PDX', 'PGUM', 'ORD', 'FAQ'] });
+    const rows = rowsOf(result);
+    const sections = contentText(result).split('\n## ').slice(1);
+
+    expect(sections).toHaveLength(rows.length);
+    for (const [i, row] of rows.entries()) {
+      expect(row, row.airportId).toMatchObject({
+        artcc: expect.any(String),
+        latitude: expect.any(Number),
+        longitude: expect.any(Number),
+      });
+      expect(sections[i]).toContain(
+        `**ARTCC:** ${row.artcc} · **Coordinates:** ${row.latitude}, ${row.longitude}`,
+      );
+    }
+    expect(rows.map((row) => [row.airportId, row.listedInFeed])).toEqual([
+      ['SEA', true],
+      ['BOI', false],
+      ['PDX', false],
+      ['GUM', false],
+      ['ORD', true],
+      ['FAQ', false],
+    ]);
+  });
+
+  describe('NASR fields left blank', () => {
+    const GENERATED = '@/services/airport-directory/nasr-airports.generated.js';
+
+    afterEach(() => {
+      vi.doUnmock(GENERATED);
+      vi.resetModules();
+    });
+
+    it('omits the field from the row and the rendered text', async () => {
+      vi.resetModules();
+      vi.doMock(GENERATED, () => ({
+        NASR_EFFECTIVE_DATE: '2026-09-03',
+        NASR_AIRPORTS_TSV: [
+          'PDX\tKPDX\tPORTLAND INTL\tPORTLAND\tOR\t\t\t',
+          'SEA\tKSEA\tSEATTLE-TACOMA INTL\tSEATTLE\tWA\t\t47.4499\t-122.3118',
+        ].join('\n'),
+      }));
+      const { getAirportStatus: tool } = await import(
+        '@/mcp-server/tools/definitions/get-airport-status.tool.js'
+      );
+      const fakes = await import('../../helpers/faa-fakes.js');
+      const fresh = fakes.installServices({
+        fetch: fakes.feedHarness().fetch,
+        now: fakes.createClock().now,
+      });
+
+      try {
+        const result = await runToolContract(tool, { airports: ['PDX', 'SEA'] });
+        const [pdx, sea] = (result.structuredContent as { airports: Row[] }).airports;
+
+        expect(result.isError).toBeFalsy();
+        expect(pdx).toMatchObject({ airportId: 'PDX', listedInFeed: false });
+        for (const field of ['artcc', 'latitude', 'longitude']) {
+          expect(pdx).not.toHaveProperty(field);
+        }
+        expect(sea).toMatchObject({ latitude: 47.4502, listedInFeed: true, longitude: -122.3088 });
+        expect(sea).not.toHaveProperty('artcc');
+        const [pdxText, seaText] = contentText(result).split('\n## ').slice(1);
+        expect(pdxText).not.toMatch(/ARTCC|Coordinates/);
+        expect(seaText).toContain('**Coordinates:** 47.4502, -122.3088');
+        expect(seaText).not.toContain('**ARTCC:**');
+      } finally {
+        fresh.dispose();
       }
     });
   });
@@ -287,6 +441,175 @@ describe('status', () => {
   });
 });
 
+describe('Ground Delay Program times', () => {
+  const DAS_DELAY = [
+    { delay: 41, seq: 1 },
+    { delay: 47, seq: 2 },
+  ];
+
+  /** An AUS-shaped GDP: revision window from 20:45Z, the program running since 17:55Z. */
+  function setupAus(delayTime: Record<string, unknown>): void {
+    services.dispose();
+    setup({
+      'airport-events': [
+        {
+          airportId: 'AUS',
+          groundDelay: {
+            avgDelay: 44,
+            endTime: '2026-10-01T23:59:00Z',
+            fuelFlowAdvisoryDelayTime: { endTime: '2026-10-01T23:59:00Z', ...delayTime },
+            startTime: '2026-10-01T20:45:00Z',
+          },
+        },
+      ],
+    });
+  }
+
+  it("keeps each GDP's feed startTime and endTime verbatim", async () => {
+    const [sea, atl] = rowsOf(await run({ airports: ['SEA', 'ATL'] }));
+    expect(sea?.groundDelayProgram).toMatchObject({
+      endTime: '2026-09-30T05:59:00Z',
+      startTime: '2026-09-30T01:00:00Z',
+    });
+    expect(atl?.groundDelayProgram).toMatchObject({
+      endTime: '2026-09-30T03:00:00Z',
+      startTime: '2026-09-29T23:00:00Z',
+    });
+  });
+
+  it('returns the revision window, programStartTime, and a profile anchored on delayTimeAmount', async () => {
+    setupAus({
+      dasDelays: { dasDelay: DAS_DELAY, delayTimeAmount: '2026-10-01T17:45:00.000+00:00' },
+      startTime: '2026-10-01T17:55:00Z',
+    });
+
+    const result = await run({ airports: ['AUS'] });
+
+    expect(rowsOf(result)[0]?.groundDelayProgram).toEqual({
+      averageDelayMinutes: 44,
+      delayProfile: {
+        averageDelayMinutes: [41, 47],
+        intervalMinutes: 15,
+        startTime: '2026-10-01T17:45:00Z',
+      },
+      endTime: '2026-10-01T23:59:00Z',
+      programStartTime: '2026-10-01T17:55:00Z',
+      startTime: '2026-10-01T20:45:00Z',
+    });
+    const text = contentText(result);
+    expect(text).toContain(
+      '**Ground Delay Program:** 2026-10-01T20:45:00Z → 2026-10-01T23:59:00Z\n- Program start: 2026-10-01T17:55:00Z (the window above is the current revision)',
+    );
+    expect(text).toContain(
+      '- Delay profile: 41, 47 min (15-min intervals from 2026-10-01T17:45:00Z)',
+    );
+  });
+
+  it('floors the cumulative start to the quarter hour when delayTimeAmount is absent', async () => {
+    setupAus({ dasDelays: { dasDelay: DAS_DELAY }, startTime: '2026-10-01T17:55:00Z' });
+
+    const result = await run({ airports: ['AUS'] });
+
+    expect(rowsOf(result)[0]?.groundDelayProgram).toMatchObject({
+      delayProfile: { startTime: '2026-10-01T17:45:00Z' },
+      programStartTime: '2026-10-01T17:55:00Z',
+      startTime: '2026-10-01T20:45:00Z',
+    });
+    expect(contentText(result)).toContain('(15-min intervals from 2026-10-01T17:45:00Z)');
+  });
+
+  it('omits programStartTime, in both surfaces, when the cumulative start is missing', async () => {
+    setupAus({
+      dasDelays: { dasDelay: DAS_DELAY, delayTimeAmount: '2026-10-01T17:45:00.000+00:00' },
+    });
+
+    const result = await run({ airports: ['AUS'] });
+    const gdp = rowsOf(result)[0]?.groundDelayProgram;
+
+    expect(gdp).toMatchObject({ delayProfile: { startTime: '2026-10-01T17:45:00Z' } });
+    expect(gdp).not.toHaveProperty('programStartTime');
+    expect(contentText(result)).not.toContain('Program start');
+  });
+
+  it('returns matching revision and cumulative starts unchanged', async () => {
+    const result = await run({ airports: ['SEA'] });
+
+    expect(rowsOf(result)[0]?.groundDelayProgram).toMatchObject({
+      delayProfile: { startTime: '2026-09-30T01:00:00Z' },
+      programStartTime: '2026-09-30T01:00:00Z',
+      startTime: '2026-09-30T01:00:00Z',
+    });
+    expect(contentText(result)).toContain('- Program start: 2026-09-30T01:00:00Z\n');
+    expect(contentText(result)).not.toContain('current revision');
+  });
+
+  it('prints no revision note for a GDP whose feed gives no window start', async () => {
+    services.dispose();
+    setup({
+      'airport-events': [
+        {
+          airportId: 'AUS',
+          groundDelay: {
+            endTime: '2026-10-01T23:59:00Z',
+            fuelFlowAdvisoryDelayTime: { startTime: '2026-10-01T17:55:00Z' },
+          },
+        },
+      ],
+    });
+
+    const result = await run({ airports: ['AUS'] });
+    const gdp = rowsOf(result)[0]?.groundDelayProgram;
+
+    expect(gdp).toMatchObject({ programStartTime: '2026-10-01T17:55:00Z' });
+    expect(gdp).not.toHaveProperty('startTime');
+    expect(contentText(result)).toMatch(/^- Program start: 2026-10-01T17:55:00Z$/m);
+    expect(contentText(result)).not.toContain('current revision');
+  });
+
+  it('reads all three times from the fixture row where they differ', async () => {
+    const result = await run({ airports: ['ATL'] });
+
+    expect(rowsOf(result)[0]?.groundDelayProgram).toMatchObject({
+      delayProfile: { averageDelayMinutes: [18, 22, 25, 20], startTime: '2026-09-29T20:45:00Z' },
+      programStartTime: '2026-09-29T20:55:00Z',
+      startTime: '2026-09-29T23:00:00Z',
+    });
+    const text = contentText(result);
+    expect(text).toContain('**Ground Delay Program:** 2026-09-29T23:00:00Z → 2026-09-30T03:00:00Z');
+    expect(text).toContain('- Program start: 2026-09-29T20:55:00Z');
+    expect(text).toContain('(15-min intervals from 2026-09-29T20:45:00Z)');
+  });
+});
+
+describe('delay band fallback', () => {
+  it('derives a decreasing band below the average when the feed gives no arrivalDeparture', async () => {
+    const result = await run({ airports: ['BOS'] });
+
+    expect(rowsOf(result)[0]?.arrivalDelay).toEqual({
+      maxMinutes: 29,
+      minMinutes: 15,
+      reason: 'WEATHER:Low Ceilings',
+      trend: 'decreasing',
+      updatedAt: '2026-09-29T23:45:00Z',
+    });
+    expect(contentText(result)).toContain('**Arrival delay:** 15–29 min, decreasing');
+  });
+
+  it('keeps the trend without a band for an average below 15', async () => {
+    services.dispose();
+    setup({
+      'airport-events': [
+        { airportId: 'BOS', arrivalDelay: { averageDelay: '10', trend: 'decreasing' } },
+      ],
+    });
+
+    const result = await run({ airports: ['BOS'] });
+
+    expect(rowsOf(result)[0]?.arrivalDelay).toEqual({ trend: 'decreasing' });
+    expect(contentText(result)).toContain('**Arrival delay:** band not reported, decreasing');
+  });
+});
+
 describe('empty and partial feeds', () => {
   it('reports no_active_events with a notice on the zero-result page', async () => {
     services.dispose();
@@ -339,7 +662,10 @@ describe('empty and partial feeds', () => {
 
     expect(result.isError).toBeFalsy();
     const [row] = rowsOf(result);
-    expect(row?.groundDelayProgram).toEqual({ averageDelayMinutes: 55 });
+    expect(row?.groundDelayProgram).toEqual({
+      averageDelayMinutes: 55,
+      programStartTime: '2026-09-30T01:00:00Z',
+    });
     expect(row?.departureDelay).toEqual({});
     expect(contentText(result)).not.toMatch(/Infinity|NaN/);
   });
@@ -512,6 +838,7 @@ describe('format', () => {
     expect(text).toContain('**Fetched:** 2026-09-30T02:00:00.000Z');
     expect(text).toContain('## SEA — Seattle-Tacoma International (SEATTLE, WA)');
     expect(text).toContain('**Status:** ground_delay_program · **Listed in feed:** yes');
+    expect(text).toContain('**ARTCC:** ZSE · **Coordinates:** 47.4502, -122.3088');
     expect(text).toContain('**Pacing airport:** yes · **Time zone:** US/Pacific');
     expect(text).toContain('- Arrival runways: 34L');
     expect(text).toContain('- Arrival rate: 38 per hour');
@@ -674,6 +1001,7 @@ describe('format', () => {
     expect(lines).toContain('> !SEA 1');
     expect(lines).toContain('> 3');
     expect(lines).toContain('- Restriction: NARROW RESTRICTION - injected');
+    expect(lines).toContain('- Program start: 2026-09-30T01:00:00Z ## Profile start');
   });
 
   it('keeps structuredContent verbatim while the text flattens', async () => {

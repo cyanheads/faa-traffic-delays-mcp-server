@@ -202,27 +202,70 @@ function stripFlightsPrefix(value: string | undefined): string | undefined {
   return stripped?.trim() ? stripped : undefined;
 }
 
+/** Length of each delay-profile interval; the FAA lays the intervals on this grid. */
+const PROFILE_INTERVAL_MINUTES = 15;
+const PROFILE_INTERVAL_MS = PROFILE_INTERVAL_MINUTES * 60_000;
+
+/** ISO 8601 with an explicit offset; a time without one would be read in the host's time zone. */
+const OFFSET_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
+
+/** Whether `YYYY-MM-DD` is a real calendar day; `Date.parse` rolls `2026-02-30` into March. */
+const isCalendarDay = (day: string): boolean => {
+  const ms = Date.parse(`${day}T00:00:00Z`);
+  return Number.isFinite(ms) && new Date(ms).toISOString().startsWith(day);
+};
+
+/** Epoch milliseconds of an ISO 8601 time carrying its offset; anything else reads as absent. */
+const instant = (value: string | undefined): number | undefined =>
+  value !== undefined && OFFSET_TIME.test(value) && isCalendarDay(value.slice(0, 10))
+    ? finite(Date.parse(value))
+    : undefined;
+
+/** Epoch milliseconds → the feed's own time form, `YYYY-MM-DDTHH:MM:SSZ`. */
+const feedTime = (ms: number): string => `${new Date(ms).toISOString().slice(0, 19)}Z`;
+
 /** `dasDelays.dasDelay[]` ordered by `seq` → per-15-minute averages; any unreadable entry drops the profile. */
-function parseDelayProfile(fields: Fields | undefined): DelayProfile | undefined {
-  if (!fields) return;
-  const startTime = fields.string('startTime');
-  const dasDelays = fields.object('dasDelays');
-  const rawDelays = dasDelays?.raw('dasDelay');
-  if (!startTime || rawDelays === undefined) return;
+function parseDelayProfile(dasDelays: Fields, anchor: number): DelayProfile | undefined {
+  const rawDelays = dasDelays.raw('dasDelay');
+  if (rawDelays === undefined) return;
   const entries = Array.isArray(rawDelays) ? rawDelays : [rawDelays];
   const values: { delay: number; seq: number }[] = [];
   for (const entry of entries) {
     const delay = isRecord(entry) ? finite(entry.delay) : undefined;
     const seq = isRecord(entry) ? finite(entry.seq) : undefined;
-    if (delay === undefined || seq === undefined) return dasDelays?.flag('dasDelay[]', entry);
+    if (delay === undefined || seq === undefined) return dasDelays.flag('dasDelay[]', entry);
     values.push({ delay, seq });
   }
   if (values.length === 0) return;
   values.sort((a, b) => a.seq - b.seq);
   return {
     averageDelayMinutes: values.map((v) => v.delay),
-    intervalMinutes: 15,
-    startTime,
+    intervalMinutes: PROFILE_INTERVAL_MINUTES,
+    startTime: feedTime(anchor),
+  };
+}
+
+/**
+ * A program's `fuelFlowAdvisoryDelayTime` → its cumulative start, verbatim, and its delay profile.
+ * The FAA lays the intervals on the quarter-hour grid, so the profile starts at
+ * `dasDelays.delayTimeAmount`, else at the quarter-hour floor of the cumulative start: a program
+ * that began at 17:55 has its first interval at 17:45. Without either anchor there is no profile.
+ */
+function parseFuelFlowAdvisoryDelayTime(fields: Fields | undefined): {
+  delayProfile?: DelayProfile;
+  programStartTime?: string;
+} {
+  const programStartTime = fields?.string('startTime');
+  const dasDelays = fields?.object('dasDelays');
+  const programStart = instant(programStartTime);
+  const anchor =
+    instant(dasDelays?.string('delayTimeAmount')) ??
+    (programStart === undefined ? undefined : programStart - (programStart % PROFILE_INTERVAL_MS));
+  const delayProfile =
+    dasDelays && anchor !== undefined ? parseDelayProfile(dasDelays, anchor) : undefined;
+  return {
+    ...(programStartTime && { programStartTime }),
+    ...(delayProfile && { delayProfile }),
   };
 }
 
@@ -283,13 +326,16 @@ function parseGroundDelay(f: Fields): GroundDelayProgram {
   const departureScopeNm = f.number('departureScope');
   const includedFacilities = f.stringList('includedFacilities');
   const includedFlights = stripFlightsPrefix(f.string('includedFlights'));
-  const delayProfile = parseDelayProfile(f.object('fuelFlowAdvisoryDelayTime'));
+  const { delayProfile, programStartTime } = parseFuelFlowAdvisoryDelayTime(
+    f.object('fuelFlowAdvisoryDelayTime'),
+  );
   const advisory = parseAdvisoryLink(f.string('advisoryUrl'));
   return {
     ...(reason && { reason }),
     ...(averageDelayMinutes !== undefined && { averageDelayMinutes }),
     ...(maximumDelayMinutes !== undefined && { maximumDelayMinutes }),
     ...(startTime && { startTime }),
+    ...(programStartTime && { programStartTime }),
     ...(endTime && { endTime }),
     ...(updatedAt && { updatedAt }),
     ...(controllingCenter && { controllingCenter }),
@@ -301,10 +347,14 @@ function parseGroundDelay(f: Fields): GroundDelayProgram {
   };
 }
 
+/** The smallest delay FAA facilities report; an `averageDelay` below it names no band. */
+const MIN_REPORTED_DELAY_MINUTES = 15;
+
 /**
- * Arrival/departure delay band. `arrivalDeparture.min`/`max` when present; otherwise the FAA's
- * documented rule from `averageDelay` + `trend` (increasing: avg+1 to avg+15; decreasing: avg−14
- * to avg). `averageDelay` itself is never surfaced.
+ * Arrival/departure delay band. `arrivalDeparture.min`/`max` when present; otherwise derived from
+ * `averageDelay` + `trend` as the 15-minute band beside the average, excluding it (increasing:
+ * avg+1 to avg+15; decreasing: avg−15 to avg−1, which the NAS Status User Guide places below the
+ * average), and only from an average of at least 15. `averageDelay` itself is never surfaced.
  */
 function parseDelayBand(f: Fields): DelayBand {
   const reason = f.string('reason');
@@ -323,12 +373,14 @@ function parseDelayBand(f: Fields): DelayBand {
         ? Number(rawAverage)
         : rawAverage,
     );
-    if (average !== undefined && trend === 'increasing') {
-      minMinutes = average + 1;
-      maxMinutes = average + 15;
-    } else if (average !== undefined && trend === 'decreasing') {
-      minMinutes = Math.max(0, average - 14);
-      maxMinutes = average;
+    if (average !== undefined && average >= MIN_REPORTED_DELAY_MINUTES) {
+      if (trend === 'increasing') {
+        minMinutes = average + 1;
+        maxMinutes = average + 15;
+      } else if (trend === 'decreasing') {
+        minMinutes = average - 15;
+        maxMinutes = average - 1;
+      }
     }
   }
   return {
@@ -492,7 +544,9 @@ export function parseEnrouteEvents(
     const updatedAt = afp.string('updatedAt');
     const altitudeFloor = afp.string('lowerAltitude');
     const altitudeCeiling = afp.string('upperAltitude');
-    const delayProfile = parseDelayProfile(afp.object('fuelFlowAdvisoryDelayTime'));
+    const { delayProfile } = parseFuelFlowAdvisoryDelayTime(
+      afp.object('fuelFlowAdvisoryDelayTime'),
+    );
     const advisory = parseAdvisoryLink(f.string('advisoryUrl'));
     const departsFrom = f.filterText('departsAny');
     const arrivesTo = f.filterText('arrivesAny');

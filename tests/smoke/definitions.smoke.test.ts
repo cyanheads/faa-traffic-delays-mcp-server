@@ -45,4 +45,23 @@ describe('definition smoke test', () => {
       expect(when('pacer_shed')).toMatch(/with no .*429 backoff in effect/);
     },
   );
+
+  it.each(allToolDefinitions.map((definition) => [definition.name, definition] as const))(
+    '%s carries a readable title, not its name',
+    (name, definition) => {
+      expect(definition.title).not.toBe(name);
+      expect(definition.title).toContain(' ');
+    },
+  );
+
+  it('registers every tool in surface order with its Title Case title', () => {
+    expect(allToolDefinitions.map(({ name, title }) => [name, title])).toEqual([
+      ['faa_delays_get_airport_status', 'Get FAA Airport Status'],
+      ['faa_delays_list_active_events', 'List Active FAA Delay Events'],
+      ['faa_delays_get_operations_plan', 'Get FAA Operations Plan'],
+      ['faa_delays_get_advisory', 'Get ATCSCC Advisory'],
+      ['faa_delays_list_advisories', 'List ATCSCC Advisories'],
+      ['faa_delays_list_reference', 'List FAA Delay Reference Data'],
+    ]);
+  });
 });

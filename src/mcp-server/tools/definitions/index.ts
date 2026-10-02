@@ -7,6 +7,7 @@ import { getAdvisory } from './get-advisory.tool.js';
 import { getAirportStatus } from './get-airport-status.tool.js';
 import { getOperationsPlan } from './get-operations-plan.tool.js';
 import { listActiveEvents } from './list-active-events.tool.js';
+import { listAdvisories } from './list-advisories.tool.js';
 import { listReference } from './list-reference.tool.js';
 
 export const allToolDefinitions = [
@@ -14,5 +15,6 @@ export const allToolDefinitions = [
   listActiveEvents,
   getOperationsPlan,
   getAdvisory,
+  listAdvisories,
   listReference,
 ];

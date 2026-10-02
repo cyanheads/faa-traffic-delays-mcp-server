@@ -5,6 +5,7 @@
  * @module tests/mcp-server/tools/get-advisory.tool.test
  */
 
+import { z } from '@cyanheads/mcp-ts-core';
 import { JsonRpcErrorCode, rateLimited } from '@cyanheads/mcp-ts-core/errors';
 import { createFetchMock, runToolContract } from '@cyanheads/mcp-ts-core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -43,7 +44,10 @@ const advisoryPage = (
 ) =>
   `<html><body><TABLE><TR><TH class=header>${title}</TH></TR><TR><TD class=val><PRE>${text}</PRE></TD></TR></TABLE></body></html>`;
 
-beforeEach(() => setup({ [GDP_URL]: () => htmlResponse(readFixture('advisory-gdp.page')) }));
+beforeEach(() => {
+  vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('unmocked fetch'));
+  setup({ [GDP_URL]: () => htmlResponse(readFixture('advisory-gdp.page')) });
+});
 afterEach(() => {
   services.dispose();
   vi.useRealTimers();
@@ -99,6 +103,23 @@ describe('input', () => {
     ['missing', undefined],
   ])('rejects date %s', (_label, value) => {
     expect(parse({ advisory_number: 3, date: value }).success).toBe(false);
+  });
+
+  it('advertises date as a required ISO date string', () => {
+    const schema = z.toJSONSchema(getAdvisory.input, { io: 'input' }) as {
+      properties: Record<string, Record<string, unknown>>;
+      required: string[];
+    };
+
+    expect(schema.required).toContain('date');
+    expect(schema.properties.date).toEqual({
+      description:
+        'UTC date the advisory was issued, YYYY-MM-DD: date from the same faa_delays_list_advisories row or advisory reference. MM/DD/YYYY, as advisory titles print it, and M/D/YYYY are also accepted.',
+      format: 'date',
+      pattern:
+        '^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$',
+      type: 'string',
+    });
   });
 
   it('rejects invalid input on the wire as InvalidParams', async () => {
@@ -198,6 +219,76 @@ describe('found advisory', () => {
       expect(data).not.toHaveProperty(key);
     }
   });
+
+  it('returns a labelled-cell advisory exactly, on both surfaces', async () => {
+    const text = readFixture('advisory-gdp.page')
+      .split('<PRE>')[1]
+      ?.split('&nbsp;</PRE>')[0] as string;
+    const header = [
+      '## ATCSCC advisory 3 · 2026-09-30',
+      `**Found:** yes · **URL:** ${GDP_URL}`,
+      '**Title:** ATCSCC ADVZY 003 SEA/ZSE 09/30/2026 CDM GROUND DELAY PROGRAM',
+      '**Control element:** SEA/ZSE · **Subject:** CDM GROUND DELAY PROGRAM',
+      '**Effective:** 300016-300659 · **Sent:** 26/09/30 00:17',
+    ].join('\n');
+
+    expect(await run({ advisory_number: 3, date: '2026-09-30' })).toEqual({
+      content: [{ type: 'text', text: `${header}\n\n\`\`\`text\n${text}\n\`\`\`` }],
+      structuredContent: {
+        advisoryNumber: 3,
+        controlElement: 'SEA/ZSE',
+        date: '2026-09-30',
+        effectiveTime: '300016-300659',
+        found: true,
+        sentAt: '26/09/30 00:17',
+        subject: 'CDM GROUND DELAY PROGRAM',
+        text,
+        title: 'ATCSCC ADVZY 003 SEA/ZSE 09/30/2026 CDM GROUND DELAY PROGRAM',
+        url: GDP_URL,
+      },
+    });
+    expect(text).toMatch(/^CTL ELEMENT: SEA\n[\s\S]+ CONSTRAINTS TO AVOID GROUND STOP POSTURE\.$/);
+  });
+
+  it('renders an operations plan with the effective time and signature from its last lines', async () => {
+    services.dispose();
+    setup({
+      [advisoryUrl(82, '09292026')]: () => htmlResponse(readFixture('advisory-ops-plan.page')),
+    });
+
+    const result = await run({ advisory_number: 82, date: '2026-09-29' });
+
+    expect(structured(result)).toMatchObject({
+      effectiveTime: '292353-301159',
+      sentAt: '26/09/29 23:53',
+    });
+    expect(contentText(result)).toContain(
+      '**Control element:** DCC · **Subject:** OPERATIONS PLAN\n**Effective:** 292353-301159 · **Sent:** 26/09/29 23:53\n',
+    );
+  });
+
+  it('reads a control element that holds spaces', async () => {
+    services.dispose();
+    setup({
+      [advisoryUrl(127, '10012026')]: () =>
+        htmlResponse(
+          advisoryPage(
+            'TEXT',
+            'ATCSCC&nbsp;ADVZY&nbsp;127&nbsp;EWR AND SATS/ZNY&nbsp;10/01/2026&nbsp;EWR AND SATS AIRPORT ARRIVAL DELAYS',
+          ),
+        ),
+    });
+
+    const result = await run({ advisory_number: 127, date: '2026-10-01' });
+
+    expect(structured(result)).toMatchObject({
+      controlElement: 'EWR AND SATS/ZNY',
+      subject: 'EWR AND SATS AIRPORT ARRIVAL DELAYS',
+    });
+    expect(contentText(result)).toContain(
+      '**Control element:** EWR AND SATS/ZNY · **Subject:** EWR AND SATS AIRPORT ARRIVAL DELAYS',
+    );
+  });
 });
 
 describe('miss', () => {
@@ -217,7 +308,7 @@ describe('miss', () => {
       date: '2026-09-30',
       found: false,
       guidance:
-        'No ATCSCC advisory 999 exists for 2026-09-30 (UTC). Take the number and date from an advisory reference on faa_delays_list_active_events, faa_delays_get_airport_status, or faa_delays_get_operations_plan; numbers restart at 1 each UTC day.',
+        'No ATCSCC advisory 999 exists for 2026-09-30 (UTC). Call faa_delays_list_advisories with date 2026-09-30 for the advisories issued that day and their numbers, which restart at 1 each UTC day.',
       url: advisoryUrl(999, '09302026'),
     });
   });

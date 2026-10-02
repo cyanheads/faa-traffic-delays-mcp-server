@@ -10,6 +10,7 @@ import { tool, z } from '@cyanheads/mcp-ts-core';
 import { JsonRpcErrorCode } from '@cyanheads/mcp-ts-core/errors';
 import { buildAdvisoryUrl, MAX_ADVISORY_NUMBER } from '@/services/advisory/advisory-ref.js';
 import { getAdvisoryService } from '@/services/advisory/advisory-service.js';
+import { AdvisoryDateSchema, normalizeDate } from '../advisory-date.js';
 import { fenced, inline } from '../format-helpers.js';
 
 /** Longest advisory text returned; above every probed advisory. */
@@ -25,55 +26,21 @@ function stripAdvzy(value: unknown): unknown {
   return /^\d+$/.test(digits) ? Number.parseInt(digits, 10) : value;
 }
 
-/**
- * Trims, and rewrites `MM/DD/YYYY` (the form advisory titles print), or its unpadded `M/D/YYYY`, to
- * `YYYY-MM-DD`.
- */
-function normalizeDate(value: unknown): unknown {
-  if (typeof value !== 'string') return value;
-  return value
-    .trim()
-    .replace(
-      /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/,
-      (_, month: string, day: string, year: string) =>
-        `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`,
-    );
-}
-
-/**
- * Latest date accepted, `YYYY-MM-DD`: tomorrow in UTC. An advisory carries the UTC date it was
- * issued, so a later date holds none yet; the extra day covers a caller whose clock runs ahead of
- * UTC.
- */
-const latestAdvisoryDate = (): string =>
-  new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-
 export const getAdvisory = tool('faa_delays_get_advisory', {
-  title: 'faa_delays_get_advisory',
+  title: 'Get ATCSCC Advisory',
   description:
-    "Get the full text of one ATCSCC advisory by its number and UTC date, read from the advisory reference that faa_delays_list_active_events and faa_delays_get_airport_status return on program rows and faa_delays_get_operations_plan returns for the plan. Advisory text carries what the status feed omits: program rate by hour, delay assignment mode, scope, comments, and the operations plan's active constraints and runway closures. Advisory numbers restart at 1 each UTC day, and older advisories remain available.",
+    "Get the full text of one ATCSCC advisory by its number and UTC date. faa_delays_list_advisories lists the advisories issued on a date with their numbers, and the advisory reference that faa_delays_list_active_events and faa_delays_get_airport_status return on program rows and faa_delays_get_operations_plan returns for the plan names one directly. Advisory text carries what the status feed omits: program rate by hour, delay assignment mode, scope, comments, and the operations plan's active constraints and runway closures. Advisory numbers restart at 1 each UTC day, and older advisories remain available.",
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
   input: z.object({
     advisory_number: z
       .preprocess(stripAdvzy, z.number().int().min(1).max(MAX_ADVISORY_NUMBER))
       .describe(
-        'ATCSCC advisory number, 1–999: advisory.number from an advisory reference on faa_delays_list_active_events, faa_delays_get_airport_status, or faa_delays_get_operations_plan. The printed forms "ADVZY 082" and "082" are also accepted.',
+        'ATCSCC advisory number, 1–999: number from a faa_delays_list_advisories row, or advisory.number from an advisory reference on faa_delays_list_active_events, faa_delays_get_airport_status, or faa_delays_get_operations_plan. The printed forms "ADVZY 082" and "082" are also accepted.',
       ),
     date: z
-      .preprocess(
-        normalizeDate,
-        z.iso
-          .date({
-            abort: true,
-            error: 'Must be a real UTC date as YYYY-MM-DD, MM/DD/YYYY, or M/D/YYYY.',
-          })
-          .refine((date) => date <= latestAdvisoryDate(), {
-            error:
-              'Must be no later than tomorrow (UTC): an advisory carries the UTC date it was issued.',
-          }),
-      )
+      .preprocess(normalizeDate, AdvisoryDateSchema)
       .describe(
-        'UTC date the advisory was issued, YYYY-MM-DD: advisory.date from the same advisory reference. MM/DD/YYYY, as advisory titles print it, and M/D/YYYY are also accepted.',
+        'UTC date the advisory was issued, YYYY-MM-DD: date from the same faa_delays_list_advisories row or advisory reference. MM/DD/YYYY, as advisory titles print it, and M/D/YYYY are also accepted.',
       ),
   }),
   inputAliases: { number: 'advisory_number' },
@@ -215,7 +182,7 @@ export const getAdvisory = tool('faa_delays_get_advisory', {
         advisoryNumber,
         date,
         url,
-        guidance: `No ATCSCC advisory ${advisoryNumber} exists for ${date} (UTC). Take the number and date from an advisory reference on faa_delays_list_active_events, faa_delays_get_airport_status, or faa_delays_get_operations_plan; numbers restart at 1 each UTC day.`,
+        guidance: `No ATCSCC advisory ${advisoryNumber} exists for ${date} (UTC). Call faa_delays_list_advisories with date ${date} for the advisories issued that day and their numbers, which restart at 1 each UTC day.`,
       };
     }
 

@@ -54,7 +54,10 @@ const structured = (result: Awaited<ReturnType<typeof run>>) =>
 const locations = (result: Awaited<ReturnType<typeof run>>) =>
   structured(result).events.map((event) => `${event.eventType}:${event.location}`);
 
-beforeEach(() => setup());
+beforeEach(() => {
+  vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('unmocked fetch'));
+  setup();
+});
 afterEach(() => {
   services.dispose();
   vi.useRealTimers();
@@ -103,7 +106,7 @@ describe('event_types input', () => {
   it('accepts spelled-out types in a comma-separated string through the wire', async () => {
     const result = await run({ event_types: 'departure delay, arrival delay' });
     expect(structured(result).appliedEventTypes).toEqual(['departure_delay', 'arrival_delay']);
-    expect(locations(result)).toEqual(['arrival_delay:BOS', 'departure_delay:ORD']);
+    expect(locations(result)).toEqual(['departure_delay:ORD', 'arrival_delay:BOS']);
   });
 
   it('rejects an unknown type through the wire with the options in the hint', async () => {
@@ -158,8 +161,8 @@ describe('results', () => {
       'ground_delay_program:ATL',
       'airspace_flow_program:FCAA05',
       'airspace_flow_program:FCA002',
-      'arrival_delay:BOS',
       'departure_delay:ORD',
+      'arrival_delay:BOS',
       'closure_notam:LAX',
       'deicing:MSP',
     ]);
@@ -245,6 +248,151 @@ describe('results', () => {
       averageDelayMinutes: 42.5,
       location: 'FCAA05',
     });
+  });
+
+  it("keeps each GDP row's feed startTime and endTime verbatim", async () => {
+    const { events } = structured(await run({ event_types: 'gdp' }));
+    expect(
+      events.map(({ endTime, location, startTime }) => ({ endTime, location, startTime })),
+    ).toEqual([
+      { endTime: '2026-09-30T05:59:00Z', location: 'SEA', startTime: '2026-09-30T01:00:00Z' },
+      { endTime: '2026-09-30T03:00:00Z', location: 'ATL', startTime: '2026-09-29T23:00:00Z' },
+    ]);
+  });
+
+  it('adds programStartTime to GDP rows, in both surfaces, beside the revision startTime', async () => {
+    const result = await run({ event_types: 'gdp' });
+    const byLocation = new Map(structured(result).events.map((event) => [event.location, event]));
+
+    expect(byLocation.get('ATL')).toMatchObject({
+      endTime: '2026-09-30T03:00:00Z',
+      programStartTime: '2026-09-29T20:55:00Z',
+      startTime: '2026-09-29T23:00:00Z',
+    });
+    expect(byLocation.get('SEA')).toMatchObject({
+      programStartTime: '2026-09-30T01:00:00Z',
+      startTime: '2026-09-30T01:00:00Z',
+    });
+    expect(contentText(result)).toContain(
+      '- Window: 2026-09-29T23:00:00Z → 2026-09-30T03:00:00Z\n- Program start: 2026-09-29T20:55:00Z (the window above is the current revision)',
+    );
+  });
+
+  it('prints the revision note only on a GDP whose window start differs from its program start', async () => {
+    const text = contentText(await run({ event_types: 'gdp' }));
+
+    expect(text).toContain(
+      '- Window: 2026-09-30T01:00:00Z → 2026-09-30T05:59:00Z\n- Program start: 2026-09-30T01:00:00Z\n',
+    );
+    expect(text.match(/current revision/g)).toHaveLength(1);
+  });
+
+  it('prints no revision note for a GDP with no Window line', async () => {
+    services.dispose();
+    setup({
+      'airport-events': [
+        {
+          airportId: 'AUS',
+          groundDelay: { fuelFlowAdvisoryDelayTime: { startTime: '2026-10-01T17:55:00Z' } },
+        },
+      ],
+      'enroute-events': [],
+    });
+
+    const result = await run();
+
+    expect(structured(result).events[0]).toEqual({
+      eventType: 'ground_delay_program',
+      location: 'AUS',
+      programStartTime: '2026-10-01T17:55:00Z',
+    });
+    const text = contentText(result);
+    expect(text).not.toContain('- Window:');
+    expect(text).toMatch(/^- Program start: 2026-10-01T17:55:00Z$/m);
+    expect(text).not.toContain('current revision');
+  });
+
+  it('omits programStartTime from a GDP row whose feed gives no cumulative start', async () => {
+    services.dispose();
+    setup({
+      'airport-events': [
+        {
+          airportId: 'AUS',
+          groundDelay: {
+            fuelFlowAdvisoryDelayTime: {
+              dasDelays: {
+                dasDelay: [{ delay: 41, seq: 1 }],
+                delayTimeAmount: '2026-10-01T17:45:00.000+00:00',
+              },
+            },
+            startTime: '2026-10-01T20:45:00Z',
+          },
+        },
+      ],
+      'enroute-events': [],
+    });
+
+    const result = await run();
+
+    expect(structured(result).events[0]).toEqual({
+      eventType: 'ground_delay_program',
+      location: 'AUS',
+      startTime: '2026-10-01T20:45:00Z',
+    });
+    expect(contentText(result)).not.toContain('Program start');
+  });
+
+  it("anchors an Airspace Flow Program's delay profile on the quarter hour, in both surfaces", async () => {
+    services.dispose();
+    setup({
+      'airport-events': [],
+      'enroute-events': [
+        {
+          airspaceFlowProgram: {
+            afpName: 'FCA009',
+            fuelFlowAdvisoryDelayTime: {
+              dasDelays: {
+                dasDelay: [
+                  { delay: 40, seq: 1 },
+                  { delay: 44, seq: 2 },
+                ],
+              },
+              startTime: '2026-07-15T18:10:00Z',
+            },
+            startTime: '2026-07-15T18:10:00Z',
+          },
+        },
+      ],
+    });
+
+    const result = await run({ event_types: 'afp' });
+    const [afp] = structured(result).events;
+
+    expect(afp).toMatchObject({
+      afp: { delayProfile: { averageDelayMinutes: [40, 44], startTime: '2026-07-15T18:00:00Z' } },
+      startTime: '2026-07-15T18:10:00Z',
+    });
+    expect(afp).not.toHaveProperty('programStartTime');
+    expect(contentText(result)).toContain(
+      '- Delay profile: 40, 44 min (15-min intervals from 2026-07-15T18:00:00Z)',
+    );
+  });
+
+  it('derives a decreasing arrival delay band below the average, in both surfaces', async () => {
+    const result = await run({ event_types: 'arrival_delay' });
+
+    expect(structured(result).events).toEqual([
+      {
+        delayRangeMinutes: { max: 29, min: 15 },
+        eventType: 'arrival_delay',
+        location: 'BOS',
+        locationName: 'General Edward Lawrence Logan International',
+        reason: 'WEATHER:Low Ceilings',
+        trend: 'decreasing',
+        updatedAt: '2026-09-29T23:45:00Z',
+      },
+    ]);
+    expect(contentText(result)).toContain('- Delay band: 15–29 min, decreasing');
   });
 
   it('omits a delay range when the feed gave no usable band', async () => {
@@ -765,6 +913,9 @@ describe('format', () => {
           airportClosure: { text: 'CLOSED\r\n## Closure injection' },
           airportLongName: 'Sea\r\n### Name injection',
           groundDelay: {
+            fuelFlowAdvisoryDelayTime: {
+              startTime: '2026-09-30T01:00:00Z\r\n### Program start injection',
+            },
             impactingCondition: 'ceil\r\n### Reason injection',
             startTime: '2026-09-30T01:00:00Z\n### Start injection',
             updatedAt: '2026-09-30T00:17:04Z\r\n### Updated injection',
@@ -798,6 +949,7 @@ describe('format', () => {
       '### Dep injection',
       '## Closure injection',
       '### Start injection',
+      '### Program start injection',
       '### Updated injection',
       '### Profile injection',
     ]) {
@@ -806,6 +958,7 @@ describe('format', () => {
         injected,
       ).toBe(false);
     }
+    expect(text).toContain('- Program start: 2026-09-30T01:00:00Z ### Program start injection');
     expect(lines).toContain('> CLOSED');
     expect(lines).toContain('> ## Closure injection');
     expect(lines).toContain('> TWO');

@@ -148,7 +148,18 @@ const EventSchema = z
       .describe(
         'Ground stop extension likelihood: low <30 %, medium 30–60 %, high >60 % per the FAA.',
       ),
-    startTime: z.string().optional().describe('Start (UTC ISO); for deicing, when it began.'),
+    startTime: z
+      .string()
+      .optional()
+      .describe(
+        "Start (UTC ISO). For ground_delay_program, the start of the current revision's arrival window; for deicing, when it began.",
+      ),
+    programStartTime: z
+      .string()
+      .optional()
+      .describe(
+        'When a ground_delay_program began, before any revision (UTC ISO); absent on other types.',
+      ),
     endTime: z.string().optional().describe('End (UTC ISO).'),
     updatedAt: z.string().optional().describe('Last FAA update (UTC ISO).'),
     closureText: z
@@ -279,6 +290,7 @@ function airportRows(airport: AirportEvents): EventRow[] {
         maximumDelayMinutes: gdp.maximumDelayMinutes,
       }),
       ...(gdp.startTime && { startTime: gdp.startTime }),
+      ...(gdp.programStartTime && { programStartTime: gdp.programStartTime }),
       ...(gdp.endTime && { endTime: gdp.endTime }),
       ...(gdp.updatedAt && { updatedAt: gdp.updatedAt }),
       ...(gdp.advisory && { advisory: gdp.advisory }),
@@ -373,7 +385,7 @@ function renderCounts(counts: Counts): string {
 }
 
 export const listActiveEvents = tool('faa_delays_list_active_events', {
-  title: 'faa_delays_list_active_events',
+  title: 'List Active FAA Delay Events',
   description:
     'List every active FAA traffic management event across the National Airspace System in one call: ground stops, Ground Delay Programs, Airspace Flow Programs, arrival and departure delays, airport closures, closure NOTAMs, and deicing. Rows are sorted by severity (closures, ground stops, then GDPs and then AFPs each by average delay, arrival/departure delays by band maximum, closure NOTAMs, deicing) and carry the reason, delay figures, times, and an advisory reference for faa_delays_get_advisory. Use faa_delays_get_airport_status for the full detail of one airport, including its GDP delay profile and runway configuration.',
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
@@ -470,7 +482,7 @@ export const listActiveEvents = tool('faa_delays_list_active_events', {
       code: JsonRpcErrorCode.SerializationError,
       when: 'The feed path returned 404/410, or a body whose shape this server no longer recognizes',
       recovery:
-        "The FAA NAS Status feed is not serving the format this server reads, which usually means the FAA changed it, so an immediate retry will not help; faa_delays_get_advisory still reads ATCSCC advisories, numbered from 1 each UTC day, so today's program advisories can be read by advisory_number with today's UTC date.",
+        "The FAA NAS Status feed is not serving the format this server reads, which usually means the FAA changed it, so an immediate retry will not help; faa_delays_list_advisories still lists today's ATCSCC advisories (ground stops, delay programs, and their cancellations), and faa_delays_get_advisory reads any of them in full by number and date.",
       retryable: false,
       thrownBy: 'service',
     },
@@ -592,6 +604,12 @@ export const listActiveEvents = tool('faa_delays_list_active_events', {
       }
       if (event.startTime || event.endTime) {
         lines.push(`- Window: ${span(event.startTime, event.endTime)}`);
+      }
+      if (event.programStartTime) {
+        const revised = event.startTime !== undefined && event.startTime !== event.programStartTime;
+        lines.push(
+          `- Program start: ${inline(event.programStartTime)}${revised ? ' (the window above is the current revision)' : ''}`,
+        );
       }
       if (event.updatedAt) lines.push(`- Updated: ${inline(event.updatedAt)}`);
       if (event.advisory) lines.push(`- Advisory: ${advisoryLine(event.advisory)}`);

@@ -1,7 +1,8 @@
 /**
  * @fileoverview Tests for faa_delays_list_reference: topic normalization, the static topics'
- * content invariants, the live pacing_airports topic (cache, degrade-free error surface, sparse
- * rows), declared feed errors, and format() fidelity and table escaping.
+ * content invariants (artccs covering every ARTCC the bundled directory assigns), the live
+ * pacing_airports topic (cache, degrade-free error surface, sparse rows), declared feed errors,
+ * and format() fidelity and table escaping.
  * @module tests/mcp-server/tools/list-reference.tool.test
  */
 
@@ -10,7 +11,11 @@ import { runToolContract } from '@cyanheads/mcp-ts-core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { listReference } from '@/mcp-server/tools/definitions/list-reference.tool.js';
 import { EVENT_TYPES } from '@/mcp-server/tools/schemas.js';
-import { getDirectoryInfo } from '@/services/airport-directory/airport-directory.js';
+import {
+  getDirectoryInfo,
+  resolveAirportCode,
+} from '@/services/airport-directory/airport-directory.js';
+import { NASR_AIRPORTS_TSV } from '@/services/airport-directory/nasr-airports.generated.js';
 import { getNasStatusService } from '@/services/nas-status/nas-status-service.js';
 import {
   callsTo,
@@ -41,7 +46,10 @@ const run = (topic: unknown) => runToolContract(listReference, { topic } as neve
 const structured = (result: Awaited<ReturnType<typeof run>>) =>
   result.structuredContent as Record<string, any>;
 
-beforeEach(() => setup());
+beforeEach(() => {
+  vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('unmocked fetch'));
+  setup();
+});
 afterEach(() => {
   services.dispose();
   vi.useRealTimers();
@@ -103,6 +111,16 @@ describe('static topics', () => {
     expect(data).not.toHaveProperty('terms');
   });
 
+  it('event_types names programStartTime among the Ground Delay Program key fields', async () => {
+    const result = await run('event_types');
+    const gdp = structured(result).eventTypes.find(
+      (entry: { eventType: string }) => entry.eventType === 'ground_delay_program',
+    );
+
+    expect(gdp.keyFields).toContain('programStartTime');
+    expect(contentText(result)).toMatch(/\*\*Key fields:\*\* reason, .*programStartTime/);
+  });
+
   it('terms lists the glossary alphabetically with the vocabulary the tools use', async () => {
     const terms: { term: string }[] = structured(await run('terms')).terms;
     const names = terms.map((entry) => entry.term);
@@ -116,15 +134,63 @@ describe('static topics', () => {
     );
   });
 
-  it('artccs lists the 25 centers with names', async () => {
-    const artccs: { code: string; name: string }[] = structured(await run('artccs')).artccs;
+  it('terms decodes the advisory-subject vocabulary faa_delays_list_advisories rows carry, in both surfaces', async () => {
+    const result = await run('terms');
+    const terms: { meaning: string; term: string }[] = structured(result).terms;
+    const meaningOf = (term: string) => terms.find((entry) => entry.term === term)?.meaning;
 
-    expect(artccs).toHaveLength(25);
-    expect(new Set(artccs.map((entry) => entry.code)).size).toBe(25);
-    expect(artccs.every((entry) => /^Z[A-Z]{2}$/.test(entry.code) && entry.name.length > 0)).toBe(
-      true,
+    expect(meaningOf('CDM')).toMatch(/^Collaborative Decision Making: /);
+    expect(meaningOf('CNX')).toMatch(/^Canceled, in advisory subjects/);
+    expect(meaningOf('CTOP')).toMatch(
+      /^Collaborative Trajectory Options Program: .*faa_delays_list_advisories/,
     );
+    expect(meaningOf('RQD / RMD / PLN / FYI')).toMatch(
+      /Required.*Recommended.*Planned.*For Your Information/,
+    );
+    const text = contentText(result);
+    for (const term of ['CDM', 'CNX', 'CTOP', 'RQD / RMD / PLN / FYI']) {
+      expect(text).toContain(`| ${term} | ${meaningOf(term)} |`);
+    }
+  });
+
+  it('identifiers names the delay profile start as the one event time the server rewrites', async () => {
+    const result = await run('identifiers');
+    const eventTimes = structured(result).identifiers.formats.find(
+      (entry: { identifier: string }) => entry.identifier === 'Event times',
+    );
+
+    expect(eventTimes.format).toMatch(/except a delay profile start, which is rewritten/);
+    expect(contentText(result)).toContain(eventTimes.format);
+  });
+
+  it('artccs lists the 25 US centers and the 5 other NASR facilities by code, with names', async () => {
+    const artccs: { code: string; name: string }[] = structured(await run('artccs')).artccs;
+    const codes = artccs.map((entry) => entry.code);
+
+    expect(artccs).toHaveLength(30);
+    expect(new Set(codes).size).toBe(30);
+    expect(codes).toEqual([...codes].sort());
+    expect(
+      artccs.every((entry) => /^(Z[A-Z]{2}|[A-Z]{4})$/.test(entry.code) && entry.name.length > 0),
+    ).toBe(true);
+    expect(codes.filter((code) => /^Z[A-Z]{2}$/.test(code))).toHaveLength(29);
     expect(artccs).toContainEqual({ code: 'ZSE', name: 'Seattle Center' });
+    expect(codes).toEqual(expect.arrayContaining(['NZZO', 'ZAP', 'ZUA', 'ZVR', 'ZYZ']));
+  });
+
+  it('artccs decodes every artcc the bundled directory assigns an airport', async () => {
+    const decoded = new Set(
+      structured(await run('artccs')).artccs.map((entry: { code: string }) => entry.code),
+    );
+    const assigned = new Set(
+      NASR_AIRPORTS_TSV.split('\n').map(
+        (line) => resolveAirportCode(line.split('\t')[0] as string)?.artcc,
+      ),
+    );
+
+    expect(assigned.has(undefined)).toBe(false);
+    expect(assigned.size).toBeGreaterThan(25);
+    expect([...assigned].filter((code) => !decoded.has(code))).toEqual([]);
   });
 
   it('identifiers reports the bundled directory and the accepted formats', async () => {
@@ -134,6 +200,11 @@ describe('static topics', () => {
     expect(
       data.identifiers.formats.map((entry: { identifier: string }) => entry.identifier),
     ).toEqual(expect.arrayContaining(['Airport code (input)', 'Advisory reference', 'ARTCC code']));
+    expect(
+      data.identifiers.formats.find(
+        (entry: { identifier: string }) => entry.identifier === 'ARTCC code',
+      ),
+    ).toMatchObject({ example: 'ZSE, NZZO', format: expect.stringContaining('4-letter ICAO') });
   });
 });
 
@@ -233,7 +304,11 @@ describe('format', () => {
       '## ground_delay_program — Ground Delay Program (GDP)',
     );
     expect(contentText(await run('terms'))).toMatch(/\| AAR \| /);
-    expect(contentText(await run('artccs'))).toContain('| ZSE | Seattle Center |');
+    const artccs = contentText(await run('artccs'));
+    expect(artccs).toContain('| ZSE | Seattle Center |');
+    expect(artccs).toContain('| NZZO | Auckland Oceanic FIR (New Zealand) |');
+    expect(artccs).toContain('| ZUA | Guam Center |');
+    expect(artccs.split('\n').filter((line) => /^\| [A-Z]{3,4} \|/.test(line))).toHaveLength(30);
     expect(contentText(await run('identifiers'))).toContain(
       `NASR cycle ${getDirectoryInfo().effectiveDate}, ${getDirectoryInfo().airportCount} US airports`,
     );

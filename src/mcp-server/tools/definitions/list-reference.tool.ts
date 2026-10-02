@@ -59,7 +59,8 @@ const EVENT_TYPE_REFERENCE: {
       'reason',
       'averageDelayMinutes',
       'maximumDelayMinutes',
-      'startTime',
+      'startTime (the current revision)',
+      'programStartTime',
       'endTime',
       'delayProfile (per 15-minute arrival interval)',
       'departureScopeNm',
@@ -139,9 +140,24 @@ const TERMS: { meaning: string; term: string }[] = [
       'Air Traffic Control System Command Center: the FAA facility that manages traffic flow across the NAS and issues the advisories.',
   },
   {
+    term: 'CDM',
+    meaning:
+      'Collaborative Decision Making: the cooperative effort of government and industry to exchange information for better decision making. Advisory subjects carry it (CDM GROUND STOP, CDM GROUND DELAY PROGRAM, CDM COMPRESSION).',
+  },
+  {
     term: 'CDR',
     meaning:
       'Coded Departure Route: a pre-coordinated alternative route used to move traffic around weather or congestion.',
+  },
+  {
+    term: 'CNX',
+    meaning:
+      "Canceled, in advisory subjects (CDM GS CNX, CDM GROUND DELAY PROGRAM CNX): the advisory ends the program it names, and a canceled GDP's EDCTs no longer apply.",
+  },
+  {
+    term: 'CTOP',
+    meaning:
+      'Collaborative Trajectory Options Program: a traffic management initiative that manages demand through one or more Flow Constrained Areas; from the trajectory options an operator ranks for a flight, it assigns either a route around the FCA or a route and EDCT through it. A faa_delays_list_advisories category.',
   },
   {
     term: 'DAS',
@@ -204,6 +220,11 @@ const TERMS: { meaning: string; term: string }[] = [
       'In a GDP advisory, the hourly arrival rate the program meters to, listed hour by hour.',
   },
   {
+    term: 'RQD / RMD / PLN / FYI',
+    meaning:
+      'The action every route advisory states, in its subject (ROUTE RQD, FCA FYI, ZMA SWAP_FYI): Required, stakeholders must take action to comply; Recommended, they should consider the initiatives it specifies; Planned, initiatives that may be implemented; For Your Information, no action.',
+  },
+  {
     term: 'SWAP',
     meaning:
       'Severe Weather Avoidance Plan: a coordinated set of reroutes used when thunderstorms block routes.',
@@ -226,9 +247,11 @@ const TERMS: { meaning: string; term: string }[] = [
 ];
 
 const ARTCCS: { code: string; name: string }[] = [
+  { code: 'NZZO', name: 'Auckland Oceanic FIR (New Zealand)' },
   { code: 'ZAB', name: 'Albuquerque Center' },
   { code: 'ZAK', name: 'Oakland Oceanic' },
   { code: 'ZAN', name: 'Anchorage Center' },
+  { code: 'ZAP', name: 'Anchorage Oceanic' },
   { code: 'ZAU', name: 'Chicago Center' },
   { code: 'ZBW', name: 'Boston Center' },
   { code: 'ZDC', name: 'Washington Center' },
@@ -250,7 +273,10 @@ const ARTCCS: { code: string; name: string }[] = [
   { code: 'ZSE', name: 'Seattle Center' },
   { code: 'ZSU', name: 'San Juan Center' },
   { code: 'ZTL', name: 'Atlanta Center' },
+  { code: 'ZUA', name: 'Guam Center' },
+  { code: 'ZVR', name: 'Vancouver Center (Canada)' },
   { code: 'ZWY', name: 'New York Oceanic' },
+  { code: 'ZYZ', name: 'Toronto Center (Canada)' },
 ];
 
 const IDENTIFIER_FORMATS: { example: string; format: string; identifier: string }[] = [
@@ -268,7 +294,7 @@ const IDENTIFIER_FORMATS: { example: string; format: string; identifier: string 
   {
     identifier: 'Advisory reference',
     format:
-      'Advisory number plus UTC date (YYYY-MM-DD); numbers restart at 1 each UTC day. Pass number as advisory_number and date as date to faa_delays_get_advisory.',
+      'Advisory number plus UTC date (YYYY-MM-DD); numbers restart at 1 each UTC day. faa_delays_list_advisories is the per-date index of every advisory number issued that day. Pass number as advisory_number and date as date to faa_delays_get_advisory.',
     example: '{ number: 17, date: "2026-07-15" }',
   },
   {
@@ -279,12 +305,14 @@ const IDENTIFIER_FORMATS: { example: string; format: string; identifier: string 
   },
   {
     identifier: 'ARTCC code',
-    format: 'Three letters starting with Z; see topic artccs.',
-    example: 'ZSE',
+    format:
+      'Three letters starting with Z, or the 4-letter ICAO code of a foreign oceanic FIR that NASR assigns a few US airports to; see topic artccs.',
+    example: 'ZSE, NZZO',
   },
   {
     identifier: 'Event times',
-    format: 'UTC ISO 8601 as the FAA feed supplies them; never converted to local time.',
+    format:
+      'UTC ISO 8601 as the FAA feed supplies them, except a delay profile start, which is rewritten to this form; never converted to local time.',
     example: '2026-07-15T19:00:00Z',
   },
   {
@@ -306,7 +334,7 @@ const IDENTIFIER_FORMATS: { example: string; format: string; identifier: string 
 ];
 
 export const listReference = tool('faa_delays_list_reference', {
-  title: 'faa_delays_list_reference',
+  title: 'List FAA Delay Reference Data',
   description:
     'Decode the vocabulary the other faa_delays tools return: event types and their fields, traffic-management terms (AAR, EDCT, FCA, GDP, SWAP), ARTCC center codes, the FAA pacing airports with time zones, and accepted identifier formats.',
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
@@ -351,13 +379,19 @@ export const listReference = tool('faa_delays_list_reference', {
       .array(
         z
           .object({
-            code: z.string().describe('Three-letter ARTCC code starting with Z (ZSE).'),
-            name: z.string().describe('Center name.'),
+            code: z
+              .string()
+              .describe(
+                'Facility code: three letters starting with Z (ZSE), or a 4-letter ICAO FIR code (NZZO).',
+              ),
+            name: z.string().describe('Facility name.'),
           })
-          .describe('One Air Route Traffic Control Center.'),
+          .describe('One air traffic control facility.'),
       )
       .optional()
-      .describe('Present for topic artccs: the 25 US ARTCCs, including the two oceanic centers.'),
+      .describe(
+        "Present for topic artccs, by code: the 25 US ARTCCs, including the New York and Oakland oceanic centers, plus Anchorage Oceanic, Guam, Auckland Oceanic, Toronto, and Vancouver, the other facilities NASR names as an airport's ARTCC. Every artcc faa_delays_get_airport_status returns is listed.",
+      ),
     pacingAirports: z
       .array(
         z

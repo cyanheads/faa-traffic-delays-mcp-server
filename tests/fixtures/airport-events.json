@@ -203,7 +203,22 @@
       "startTime": "2026-09-29T23:00:00Z",
       "endTime": "2026-09-30T03:00:00Z",
       "center": "ZTL",
-      "advisoryUrl": "https://www.fly.faa.gov/adv/adv_otherdis.jsp?advn=7&adv_date=09292026&facId=ATL&title=ATCSCC ADVZY 007 ATL/ZTL 09/29/2026 CDM GROUND DELAY PROGRAM&titleDate=09/29/2026"
+      "advisoryUrl": "https://www.fly.faa.gov/adv/adv_otherdis.jsp?advn=7&adv_date=09292026&facId=ATL&title=ATCSCC ADVZY 007 ATL/ZTL 09/29/2026 CDM GROUND DELAY PROGRAM&titleDate=09/29/2026",
+      "fuelFlowAdvisoryDelayTime": {
+        "controlElement": "ATL",
+        "delayProgramType": "GDP",
+        "startTime": "2026-09-29T20:55:00Z",
+        "endTime": "2026-09-30T03:00:00Z",
+        "dasDelays": {
+          "delayTimeAmount": "2026-09-29T20:45:00.000+00:00",
+          "dasDelay": [
+            { "delay": 18, "seq": 1 },
+            { "delay": 22, "seq": 2 },
+            { "delay": 25, "seq": 3 },
+            { "delay": 20, "seq": 4 }
+          ]
+        }
+      }
     },
     "airportClosure": null,
     "freeForm": null,

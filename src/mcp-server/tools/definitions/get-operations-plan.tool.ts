@@ -62,7 +62,7 @@ function renderPlanned(heading: string, items: PlannedItem[]): string[] {
 }
 
 export const getOperationsPlan = tool('faa_delays_get_operations_plan', {
-  title: 'faa_delays_get_operations_plan',
+  title: 'Get FAA Operations Plan',
   description:
     "Get the FAA Command Center's current operations plan: terminal programs (possible ground stops and delay programs by airport) and en-route initiatives (route closures, severe-weather avoidance plans) expected later in the day, each with its planned UTC time and stated likelihood, plus current ATCSCC announcements. The advisory reference opens the full plan text with faa_delays_get_advisory, including active constraints and runway closures this summary omits.",
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
@@ -145,7 +145,7 @@ export const getOperationsPlan = tool('faa_delays_get_operations_plan', {
       code: JsonRpcErrorCode.SerializationError,
       when: 'The feed path returned 404/410, or a body whose shape this server no longer recognizes',
       recovery:
-        "The FAA NAS Status feed is not serving the format this server reads, which usually means the FAA changed it, so an immediate retry will not help; faa_delays_get_advisory still reads ATCSCC advisories, numbered from 1 each UTC day, so today's operations plan advisory can be found by advisory_number with today's UTC date.",
+        "The FAA NAS Status feed is not serving the format this server reads, which usually means the FAA changed it, so an immediate retry will not help; faa_delays_list_advisories with control_element DCC still lists today's national advisories, the operations plan among them, and faa_delays_get_advisory reads it in full by number and date.",
       retryable: false,
       thrownBy: 'service',
     },

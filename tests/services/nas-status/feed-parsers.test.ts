@@ -127,9 +127,26 @@ describe('parseAirportEvents', () => {
       includedFacilities: ['CYEG', 'CYVR', 'CYYC'],
       includedFlights: 'ALL CONTIGUOUS US DEP',
       maximumDelayMinutes: 117,
+      programStartTime: '2026-09-30T01:00:00Z',
       reason: 'low ceilings',
       startTime: '2026-09-30T01:00:00Z',
       updatedAt: '2026-09-30T00:17:04Z',
+    });
+  });
+
+  it('keeps the revision startTime and adds the cumulative start when the two differ', () => {
+    const { rows } = parseAirportEvents(feedFixture('airport-events'), recorder().report);
+    const atl = rows.find((row) => row.airportId === 'ATL');
+
+    expect(atl?.groundDelayProgram).toMatchObject({
+      delayProfile: {
+        averageDelayMinutes: [18, 22, 25, 20],
+        intervalMinutes: 15,
+        startTime: '2026-09-29T20:45:00Z',
+      },
+      endTime: '2026-09-30T03:00:00Z',
+      programStartTime: '2026-09-29T20:55:00Z',
+      startTime: '2026-09-29T23:00:00Z',
     });
   });
 
@@ -172,8 +189,8 @@ describe('parseAirportEvents', () => {
       updatedAt: '2026-09-29T23:15:00Z',
     });
     expect(byId.get('BOS')?.arrivalDelay).toMatchObject({
-      maxMinutes: 30,
-      minMinutes: 16,
+      maxMinutes: 29,
+      minMinutes: 15,
       trend: 'decreasing',
     });
   });
@@ -252,6 +269,150 @@ describe('parseAirportEvents', () => {
       ]);
     },
   );
+
+  describe('program start and delay profile anchor', () => {
+    const DAS_DELAY = [
+      { delay: 41, seq: 1 },
+      { delay: 47, seq: 2 },
+    ];
+
+    /** An AUS-shaped GDP: revision 20:45Z, cumulative start 17:55Z, intervals from 17:45Z. */
+    function gdp(
+      delayTime: Record<string, unknown>,
+      dasDelays: Record<string, unknown> = { dasDelay: DAS_DELAY },
+    ) {
+      return parseOneAirport({
+        groundDelay: {
+          endTime: '2026-10-01T23:59:00Z',
+          fuelFlowAdvisoryDelayTime: { dasDelays, endTime: '2026-10-01T23:59:00Z', ...delayTime },
+          startTime: '2026-10-01T20:45:00Z',
+        },
+      });
+    }
+
+    it('anchors the profile on delayTimeAmount and carries the cumulative start as programStartTime', () => {
+      const { drift, row } = gdp(
+        { startTime: '2026-10-01T17:55:00Z' },
+        { dasDelay: DAS_DELAY, delayTimeAmount: '2026-10-01T17:45:00.000+00:00' },
+      );
+
+      expect(drift).toEqual([]);
+      expect(row.groundDelayProgram).toEqual({
+        delayProfile: {
+          averageDelayMinutes: [41, 47],
+          intervalMinutes: 15,
+          startTime: '2026-10-01T17:45:00Z',
+        },
+        endTime: '2026-10-01T23:59:00Z',
+        programStartTime: '2026-10-01T17:55:00Z',
+        startTime: '2026-10-01T20:45:00Z',
+      });
+    });
+
+    it('prefers delayTimeAmount over the floor of the cumulative start', () => {
+      const { row } = gdp(
+        { startTime: '2026-10-01T17:55:00Z' },
+        { dasDelay: DAS_DELAY, delayTimeAmount: '2026-10-01T17:30:00.000+00:00' },
+      );
+      expect(row.groundDelayProgram?.delayProfile?.startTime).toBe('2026-10-01T17:30:00Z');
+    });
+
+    it.each([
+      [
+        'a +00:00 offset with milliseconds',
+        '2026-10-01T17:45:00.000+00:00',
+        '2026-10-01T17:45:00Z',
+      ],
+      ['another offset', '2026-10-01T13:45:00-04:00', '2026-10-01T17:45:00Z'],
+      ['the feed form already', '2026-10-01T17:45:00Z', '2026-10-01T17:45:00Z'],
+    ])('rewrites a delayTimeAmount with %s to YYYY-MM-DDTHH:MM:SSZ', (_label, amount, expected) => {
+      const { row } = gdp(
+        { startTime: '2026-10-01T17:55:00Z' },
+        { dasDelay: DAS_DELAY, delayTimeAmount: amount },
+      );
+      expect(row.groundDelayProgram?.delayProfile?.startTime).toBe(expected);
+    });
+
+    it.each([
+      ['2026-10-01T17:55:00Z', '2026-10-01T17:45:00Z'],
+      ['2026-10-01T17:50:00Z', '2026-10-01T17:45:00Z'],
+      ['2026-10-01T23:59:59Z', '2026-10-01T23:45:00Z'],
+      ['2026-10-01T16:00:00Z', '2026-10-01T16:00:00Z'],
+    ])(
+      'without delayTimeAmount, floors a cumulative start of %s to %s, never the next hour',
+      (cumulative, expected) => {
+        const { row } = gdp({ startTime: cumulative });
+        expect(row.groundDelayProgram).toMatchObject({
+          delayProfile: { startTime: expected },
+          programStartTime: cumulative,
+          startTime: '2026-10-01T20:45:00Z',
+        });
+      },
+    );
+
+    it('reports a non-string delayTimeAmount as drift and falls back to the floor', () => {
+      const { drift, row } = gdp(
+        { startTime: '2026-10-01T17:55:00Z' },
+        { dasDelay: DAS_DELAY, delayTimeAmount: 1_759_340_700_000 },
+      );
+      expect(row.groundDelayProgram?.delayProfile?.startTime).toBe('2026-10-01T17:45:00Z');
+      expect(drift).toEqual([
+        [
+          'airport-events[].groundDelay.fuelFlowAdvisoryDelayTime.dasDelays.delayTimeAmount',
+          'number',
+        ],
+      ]);
+    });
+
+    it.each([
+      ['a word', 'soon'],
+      ['blank', '  '],
+      ['a time without an offset', '2026-10-01T17:30:00'],
+      ['a date with no time', '2026-10-01'],
+      ['an impossible month', '2026-13-01T17:30:00Z'],
+      ['a day past the end of its month', '2026-02-30T17:30:00.000+00:00'],
+      ['a leap day in a common year', '2026-02-29T17:30:00Z'],
+    ])('ignores a delayTimeAmount that is %s and falls back to the floor', (_label, amount) => {
+      const { drift, row } = gdp(
+        { startTime: '2026-10-01T17:55:00Z' },
+        { dasDelay: DAS_DELAY, delayTimeAmount: amount },
+      );
+      expect(row.groundDelayProgram?.delayProfile?.startTime).toBe('2026-10-01T17:45:00Z');
+      expect(drift).toEqual([]);
+    });
+
+    it('anchors on delayTimeAmount when the cumulative start is missing, and omits programStartTime', () => {
+      const { row } = gdp(
+        {},
+        { dasDelay: DAS_DELAY, delayTimeAmount: '2026-10-01T17:45:00.000+00:00' },
+      );
+      expect(row.groundDelayProgram?.delayProfile).toEqual({
+        averageDelayMinutes: [41, 47],
+        intervalMinutes: 15,
+        startTime: '2026-10-01T17:45:00Z',
+      });
+      expect(row.groundDelayProgram).not.toHaveProperty('programStartTime');
+      expect(row.groundDelayProgram?.startTime).toBe('2026-10-01T20:45:00Z');
+    });
+
+    it('drops the profile when neither delayTimeAmount nor the cumulative start is present', () => {
+      const { row } = gdp({});
+      expect(row.groundDelayProgram).toEqual({
+        endTime: '2026-10-01T23:59:00Z',
+        startTime: '2026-10-01T20:45:00Z',
+      });
+    });
+
+    it('drops the profile but keeps programStartTime verbatim when the cumulative start is not a time', () => {
+      const { drift, row } = gdp({ startTime: 'soon' });
+      expect(row.groundDelayProgram).toEqual({
+        endTime: '2026-10-01T23:59:00Z',
+        programStartTime: 'soon',
+        startTime: '2026-10-01T20:45:00Z',
+      });
+      expect(drift).toEqual([]);
+    });
+  });
 
   it('trims padding around runway configurations', () => {
     const { row } = parseOneAirport({
@@ -439,12 +600,69 @@ describe('parseAirportEvents', () => {
       });
     });
 
-    it('derives a decreasing band from averageDelay and never goes below zero', () => {
-      expect(band({ averageDelay: 10, trend: 'decreasing' })).toEqual({
-        maxMinutes: 10,
-        minMinutes: 0,
-        trend: 'decreasing',
+    it.each([
+      ['15', 16, 30],
+      ['30', 31, 45],
+    ])('derives an increasing %s as %i–%i', (averageDelay, minMinutes, maxMinutes) => {
+      expect(band({ averageDelay, trend: 'increasing' })).toEqual({
+        maxMinutes,
+        minMinutes,
+        trend: 'increasing',
       });
+    });
+
+    it.each([
+      ['15', 0, 14],
+      ['30', 15, 29],
+      ['45', 30, 44],
+    ])(
+      'derives a decreasing %s as %i–%i, below the average',
+      (averageDelay, minMinutes, maxMinutes) => {
+        expect(band({ averageDelay, trend: 'decreasing' })).toEqual({
+          maxMinutes,
+          minMinutes,
+          trend: 'decreasing',
+        });
+      },
+    );
+
+    it.each([
+      ['10', 'increasing'],
+      ['10', 'decreasing'],
+      ['0', 'increasing'],
+      ['0', 'decreasing'],
+      [-5, 'increasing'],
+      [-5, 'decreasing'],
+      [14.5, 'decreasing'],
+    ])(
+      'derives no band from an averageDelay of %j (%s), below the 15-minute floor, and keeps the trend',
+      (averageDelay, trend) => {
+        expect(band({ averageDelay, reason: 'volume', trend })).toEqual({
+          reason: 'volume',
+          trend,
+        });
+      },
+    );
+
+    it('never derives a negative bound or a minimum above the maximum', () => {
+      for (let averageDelay = -30; averageDelay <= 120; averageDelay++) {
+        for (const trend of ['increasing', 'decreasing']) {
+          const { maxMinutes, minMinutes } = band({ averageDelay, trend }) ?? {};
+          if (minMinutes === undefined && maxMinutes === undefined) continue;
+          expect(minMinutes, `${averageDelay} ${trend}`).toBeGreaterThanOrEqual(0);
+          expect(minMinutes, `${averageDelay} ${trend}`).toBeLessThanOrEqual(maxMinutes as number);
+        }
+      }
+    });
+
+    it('keeps the bounds a row reports in arrivalDeparture over any averageDelay derivation', () => {
+      expect(
+        band({
+          arrivalDeparture: { max: '45 minutes', min: '31 minutes' },
+          averageDelay: '30',
+          trend: 'decreasing',
+        }),
+      ).toEqual({ maxMinutes: 45, minMinutes: 31, trend: 'decreasing' });
     });
 
     it('leaves the band unset when neither form is usable', () => {
@@ -491,6 +709,20 @@ describe('parseAirportEvents', () => {
       advisory('https://www.fly.faa.gov/adv/adv_otherdis.jsp?adv_date=09302026'),
     ).toBeUndefined();
     expect(advisory('https://www.fly.faa.gov/adv/adv_otherdis.jsp?advn=3')).toBeUndefined();
+  });
+
+  it.each([
+    ['a number that runs into letters', 'advn=3abc&adv_date=09302026'],
+    ['a date naming month 13 day 45', 'advn=3&adv_date=13452026'],
+    ['a date naming February 30', 'advn=3&adv_date=02302026'],
+  ])('omits the advisory when the link carries %s, as it does a missing one', (_label, query) => {
+    const { row } = parseOneAirport({
+      groundStop: {
+        advisoryUrl: `https://www.fly.faa.gov/adv/adv_otherdis.jsp?${query}&facId=SEA&title=ATCSCC ADVZY 003 SEA/ZSE 09/30/2026 CDM GROUND STOP&titleDate=09/30/2026`,
+      },
+    });
+    expect(row.groundStop).toBeDefined();
+    expect(row.groundStop).not.toHaveProperty('advisory');
   });
 });
 
@@ -567,6 +799,47 @@ describe('parseEnrouteEvents', () => {
       startTime: '2026-07-15T18:00:00Z',
       updatedAt: '2026-07-15T17:40:00Z',
     });
+  });
+
+  it.each([
+    [
+      'the quarter-hour floor of its start without delayTimeAmount',
+      { startTime: '2026-07-15T18:10:00Z' },
+      '2026-07-15T18:00:00Z',
+    ],
+    [
+      'delayTimeAmount, with no start',
+      {
+        dasDelays: {
+          dasDelay: [{ delay: 40, seq: 1 }],
+          delayTimeAmount: '2026-07-15T18:15:00.000+00:00',
+        },
+      },
+      '2026-07-15T18:15:00Z',
+    ],
+  ])('anchors afp.delayProfile on %s, like a GDP', (_label, delayTime, expected) => {
+    const { rows } = parseEnrouteEvents(
+      [
+        {
+          airspaceFlowProgram: {
+            afpName: 'FCA009',
+            fuelFlowAdvisoryDelayTime: {
+              dasDelays: { dasDelay: [{ delay: 40, seq: 1 }] },
+              ...delayTime,
+            },
+            startTime: '2026-07-15T19:00:00Z',
+          },
+        },
+      ],
+      recorder().report,
+    );
+    expect(rows[0]?.delayProfile).toEqual({
+      averageDelayMinutes: [40],
+      intervalMinutes: 15,
+      startTime: expected,
+    });
+    expect(rows[0]?.startTime).toBe('2026-07-15T19:00:00Z');
+    expect(rows[0]).not.toHaveProperty('programStartTime');
   });
 
   it('keeps a row that carries only its afpName, with the generic fca area', () => {
