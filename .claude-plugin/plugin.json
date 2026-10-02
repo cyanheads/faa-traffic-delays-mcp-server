@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "faa-traffic-delays-mcp-server",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Track FAA ground stops, delay programs, airport delays, the operations plan, and ATCSCC advisories.",
   "author": {
     "name": "cyanheads",
