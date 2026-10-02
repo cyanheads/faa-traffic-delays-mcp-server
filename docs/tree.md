@@ -1,6 +1,6 @@
 # faa-traffic-delays-mcp-server - Directory Structure
 
-Generated on: 2026-10-01 03:05:02
+Generated on: 2026-10-02 00:25:55
 
 ```text
 faa-traffic-delays-mcp-server/
@@ -142,7 +142,9 @@ faa-traffic-delays-mcp-server/
 │   │       │   ├── get-operations-plan.tool.ts
 │   │       │   ├── index.ts
 │   │       │   ├── list-active-events.tool.ts
+│   │       │   ├── list-advisories.tool.ts
 │   │       │   └── list-reference.tool.ts
+│   │       ├── advisory-date.ts
 │   │       ├── format-helpers.ts
 │   │       ├── notices.ts
 │   │       └── schemas.ts
@@ -165,8 +167,21 @@ faa-traffic-delays-mcp-server/
 │   ├── fixtures/
 │   │   ├── advisory-error.page
 │   │   ├── advisory-gdp.page
+│   │   ├── advisory-index-2004-06-15.page
+│   │   ├── advisory-index-2026-10-01-airspace-flow-program.page
+│   │   ├── advisory-index-2026-10-01-all-categories.page
+│   │   ├── advisory-index-2026-10-01-ctop.page
+│   │   ├── advisory-index-2026-10-01-ground-delay-program.page
+│   │   ├── advisory-index-2026-10-01-ground-stop.page
+│   │   ├── advisory-index-2026-10-01-other.page
+│   │   ├── advisory-index-2026-10-01-route.page
+│   │   ├── advisory-index-2026-10-01.page
+│   │   ├── advisory-index-error.page
+│   │   ├── advisory-index-none.page
 │   │   ├── advisory-miss.page
+│   │   ├── advisory-ops-plan-2004.page
 │   │   ├── advisory-ops-plan.page
+│   │   ├── advisory-route-rqd.page
 │   │   ├── airport-events.json
 │   │   ├── enroute-events.json
 │   │   ├── miscellaneous-info.json
@@ -182,11 +197,13 @@ faa-traffic-delays-mcp-server/
 │   │       ├── get-airport-status.tool.test.ts
 │   │       ├── get-operations-plan.tool.test.ts
 │   │       ├── list-active-events.tool.test.ts
+│   │       ├── list-advisories.tool.test.ts
 │   │       └── list-reference.tool.test.ts
 │   ├── scripts/
 │   │   └── refresh-airport-directory.test.ts
 │   ├── services/
 │   │   ├── advisory/
+│   │   │   ├── advisory-cache-memory.test.ts
 │   │   │   ├── advisory-ref.test.ts
 │   │   │   └── advisory-service.test.ts
 │   │   ├── airport-directory/

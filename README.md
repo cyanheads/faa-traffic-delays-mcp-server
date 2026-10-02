@@ -1,7 +1,7 @@
 <div align="center">
   <h1>@cyanheads/faa-traffic-delays-mcp-server</h1>
   <p><b>Track FAA ground stops, delay programs, airport delays, the operations plan, and ATCSCC advisories via MCP. STDIO or Streamable HTTP.</b>
-  <div>5 Tools</div>
+  <div>6 Tools</div>
   </p>
 </div>
 
@@ -19,11 +19,17 @@
 
 </div>
 
+<div align="center">
+
+**Public Hosted Server:** [https://faa-traffic-delays.caseyjhand.com/mcp](https://faa-traffic-delays.caseyjhand.com/mcp)
+
+</div>
+
 ---
 
 ## Overview
 
-Real-time air traffic management status from the FAA Air Traffic Control System Command Center (ATCSCC), read from the NAS Status feed behind [nasstatus.faa.gov](https://nasstatus.faa.gov) and the ATCSCC advisories database. Check US airports for ground stops, Ground Delay Programs, delays, and closures; list every active event nationwide, en-route Airspace Flow Programs included; and read the operations plan for later in the day and the full advisory behind each program. Runs as a stdio process or a local Streamable HTTP server.
+Real-time air traffic management status from the FAA Air Traffic Control System Command Center (ATCSCC), read from the NAS Status feed behind [nasstatus.faa.gov](https://nasstatus.faa.gov) and the ATCSCC advisories database. Check US airports for ground stops, Ground Delay Programs, delays, and closures; list every active event nationwide, en-route Airspace Flow Programs included; read the operations plan for later in the day; list the advisories issued on a UTC date, canceled and past programs included; and read the full advisory behind each one. Runs as a stdio process, a local Streamable HTTP server, or the public hosted endpoint above.
 
 ### Tools
 
@@ -33,38 +39,47 @@ Real-time air traffic management status from the FAA Air Traffic Control System 
 | `faa_delays_list_active_events` | Every active event across the National Airspace System, Airspace Flow Programs included, sorted by severity with per-type counts |
 | `faa_delays_get_operations_plan` | The Command Center's operations plan: programs and initiatives expected later today, with planned time and likelihood |
 | `faa_delays_get_advisory` | Full text of one ATCSCC advisory by number and UTC date: program rate, scope, comments, and the plan's constraints |
+| `faa_delays_list_advisories` | The ATCSCC advisories issued on one UTC date, newest first, with their numbers: programs as issued, proposed, revised, and canceled, reroutes, and the operations plan |
 | `faa_delays_list_reference` | Decode event types, traffic-management terms, ARTCC codes, the FAA pacing airports, and identifier formats |
 
 ## Capability reference
 
 ### `faa_delays_get_airport_status` <sub>tool</sub>
 
-- `airports`: 1–25 codes, each a 3-character FAA identifier (`SEA`) or its ICAO code (`KSEA`, `PHNL`), case-insensitive, as an array or a comma-separated string; a code not in the bundled FAA NASR directory fails the whole call as `unknown_airport` (with `unknownCodes`) before any FAA request
-- One row per airport, in request order: `status` (`closed`, `ground_stop`, `ground_delay_program`, `delays`, `restrictions_only`, `no_active_events`), `listedInFeed`, the resolved `airportName`, `requestedAs` for an ICAO input, and each active event — `groundStop`, `groundDelayProgram` with a per-15-minute `delayProfile`, `arrivalDelay` / `departureDelay` bands, `closure`, `closureNotam`, `deicing`
-- `runwayConfiguration` (runways and `arrivalRatePerHour`) only for airports the feed lists; `isPacingAirport` and `timezone` are omitted with a `notice` when the FAA pacing-airport list can't be read
+- `airports`: 1–25 codes, each a 3-character FAA identifier (`SEA`) or ICAO code (`KSEA`, `PHNL`), case-insensitive, as an array or comma-separated string; any code not in the bundled NASR directory fails the whole call as `unknown_airport` (with `unknownCodes`)
+- One row per airport, in request order: `status` (`closed`, `ground_stop`, `ground_delay_program`, `delays`, `restrictions_only`, `no_active_events`), `listedInFeed`, `airportName`, `artcc`, `latitude` / `longitude`, `requestedAs` for an ICAO input, and each active event: `groundStop`, `groundDelayProgram` with `programStartTime` and a per-15-minute `delayProfile`, `arrivalDelay` / `departureDelay`, `closure`, `closureNotam`, `deicing`
+- `artcc` comes from the NASR directory and matches the ARTCC codes in a program's `includedFacilities`; an airport the feed doesn't list takes its coordinates from the directory too. `runwayConfiguration` (runways and `arrivalRatePerHour`) appears only for listed airports; `isPacingAirport` and `timezone` are omitted, with a `notice`, when the pacing-airport list can't be read
 
 ---
 
 ### `faa_delays_list_active_events` <sub>tool</sub>
 
-- Optional `event_types` filter over `ground_stop`, `ground_delay_program`, `airspace_flow_program`, `arrival_delay`, `departure_delay`, `airport_closure`, `closure_notam`, `deicing` (aliases `gs`, `gdp`, `afp`); rows sorted by severity, with `reason`, delay figures, times, and an `advisory` reference where the FAA links one
-- `totalActive` and `countsByType` cover the whole feed before the filter, and `shown` / `appliedEventTypes` echo what was returned; `airspace_flow_program` rows carry `afp` detail (constrained area, departure and arrival filters, altitudes, delay profile)
-- `enRouteFeed` (`ok`, `unavailable`, `format_changed`) reports whether Airspace Flow Programs were read: an en-route failure omits them with a `notice` instead of failing the call, unless they are the only type requested
+- Optional `event_types` filter over `ground_stop`, `ground_delay_program`, `airspace_flow_program`, `arrival_delay`, `departure_delay`, `airport_closure`, `closure_notam`, `deicing` (aliases `gs`, `gdp`, `afp`); rows are sorted by severity, with `reason`, delay figures, times, and an `advisory` reference where the FAA links one
+- `totalActive` and `countsByType` cover the whole feed before the filter; `shown` / `appliedEventTypes` echo what was returned. `ground_delay_program` rows add `programStartTime` beside the current revision's `startTime`, and `airspace_flow_program` rows carry `afp` detail (constrained area, departure and arrival filters, altitudes, delay profile)
+- `enRouteFeed` (`ok`, `unavailable`, `format_changed`) reports whether Airspace Flow Programs were read. An en-route failure omits them with a `notice` rather than failing the call, unless they are the only type requested
 
 ---
 
 ### `faa_delays_get_operations_plan` <sub>tool</sub>
 
 - No input; `terminalPlanned` and `enRoutePlanned` items carry `text`, `timeQualifier` (`after`, `until`, `by`, `between`), `timeUtc` (`HHMM` with no date), and `likelihood` (`possible`, `probable`, `expected`)
-- `announcements` lists current ATCSCC announcements (`[]` when none, absent with a `notice` when that list can't be read); `advisory` opens the full plan text with `faa_delays_get_advisory`
+- `announcements` lists current ATCSCC announcements (`[]` when none; absent, with a `notice`, when the list can't be read); `advisory` references the full plan text for `faa_delays_get_advisory`
 
 ---
 
 ### `faa_delays_get_advisory` <sub>tool</sub>
 
-- `advisory_number` (1–999) and `date` (UTC, `YYYY-MM-DD`; `MM/DD/YYYY` accepted), taken from an `advisory` reference's `number` and `date`; numbers restart at 1 each UTC day, and past advisories stay readable
-- Returns `title`, `controlElement`, `subject`, `effectiveTime`, `sentAt`, and the full `text`; a number the database doesn't hold returns `found: false` with `guidance` rather than an error
+- `advisory_number` (1–999) and `date` (UTC, `YYYY-MM-DD`; `MM/DD/YYYY` accepted), taken from a `faa_delays_list_advisories` row or an `advisory` reference's `number` and `date`; numbers restart at 1 each UTC day, and past advisories stay readable
+- Returns `title`, `controlElement`, `subject`, `effectiveTime` and `sentAt` as the advisory prints them (`DDHHMM-DDHHMM`, `YY/MM/DD HH:MM`, on operations plans and reroutes too), and the full `text`; a number the database doesn't hold returns `found: false` with `guidance` that points to `faa_delays_list_advisories`
 - Text past 50,000 characters is cut and reported through `truncated` and `totalChars`; page failures surface as `advisory_service_unavailable` or `advisory_contract_changed`
+
+---
+
+### `faa_delays_list_advisories` <sub>tool</sub>
+
+- `date` (UTC, `YYYY-MM-DD`; `MM/DD/YYYY` accepted; no later than tomorrow; omitted → today), optional `categories` (`ground_stop`, `ground_delay_program`, `airspace_flow_program`, `ctop`, `route`, `other`; aliases `gs`, `gdp`, `afp`) and `control_element` (an airport by FAA or ICAO code, an ARTCC, or `DCC` for national advisories), `limit` 1–200 (default 50) and `offset`
+- Rows newest first: `number` and `date` for `faa_delays_get_advisory`, `controlElement`, `subject`, `details` (a reroute's or flow constrained area's name, constrained area, and valid period), and `sentAt` (ISO 8601 UTC); `totalCount` counts every match and `nextOffset` is present while more remain
+- Without `categories` the list also carries the CDM compression advisories the FAA files under no category; a date with no advisories, or a filter that matches none, returns an empty list with a `notice`
 
 ---
 
@@ -79,27 +94,44 @@ Built on [`@cyanheads/mcp-ts-core`](https://github.com/cyanheads/mcp-ts-core): s
 
 FAA-specific:
 
-- Reads the NAS Status feed (`nasstatus.faa.gov/api`) and the ATCSCC advisories database (`www.fly.faa.gov/adv`), keyless; FAA status and NASR airport data are US federal works in the public domain (17 U.S.C. §105), published by the Federal Aviation Administration
-- Airport codes are checked against a bundled snapshot of the FAA NASR airport directory, with ICAO codes mapped to FAA identifiers by lookup (`KSEA` → `SEA`, `PHNL` → `HNL`), so a mistyped code fails instead of reading as a quiet airport
-- Each feed is cached in process for 60 seconds (the pacing-airport list for 6 hours) with one shared in-flight request, and requests to each FAA host are paced; an expired snapshot is never served when a refresh fails
+- Reads the NAS Status feed (`nasstatus.faa.gov/api`) and the ATCSCC advisories database (`www.fly.faa.gov/adv`), keyless; FAA status and NASR airport data are US federal works in the public domain (17 U.S.C. §105)
+- Airport codes are checked against a bundled snapshot of the FAA NASR airport directory, with ICAO codes mapped to FAA identifiers (`KSEA` → `SEA`, `PHNL` → `HNL`), so a mistyped code fails instead of reading as a quiet airport; the same directory supplies each airport's ARTCC, and its coordinates when the feed doesn't list it
+- Feeds are cached in process for 60 seconds (the pacing-airport list for 6 hours) and requests to each FAA host are paced; an expired snapshot is never served when a refresh fails
 - Tolerant parsing of the undocumented feed: an unreadable row is skipped and counted in the `notice`, and a wrong-typed field is dropped rather than coerced
 
 Agent-friendly output:
 
-- Typed failure reasons: an outage (`feed_unavailable`), a slow or throttled FAA (`retry_deadline_exceeded`, `upstream_rate_limited`, `pacer_shed`), and a format change (`feed_contract_changed`, not retryable) stay distinct; each recovery hint names the tool to call next, and rate-limit errors carry `retryAfter` when it is known
-- Graceful partial failure: a secondary FAA list that can't be read (pacing airports, en-route events, announcements) is omitted with a flag or `notice` instead of failing the call
-- Freshness on every feed tool: `fetchedAt` for the snapshot, `updatedAt` on each event, and a `notice` when an arrival or departure delay entry was last updated more than 6 hours earlier, since the FAA feed can keep a delay entry after it lapses
-- FAA-authored text (reasons, NOTAMs, comments, announcements, advisory text) is flattened, quoted, or fenced in `content[]` so it reads as data, and stays verbatim in `structuredContent`
+- Typed failure reasons keep an outage (`feed_unavailable`), a slow or throttled FAA (`retry_deadline_exceeded`, `upstream_rate_limited`, `pacer_shed`), and a format change (`feed_contract_changed`, not retryable) distinct; recovery hints name the tool to call next, and rate-limit errors carry `retryAfter` when known
+- A secondary FAA list that can't be read (pacing airports, en-route events, announcements) is omitted with a flag or `notice` instead of failing the call
+- `fetchedAt` dates the snapshot, and a `notice` flags an arrival or departure delay last updated more than 6 hours earlier, since the FAA feed can keep a delay entry after it lapses
+- FAA-authored text (reasons, NOTAMs, comments, announcements, advisory text) is quoted or fenced in `content[]` so it reads as data, and stays verbatim in `structuredContent`
 
 Limitations:
 
-- **Informational, not operational.** Not an operational source for flight planning: no substitute for an official preflight briefing or airline operations data.
-- **Undocumented upstream.** `nasstatus.faa.gov/api/*` is the dashboard's private backend: no schema, terms, versioning, or published limits, and it can change without notice. The server fails with `feed_contract_changed` rather than guess.
-- **Airport coverage is event-driven.** The feed lists only airports with an active event, so runway configuration and arrival rate are unavailable for airports without one, and `no_active_events` means no FAA program, not on-time flights. Per-flight EDCTs are not in the feed.
+- **Informational, not operational.** No substitute for an official preflight briefing or airline operations data.
+- **Undocumented upstream.** `nasstatus.faa.gov/api/*` is the dashboard's private backend, with no schema, terms, versioning, or published limits, and it can change without notice. The server fails with `feed_contract_changed` rather than guess.
+- **Airport coverage is event-driven.** The feed lists only airports with an active event, so runway configuration and arrival rate are unavailable for the rest, and `no_active_events` means no FAA program, not on-time flights. Per-flight EDCTs are not in the feed.
 - **En-route row shape is inferred, not observed.** Airspace Flow Program rows follow the shape the NAS Status dashboard's own code reads; a mismatch degrades the national list with `enRouteFeed: "format_changed"` rather than failing it.
 - **The airport directory is a snapshot.** An identifier the FAA assigns after the bundled NASR cycle is rejected as unknown until the next refresh. US airports only.
 
 ## Getting started
+
+### Public Hosted Instance
+
+A public instance is available at `https://faa-traffic-delays.caseyjhand.com/mcp` — no installation required. Point any MCP client at it via Streamable HTTP:
+
+```json
+{
+  "mcpServers": {
+    "faa-traffic-delays-mcp-server": {
+      "type": "streamable-http",
+      "url": "https://faa-traffic-delays.caseyjhand.com/mcp"
+    }
+  }
+}
+```
+
+### Self-Hosted / Local
 
 Add the following to your MCP client configuration file.
 
@@ -238,10 +270,10 @@ See [`.env.example`](./.env.example) for the common framework overrides.
 
 | Directory | Purpose |
 |:---|:---|
-| `src/mcp-server/tools` | Tool definitions (`*.tool.ts`), plus shared output schemas, notice fragments, and Markdown helpers for FAA-authored text. |
+| `src/mcp-server/tools` | Tool definitions (`*.tool.ts`), plus shared output schemas, the advisory date input, notice fragments, and Markdown helpers for FAA-authored text. |
 | `src/services/nas-status` | NAS Status feed client and tolerant feed parsers. |
-| `src/services/advisory` | ATCSCC advisories database client, page parser, and advisory URL builder. |
-| `src/services/airport-directory` | Bundled FAA NASR airport directory and ICAO → FAA crosswalk (generated module). |
+| `src/services/advisory` | ATCSCC advisories database client, advisory page and index parsers, and the advisory and index URL builders. |
+| `src/services/airport-directory` | Bundled FAA NASR airport directory (name, place, ARTCC, coordinates) and ICAO → FAA crosswalk (generated module). |
 | `src/services/upstream` | Shared FAA fetch boundary (pacing, retry, status classification) and the in-process cache. |
 | `scripts/refresh-airport-directory.ts` | Regenerates the airport directory module (`bun run refresh:airports`). |
 | `tests/` | Unit and integration tests, mirroring the `src/` structure, with synthetic FAA fixtures. |
