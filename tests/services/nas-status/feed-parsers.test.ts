@@ -75,6 +75,51 @@ function expectContractChanged(run: () => unknown, feed: string): void {
 }
 
 describe('parseAirportEvents', () => {
+  it('discloses unreadable event objects while retaining usable siblings', () => {
+    expect(
+      parseAirportEvents(
+        [{ airportId: 'ORD', groundStop: 'active', groundDelay: { avgDelay: 3 } }],
+        recorder().report,
+      ),
+    ).toMatchObject({
+      rows: [{ airportId: 'ORD', groundDelayProgram: { averageDelayMinutes: 3 } }],
+      unreadableSections: ['airport-events[].groundStop'],
+    });
+  });
+  it.each([[1, 3], [1, 1], [0], [-1], [1.5], [Infinity], [NaN]])(
+    'omits and discloses invalid profile sequences %j',
+    (...seqs) => {
+      const parsed = parseAirportEvents(
+        [
+          {
+            airportId: 'SEA',
+            groundDelay: {
+              avgDelay: 7,
+              fuelFlowAdvisoryDelayTime: {
+                startTime: '2026-10-13T18:00:00Z',
+                dasDelays: { dasDelay: seqs.map((seq) => ({ seq, delay: 10 })) },
+              },
+            },
+          },
+        ],
+        recorder().report,
+      );
+      expect(parsed.rows[0]?.groundDelayProgram).toEqual({
+        averageDelayMinutes: 7,
+        programStartTime: '2026-10-13T18:00:00Z',
+      });
+      expect(parsed).toHaveProperty('unreadableSections', [
+        'airport-events[].groundDelay.fuelFlowAdvisoryDelayTime.dasDelays.dasDelay',
+      ]);
+    },
+  );
+  it('keeps absent/null event sections and scalar drift free of section diagnostics', () => {
+    const parsed = parseAirportEvents(
+      [{ airportId: 'SEA', groundStop: null, latitude: {} }],
+      recorder().report,
+    );
+    expect(parsed).toEqual({ rows: [{ airportId: 'SEA' }], skippedRows: 0 });
+  });
   it('reads the fixture rows into normalized events', () => {
     const { drift, report, unknownKeys } = recorder();
     const { rows, skippedRows } = parseAirportEvents(feedFixture('airport-events'), report);
@@ -766,6 +811,17 @@ describe('parseDurationMinutes', () => {
 });
 
 describe('parseEnrouteEvents', () => {
+  it('discloses a wrong-typed event object without discarding a readable sibling row', () => {
+    const parsed = parseEnrouteEvents(
+      [{ airspaceFlowProgram: 'active' }, { airspaceFlowProgram: { afpName: 'FCA005' } }],
+      recorder().report,
+    );
+    expect(parsed).toMatchObject({
+      rows: [{ name: 'FCA005' }],
+      skippedRows: 1,
+      unreadableSections: ['enroute-events[].airspaceFlowProgram'],
+    });
+  });
   it('reads the fixture rows into Airspace Flow Programs', () => {
     const { report, unknownKeys } = recorder();
     const { rows, skippedRows } = parseEnrouteEvents(feedFixture('enroute-events'), report);
@@ -1011,6 +1067,17 @@ describe('parsePlannedEvent', () => {
 });
 
 describe('parseOperationsPlan', () => {
+  it('keeps usable plan siblings and distinguishes malformed from absent/null sections', () => {
+    const parsed = parseOperationsPlan(
+      { terminalPlanned: 'unreadable', enRoutePlanned: [{ event: 'AFTER 1500 FCA005 EXPECTED' }] },
+      recorder().report,
+    );
+    expect(parsed.enRoutePlanned).toMatchObject([{ text: 'AFTER 1500 FCA005 EXPECTED' }]);
+    expect(parsed.unreadableSections).toEqual(['operations-plan.terminalPlanned']);
+    expect(
+      parseOperationsPlan({ terminalPlanned: null, enRoutePlanned: [] }, recorder().report),
+    ).not.toHaveProperty('unreadableSections');
+  });
   it('reads the fixture into planned items and an advisory reference', () => {
     const plan = parseOperationsPlan(feedFixture('operations-plan'), recorder().report);
 
@@ -1115,6 +1182,40 @@ describe('parseAnnouncements', () => {
 });
 
 describe('parsePacingAirports', () => {
+  it('corrects only PHX US/Mountain and preserves reported provenance', () => {
+    const row = parsePacingAirports(
+      [{ airportId: 'phx', timezone: 'US/Mountain' }],
+      recorder().report,
+    ).rows[0];
+    expect(row).toEqual({
+      airportId: 'PHX',
+      timezone: 'America/Phoenix',
+      reportedTimezone: 'US/Mountain',
+    });
+    for (const month of ['01', '10']) {
+      expect(
+        new Intl.DateTimeFormat('en-US', {
+          timeZone: row?.timezone,
+          hour: '2-digit',
+          hourCycle: 'h23',
+        }).format(new Date(`2026-${month}-13T18:00:00Z`)),
+      ).toBe('11');
+    }
+  });
+  it('preserves other reported zones and already-correct PHX zones', () => {
+    expect(
+      parsePacingAirports(
+        [
+          { airportId: 'DEN', timezone: 'US/Mountain' },
+          { airportId: 'PHX', timezone: 'America/Phoenix' },
+        ],
+        recorder().report,
+      ).rows,
+    ).toEqual([
+      { airportId: 'DEN', timezone: 'US/Mountain' },
+      { airportId: 'PHX', timezone: 'America/Phoenix' },
+    ]);
+  });
   it('reads the fixture rows without the isPacing flag', () => {
     const { rows, skippedRows } = parsePacingAirports(
       feedFixture('pacing-airports'),

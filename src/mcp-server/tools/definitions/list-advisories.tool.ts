@@ -129,7 +129,7 @@ const AdvisoryRowSchema = z
 export const listAdvisories = tool('faa_delays_list_advisories', {
   title: 'List ATCSCC Advisories',
   description:
-    "List the ATCSCC advisories issued on one UTC date, newest first, from the FAA advisories database's per-date index: ground stops and delay programs as issued, proposed, revised, and canceled, required reroutes, flow constrained areas, operations plans, and CDM compression advisories, including those no longer active and those on past dates, which the NAS Status feed does not carry. Each row gives the advisory number, control element, subject, any further title lines (a reroute's name, constrained area, and valid period), and send time; its number and date open the full text with faa_delays_get_advisory. Narrow by categories or by control_element (an airport, its ICAO code, an ARTCC, or DCC for national advisories), and page with limit and offset.",
+    "List the ATCSCC advisories issued on one UTC date, newest first, from the FAA advisories database's per-date index: ground stops and delay programs as issued, proposed, revised, and canceled, required reroutes, flow constrained areas, operations plans, and CDM compression advisories, including those no longer active and those on past dates, which the NAS Status feed does not carry. Each row gives the advisory number, control element, subject, any further title lines (a reroute's name, constrained area, and valid period), and send time; its number and date open the full text with faa_delays_get_advisory. Narrow by categories, control_element (an airport, its ICAO code, an ARTCC, or DCC for national advisories), or query (literal case-insensitive subject/details text, such as an FCA name); filters combine before limit and offset paging.",
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
   input: z.object({
     date: z
@@ -147,6 +147,19 @@ export const listAdvisories = tool('faa_delays_list_advisories', {
       .describe(
         'Only advisories whose control element is this facility or lists it as a part: an airport by FAA identifier (ORD) or ICAO code (KORD), an ARTCC (ZAU), a pair (ORD/ZAU or KORD/ZAU), or DCC for national advisories such as reroutes and the operations plan. Case-insensitive. Airports named only in a subject or details do not match.',
       ),
+    query: z
+      .preprocess(
+        (value) =>
+          value === null
+            ? undefined
+            : typeof value === 'string'
+              ? value.trim() || undefined
+              : value,
+        z.string().optional(),
+      )
+      .describe(
+        'Literal case-insensitive substring of subject or any details line, such as FCA005; combined with categories and control_element before paging. Omit to match every title.',
+      ),
     limit: z.number().int().min(1).max(200).default(50).describe('Advisories per page, 1–200.'),
     offset: z
       .number()
@@ -160,7 +173,7 @@ export const listAdvisories = tool('faa_delays_list_advisories', {
     advisories: z
       .array(AdvisoryRowSchema)
       .describe(
-        'Advisories issued on date that match categories and control_element, newest first: up to limit of them, starting at offset.',
+        'Advisories issued on date that match categories, control_element, and query, newest first: up to limit of them, starting at offset.',
       ),
     nextOffset: z
       .number()
@@ -169,10 +182,16 @@ export const listAdvisories = tool('faa_delays_list_advisories', {
       .describe('offset of the next page; present while matching advisories remain past this one.'),
   }),
   enrichment: {
+    appliedQuery: z
+      .string()
+      .optional()
+      .describe('Trimmed text query matched against subjects and details; absent when unset.'),
     totalCount: z
       .number()
       .int()
-      .describe('Advisories on date that match categories and control_element, before paging.'),
+      .describe(
+        'Advisories on date that match categories, control_element, and query, before paging.',
+      ),
     truncated: z
       .boolean()
       .optional()
@@ -207,6 +226,7 @@ export const listAdvisories = tool('faa_delays_list_advisories', {
       ),
   },
   enrichmentTrailer: {
+    appliedQuery: { render: (query: string) => `**Query:** ${inline(query)}` },
     // Rendered only when enriched, so never with an absent value.
     appliedCategories: {
       render: (categories: AdvisoryCategory[]) => `**Categories:** ${categories.join(', ')}`,
@@ -273,9 +293,14 @@ export const listAdvisories = tool('faa_delays_list_advisories', {
     );
 
     const index = await getAdvisoryService().listAdvisories(date, categories, ctx);
-    const matching = element
-      ? index.rows.filter((row) => hasControlElement(row.controlElement, element))
-      : index.rows;
+    const query = input.query?.toLowerCase();
+    const matching = index.rows.filter(
+      (row) =>
+        (!element || hasControlElement(row.controlElement, element)) &&
+        (!query ||
+          row.subject?.toLowerCase().includes(query) ||
+          row.details?.some((line) => line.toLowerCase().includes(query))),
+    );
     const advisories = matching.slice(offset, offset + limit);
     const end = offset + advisories.length;
     const nextOffset = end < matching.length ? end : undefined;
@@ -284,6 +309,7 @@ export const listAdvisories = tool('faa_delays_list_advisories', {
     ctx.enrich({
       ...(categories && { appliedCategories: categories }),
       ...(element && { appliedControlElement: element }),
+      ...(input.query && { appliedQuery: input.query }),
     });
 
     const notices: string[] = [];
@@ -293,6 +319,10 @@ export const listAdvisories = tool('faa_delays_list_advisories', {
         categories
           ? `No ATCSCC advisories${inCategories} were issued on ${date} (UTC). Call faa_delays_list_advisories without categories to list every advisory issued that day.`
           : `The FAA advisories database lists no ATCSCC advisories issued on ${date} (UTC).`,
+      );
+    } else if (input.query && matching.length === 0) {
+      notices.push(
+        `No advisory${inCategories} issued on ${date} (UTC) matches query ${inline(input.query)}${element ? ` with control element ${inline(element)}` : ''}. Call faa_delays_list_advisories without query or broaden the filters.`,
       );
     } else if (element && matching.length === 0) {
       notices.push(

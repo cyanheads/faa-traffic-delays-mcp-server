@@ -1,7 +1,8 @@
 /**
  * @fileoverview Markdown rendering helpers for FAA-authored text in `format()`. Inline slots get
  * CR/LF/TAB flattened to one space, other control and bidi characters removed, and `[`, `]`, `<`,
- * `>` escaped so the text cannot form a link, image, or HTML tag; table cells escape every `\` and
+ * `>` escaped to neutralize Markdown link/image syntax, angle-bracket autolinks, and HTML tags;
+ * clients may still auto-link bare URLs. Table cells escape every `\` and
  * `|` as well. Free text renders as a `>` blockquote or a fenced block; a value the FAA did not
  * report is named or left out, never shown as a placeholder. `structuredContent` always keeps the
  * verbatim value.
@@ -68,19 +69,36 @@ export function cell(value: string | number | boolean | undefined): string {
   return flatten(String(value)).replace(/[\\|[\]<>]/g, '\\$&');
 }
 
-/** Renders free text as a blockquote, every line prefixed. */
+/** Normalizes line endings and tabs, removing controls without merging original lines. */
+function multiline(value: string): string {
+  let kept = '';
+  for (const char of value.replace(/\r\n|\r/g, '\n')) {
+    if (char === '\n') kept += char;
+    else if (char === '\t') kept += ' ';
+    else if (!isControl(char.charCodeAt(0))) kept += char;
+  }
+  return kept;
+}
+
+/** Quotes each line with bracket/angle escaping, preserving emphasis and code characters. */
 export function blockquote(value: string): string {
-  return value
-    .split(/\r\n|\r|\n/)
-    .map((line) => (line ? `> ${line}` : '>'))
+  return multiline(value)
+    .split('\n')
+    .map((line) => (line ? `> ${inline(line)}` : '>'))
     .join('\n');
 }
 
 /** Fences free text in a `text` block one backtick longer than its longest backtick run. */
 export function fenced(value: string): string {
-  const longestRun = Math.max(0, ...(value.match(/`+/g) ?? []).map((run) => run.length));
+  const text = multiline(value);
+  let longestRun = 0;
+  let run = 0;
+  for (const char of text) {
+    run = char === '`' ? run + 1 : 0;
+    longestRun = Math.max(longestRun, run);
+  }
   const fence = '`'.repeat(Math.max(3, longestRun + 1));
-  return `${fence}text\n${value}\n${fence}`;
+  return `${fence}text\n${text}\n${fence}`;
 }
 
 /** `ADVZY 17 · 2026-07-15 · <url>` — the advisory reference line. */

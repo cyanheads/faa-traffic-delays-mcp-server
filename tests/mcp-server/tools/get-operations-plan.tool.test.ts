@@ -57,6 +57,19 @@ afterEach(() => {
 });
 
 describe('plan', () => {
+  it('discloses malformed planned sections without calling them empty or complete', async () => {
+    services.dispose();
+    setup({
+      'operations-plan': { terminalPlanned: 'AFTER 1500 BOS GDP EXPECTED', enRoutePlanned: [] },
+    });
+    const result = await run();
+    for (const text of [structured(result).notice, contentText(result)]) {
+      expect(text).toContain('operations-plan.terminalPlanned');
+      expect(text).toContain('unknown, not confirmed empty');
+      expect(text).not.toContain('lists no planned programs');
+      expect(text).not.toContain('above is complete');
+    }
+  });
   it('reads planned items with qualifier, UTC time, and stated likelihood', async () => {
     const data = structured(await run());
 
@@ -222,7 +235,7 @@ describe('announcements degrade path', () => {
     expect(data).not.toHaveProperty('announcements');
     expect(data.terminalPlanned).toHaveLength(3);
     expect(data.notice).toBe(
-      'ATCSCC announcements are omitted because that FAA list could not be read; the operations plan above is complete.',
+      'ATCSCC announcements are omitted because that FAA list could not be read.',
     );
     expect(contentText(result)).toContain('Not available: that FAA list could not be read.');
   });
@@ -300,6 +313,16 @@ describe('declared feed errors', () => {
 });
 
 describe('format', () => {
+  it('renders announcement links literally and keeps structured text verbatim', async () => {
+    const text = 'USE <FIX> [route](u) *literal*\nFCA005:NO_AR_ATLANTIC\t\u202e';
+    services.dispose();
+    setup({ 'miscellaneous-info': [{ event: text }] });
+    const result = await run();
+    expect(structured(result).announcements).toEqual([{ text }]);
+    expect(contentText(result)).toContain('> USE \\<FIX\\> \\[route\\](u) *literal*');
+    expect(contentText(result)).toContain('> FCA005:NO_AR_ATLANTIC ');
+    expect(contentText(result)).not.toContain('\u202e');
+  });
   it('carries the same data as structuredContent', async () => {
     const text = contentText(await run());
 

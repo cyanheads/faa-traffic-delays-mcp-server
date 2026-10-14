@@ -48,6 +48,7 @@ const EVERY_BOX_URL = notAllUrl(
 );
 
 const FIXTURE_PAGES: Record<string, string> = {
+  [allUrl('2026-10-13')]: 'advisory-index-2026-10-13.page',
   [ALL_URL]: 'advisory-index-2026-10-01.page',
   [GROUND_STOP_URL]: 'advisory-index-2026-10-01-ground-stop.page',
   [GROUND_STOP_ROUTE_URL]: 'advisory-index-2026-10-01-ground-stop.page',
@@ -103,6 +104,58 @@ const descending = (from: number, to: number) =>
 const fetchedUrls = () => harness.calls.map((call) => call.request.url);
 
 describe('input', () => {
+  it('finds the October 13 FCA005 advisory in details without fetching full text', async () => {
+    const result = await run({ date: '2026-10-13', query: 'fca005' });
+    expect(numbers(result)).toEqual([11]);
+    expect(structured(result)).toMatchObject({ totalCount: 1, appliedQuery: 'fca005' });
+    expect(contentText(result)).toContain('ADVZY 11');
+    expect(fetchedUrls()).toEqual([allUrl('2026-10-13')]);
+  });
+  it.each(['', '  ', null])('treats query %j as unset', async (query) => {
+    const result = await run({ date: '2026-10-01', query });
+    expect(result.isError).toBeFalsy();
+    expect(structured(result)).not.toHaveProperty('appliedQuery');
+  });
+  it('combines query, categories, and control element before repeated page slices', async () => {
+    const input = {
+      date: '2026-10-01',
+      categories: ['ground_stop'],
+      control_element: 'KORD',
+      query: 'ground stop',
+      limit: 1,
+    };
+    const first = await run(input);
+    const second = await run({ ...input, offset: 1 });
+    expect(numbers(first)).toEqual([129]);
+    expect(numbers(second)).toEqual([124]);
+    expect(structured(first)).toMatchObject({ totalCount: 4, nextOffset: 1 });
+    expect(structured(second)).toMatchObject({ totalCount: 4, nextOffset: 2 });
+    const past = await run({ ...input, offset: 999 });
+    expect(numbers(past)).toEqual([]);
+    expect(contentText(past)).toContain('past the last matching advisory');
+  });
+  it('uses a literal query, reports no match on both surfaces, and tolerates missing titles', async () => {
+    services.dispose();
+    setup({
+      [ALL_URL]: () =>
+        htmlResponse(indexPage(indexRow('advn=1&adv_date=10012026', 'DCC', '', '1200'))),
+    });
+    const result = await run({ date: '2026-10-01', query: '.*' });
+    expect(numbers(result)).toEqual([]);
+    expect(structured(result)).toMatchObject({ totalCount: 0, appliedQuery: '.*' });
+    expect(structured(result).notice).toContain('matches query .*');
+    expect(contentText(result)).toContain('matches query .*');
+  });
+  it('filters subject text before paging and echoes the trimmed query on both surfaces', async () => {
+    const result = await run({ date: '2026-10-01', query: '  ground stop  ', limit: 1 });
+    expect(result.isError).toBeFalsy();
+    expect(structured(result).appliedQuery).toBe('ground stop');
+    expect(structured(result).advisories).toHaveLength(1);
+    expect(String(structured(result).advisories[0]?.subject).toLowerCase()).toContain(
+      'ground stop',
+    );
+    expect(contentText(result)).toContain('**Query:** ground stop');
+  });
   const parse = (input: Record<string, unknown>) => listAdvisories.input.safeParse(input);
 
   it('defaults limit to 50 and offset to 0, and leaves every filter unset', () => {

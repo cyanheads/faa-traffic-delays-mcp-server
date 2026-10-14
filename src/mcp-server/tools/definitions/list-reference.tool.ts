@@ -10,6 +10,7 @@ import { JsonRpcErrorCode } from '@cyanheads/mcp-ts-core/errors';
 import { getDirectoryInfo } from '@/services/airport-directory/airport-directory.js';
 import { getNasStatusService } from '@/services/nas-status/nas-status-service.js';
 import { cell } from '../format-helpers.js';
+import { skippedRowsNotice } from '../notices.js';
 import { type EventType, EventTypeSchema } from '../schemas.js';
 
 const TOPICS = ['event_types', 'terms', 'artccs', 'pacing_airports', 'identifiers'] as const;
@@ -207,7 +208,7 @@ const TERMS: { meaning: string; term: string }[] = [
   {
     term: 'NOTAM',
     meaning:
-      'Notice to Air Missions: a published notice of a change to facilities, services, or procedures, such as a closure.',
+      'Notice to Airmen: a published notice of a change to facilities, services, or procedures, such as a closure.',
   },
   {
     term: 'Pacing airport',
@@ -400,7 +401,13 @@ export const listReference = tool('faa_delays_list_reference', {
             timezone: z
               .string()
               .optional()
-              .describe('IANA-style time zone the FAA assigns (US/Pacific); FAA-supplied text.'),
+              .describe(
+                'Effective IANA time zone; PHX reported as US/Mountain is corrected to America/Phoenix.',
+              ),
+            reportedTimezone: z
+              .string()
+              .optional()
+              .describe('Original FAA time zone when a verified correction was applied.'),
             latitude: z.number().optional().describe('Latitude in decimal degrees.'),
             longitude: z.number().optional().describe('Longitude in decimal degrees.'),
           })
@@ -442,6 +449,12 @@ export const listReference = tool('faa_delays_list_reference', {
       .optional()
       .describe('Present for topic identifiers.'),
   }),
+  enrichment: {
+    notice: z
+      .string()
+      .optional()
+      .describe('Unreadable pacing-airport rows omitted from this snapshot.'),
+  },
   errors: [
     {
       reason: 'feed_unavailable',
@@ -505,6 +518,7 @@ export const listReference = tool('faa_delays_list_reference', {
         };
       case 'pacing_airports': {
         const pacing = await getNasStatusService().getPacingAirports(ctx);
+        if (pacing.skippedRows > 0) ctx.enrich.notice(skippedRowsNotice(pacing.skippedRows));
         ctx.log.info('Pacing airports read', { count: pacing.rows.length });
         return { topic: input.topic, fetchedAt: pacing.fetchedAt, pacingAirports: pacing.rows };
       }
@@ -538,7 +552,7 @@ export const listReference = tool('faa_delays_list_reference', {
       );
       for (const airport of result.pacingAirports) {
         lines.push(
-          `| ${cell(airport.airportId)} | ${cell(airport.timezone)} | ${cell(airport.latitude)} | ${cell(airport.longitude)} |`,
+          `| ${cell(airport.airportId)} | ${cell(airport.timezone)}${airport.reportedTimezone ? ` (FAA reported: ${cell(airport.reportedTimezone)})` : ''} | ${cell(airport.latitude)} | ${cell(airport.longitude)} |`,
         );
       }
     }

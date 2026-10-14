@@ -5,8 +5,49 @@
  * @module tests/mcp-server/tools/format-helpers.test
  */
 
+import { threadCpuUsage } from 'node:process';
 import { describe, expect, it } from 'vitest';
-import { cell, inline, span } from '@/mcp-server/tools/format-helpers.js';
+import { blockquote, cell, fenced, inline, span } from '@/mcp-server/tools/format-helpers.js';
+
+describe('multiline FAA text', () => {
+  it.each([blockquote, fenced])(
+    'bounds worst-case rendering CPU across a 64-fold input span',
+    (render) => {
+      const sizes = [5_000, 20_000, 80_000, 320_000];
+      const fastest = sizes.map(() => Infinity);
+      for (let round = 0; round < 7; round++) {
+        for (const [index, size] of sizes.entries()) {
+          const input = `${'\\'.repeat(size)}[x]\t\u202e\n${'`'.repeat(size)}`;
+          const started = threadCpuUsage();
+          render(input);
+          const elapsed = threadCpuUsage(started);
+          fastest[index] = Math.min(fastest[index] as number, elapsed.user + elapsed.system);
+        }
+      }
+      expect((fastest[3] as number) / (fastest[0] as number)).toBeLessThan(256);
+    },
+  );
+  it('escapes links and HTML after backslash runs on every quoted line', () => {
+    expect(blockquote('USE <FIX> [route](u)\n![x](u)\n\\[x]')).toBe(
+      '> USE \\<FIX\\> \\[route\\](u)\n> !\\[x\\](u)\n> \\\\\\[x\\]',
+    );
+  });
+  it.each([blockquote, fenced])(
+    'normalizes tabs and removes controls without merging lines',
+    (render) => {
+      const text = render('A\tB\u0000\u0085\u202e\r\nC\u2066\rD\nE');
+      expect(text).toContain('A B');
+      expect(text).not.toMatch(/[\u0000\u0085\u202e\u2066\t\r]/);
+      expect(text.split('\n').filter((line) => /[CDE]/.test(line))).toHaveLength(3);
+    },
+  );
+  it('preserves lines, identifiers, emphasis, and a safe dynamic fence', () => {
+    expect(blockquote('FCA005:NO_AR_ATLANTIC\r\n*literal*\n`code`')).toBe(
+      '> FCA005:NO_AR_ATLANTIC\n> *literal*\n> `code`',
+    );
+    expect(fenced('a```b')).toBe('````text\na```b\n````');
+  });
+});
 
 describe('inline', () => {
   it('flattens CR, LF, and TAB runs to one space', () => {

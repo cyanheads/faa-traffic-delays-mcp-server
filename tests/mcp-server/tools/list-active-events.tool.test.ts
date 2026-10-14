@@ -65,6 +65,39 @@ afterEach(() => {
 });
 
 describe('event_types input', () => {
+  it('discloses malformed airport sections and nested AFP profiles on both surfaces', async () => {
+    services.dispose();
+    setup({
+      'airport-events': [{ airportId: 'SEA', groundStop: 'active' }],
+      'enroute-events': [
+        {
+          airspaceFlowProgram: {
+            afpName: 'FCA005',
+            avgDelay: 7,
+            fuelFlowAdvisoryDelayTime: {
+              startTime: '2026-10-13T18:00:00Z',
+              dasDelays: {
+                dasDelay: [
+                  { seq: 1, delay: 10 },
+                  { seq: 3, delay: 90 },
+                ],
+              },
+            },
+          },
+        },
+      ],
+    });
+    const result = await run();
+    expect(structured(result).events).toMatchObject([
+      { location: 'FCA005', averageDelayMinutes: 7 },
+    ]);
+    expect(structured(result).events[0]?.afp).not.toHaveProperty('delayProfile');
+    for (const text of [structured(result).notice, contentText(result)]) {
+      expect(text).toContain('groundStop');
+      expect(text).toContain('dasDelay');
+      expect(text).toContain('unknown, not confirmed empty');
+    }
+  });
   const parse = (value: unknown) =>
     listActiveEvents.input.parse({ event_types: value }).event_types;
 
@@ -825,6 +858,19 @@ describe('declared feed errors', () => {
 });
 
 describe('format', () => {
+  it('renders AFP comment links literally and keeps structured text verbatim', async () => {
+    const comments = 'USE <FIX> [route](u) *literal*\nFCA005:NO_AR_ATLANTIC\t\u202e';
+    services.dispose();
+    setup({
+      'airport-events': [],
+      'enroute-events': [{ airspaceFlowProgram: { afpName: 'FCA005' }, comments }],
+    });
+    const result = await run();
+    expect(structured(result).events[0]?.afp).toMatchObject({ comments });
+    expect(contentText(result)).toContain('> USE \\<FIX\\> \\[route\\](u) *literal*');
+    expect(contentText(result)).toContain('> FCA005:NO_AR_ATLANTIC ');
+    expect(contentText(result)).not.toContain('\u202e');
+  });
   it('renders each event with the fields a caller acts on and the enrichment trailer', async () => {
     const text = contentText(await run());
 

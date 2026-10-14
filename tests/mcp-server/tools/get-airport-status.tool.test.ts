@@ -10,6 +10,7 @@ import { JsonRpcErrorCode, rateLimited } from '@cyanheads/mcp-ts-core/errors';
 import { createMockContext, runToolContract } from '@cyanheads/mcp-ts-core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getAirportStatus } from '@/mcp-server/tools/definitions/get-airport-status.tool.js';
+import { NASR_AIRPORTS_TSV } from '@/services/airport-directory/nasr-airports.generated.js';
 import { getNasStatusService } from '@/services/nas-status/nas-status-service.js';
 import {
   contentText,
@@ -74,11 +75,13 @@ describe('input', () => {
     expect(parsed.success && parsed.data.airports).toEqual(expected);
   });
 
-  it('accepts exactly 25 airports and rejects 26', () => {
+  it('accepts 25, 26, and 100 submitted airports and rejects 101', () => {
     const codes = (n: number) =>
       Array.from({ length: n }, (_, i) => `A${String(i).padStart(2, '0')}`);
     expect(parse(codes(25)).success).toBe(true);
-    expect(parse(codes(26)).success).toBe(false);
+    expect(parse(codes(26)).success).toBe(true);
+    expect(parse(codes(100)).success).toBe(true);
+    expect(parse(codes(101)).success).toBe(false);
   });
 
   it.each([
@@ -109,21 +112,125 @@ describe('input', () => {
     ['a comma-separated string', (n: number) => Array(n).fill('A').join(',')],
     ['an array', (n: number) => Array(n).fill('A')],
   ])(
-    'rejects 10,000 malformed codes in %s with the same bounded error as 26',
+    'rejects 10,000 malformed codes in %s with the same bounded error as 101',
     async (_label, codes) => {
-      const atLimit = await run({ airports: codes(26) });
+      const atLimit = await run({ airports: codes(101) });
       const result = await run({ airports: codes(10_000) });
 
       expect(errorOf(result)).toEqual(errorOf(atLimit));
       expect(errorOf(result).code).toBe(JsonRpcErrorCode.InvalidParams);
-      // One issue per code kept (26) plus the list-size issue.
-      expect(errorOf(result).data?.issues).toHaveLength(27);
+      // The framework caps the wire list while reporting all 102 schema issues.
+      expect(errorOf(result).data?.issues).toHaveLength(10);
+      expect(errorOf(result).data?.issuesCount).toBe(102);
       expect(JSON.stringify(result).length).toBeLessThan(20_000);
     },
   );
 });
 
 describe('airport resolution', () => {
+  it.each([25, 26, 100])('applies the processing cap for %i submitted codes', async (count) => {
+    const codes = NASR_AIRPORTS_TSV.split('\n')
+      .slice(0, count)
+      .map((line) => line.split('\t')[0] as string);
+    const result = await run({ airports: codes.join(',') });
+    expect(result.structuredContent).toMatchObject({
+      cap: 25,
+      processedCount: 25,
+      omittedAirports: codes.slice(25),
+    });
+    expect(rowsOf(result).map((row) => row.airportId)).toEqual(codes.slice(0, 25));
+    expect(contentText(result)).toContain('**Processed count:** 25');
+    expect(contentText(result)).toContain('**Cap:** 25');
+    if (count > 25) {
+      const next = await run({ airports: codes.slice(25) });
+      expect(rowsOf(next).map((row) => row.airportId)).toEqual(codes.slice(25, 50));
+    }
+  });
+  it('counts duplicate FAA/ICAO aliases once across the processing boundary', async () => {
+    const result = await run({ airports: Array(50).fill('KSEA').concat(Array(50).fill('SEA')) });
+    expect(result.structuredContent).toMatchObject({
+      cap: 25,
+      processedCount: 1,
+      omittedAirports: [],
+    });
+    expect(rowsOf(result)[0]).toMatchObject({ airportId: 'SEA', requestedAs: 'KSEA' });
+  });
+  it.each(['ZZZZ', 'malformed!'])('validates invalid tail %s before fetching', async (tail) => {
+    const codes = NASR_AIRPORTS_TSV.split('\n')
+      .slice(0, 25)
+      .map((line) => line.split('\t')[0] as string);
+    const result = await run({ airports: [...codes, tail] });
+    expect(result.isError).toBe(true);
+    expect(errorOf(result).data?.reason).toBe(
+      tail === 'ZZZZ' ? 'unknown_airport' : 'invalid_arguments',
+    );
+    expect(harness.calls).toHaveLength(0);
+  });
+  it.each([Array(101).fill('SEA'), Array(101).fill('SEA').join(',')])(
+    'rejects over 100 submitted codes before deduplication',
+    async (airports) => {
+      expect((await run({ airports })).isError).toBe(true);
+      expect(harness.calls).toHaveLength(0);
+    },
+  );
+  it('discloses unreadable events, profile loss, and skipped pacing rows on both surfaces', async () => {
+    services.dispose();
+    setup({
+      'airport-events': [
+        {
+          airportId: 'SEA',
+          groundStop: 'active',
+          groundDelay: {
+            avgDelay: 5,
+            fuelFlowAdvisoryDelayTime: {
+              startTime: '2026-10-13T18:00:00Z',
+              dasDelays: {
+                dasDelay: [
+                  { seq: 1, delay: 10 },
+                  { seq: 3, delay: 90 },
+                ],
+              },
+            },
+          },
+        },
+      ],
+      'pacing-airports': [{ airportId: 'SEA' }, {}],
+    });
+    const result = await run({ airports: ['SEA'] });
+    expect(rowsOf(result)[0]).toMatchObject({ groundDelayProgram: { averageDelayMinutes: 5 } });
+    expect(rowsOf(result)[0]?.groundDelayProgram).not.toHaveProperty('delayProfile');
+    for (const text of [noticeOf(result), contentText(result)]) {
+      expect(text).toContain('groundStop');
+      expect(text).toContain('dasDelay');
+      expect(text).toContain('1 FAA feed row');
+    }
+  });
+  it('renders effective and reported PHX zones on both surfaces', async () => {
+    services.dispose();
+    setup({ 'pacing-airports': [{ airportId: 'PHX', timezone: 'US/Mountain' }] });
+    const result = await run({ airports: ['PHX'] });
+    expect(rowsOf(result)[0]).toMatchObject({
+      timezone: 'America/Phoenix',
+      reportedTimezone: 'US/Mountain',
+    });
+    expect(contentText(result)).toContain('America/Phoenix');
+    expect(contentText(result)).toContain('FAA-reported time zone:** US/Mountain');
+  });
+  it('processes the first 25 canonical airports and names the exact remainder on both surfaces', async () => {
+    const codes = NASR_AIRPORTS_TSV.split('\n')
+      .slice(0, 26)
+      .map((line) => line.split('\t')[0] as string);
+    const result = await run({ airports: codes });
+    expect(result.isError).toBeFalsy();
+    expect(rowsOf(result).map((row) => row.airportId)).toEqual(codes.slice(0, 25));
+    expect(result.structuredContent).toMatchObject({
+      cap: 25,
+      processedCount: 25,
+      omittedAirports: codes.slice(25),
+    });
+    expect(contentText(result)).toContain(codes[25]);
+    expect(contentText(result)).toContain('faa_delays_get_airport_status');
+  });
   it('maps ICAO codes to FAA identifiers and echoes requestedAs only when they differ', async () => {
     const result = await run({ airports: ['KSEA', 'phnl', 'sea', 'ORD'] });
     const rows = rowsOf(result);
@@ -624,7 +731,7 @@ describe('empty and partial feeds', () => {
     ]);
     expect(rowsOf(result).every((row) => row.listedInFeed === false)).toBe(true);
     expect(noticeOf(result)).toContain(
-      'None of the requested airports has an active FAA traffic management event',
+      'None of the processed airports has an active FAA traffic management event',
     );
     expect(contentText(result)).toContain('faa_delays_get_operations_plan');
   });
@@ -831,6 +938,23 @@ describe('declared feed errors', () => {
 });
 
 describe('format', () => {
+  it('renders closure and NOTAM links literally while preserving structured strings', async () => {
+    const text = 'USE <FIX> [route](u) *literal*\nFCA005:NO_AR_ATLANTIC\t\u202e';
+    services.dispose();
+    setup({
+      'airport-events': [
+        { airportId: 'SEA', airportClosure: { text }, freeForm: { simpleText: text } },
+      ],
+    });
+    const result = await run({ airports: ['SEA'] });
+    expect(rowsOf(result)[0]).toMatchObject({
+      closure: { text },
+      closureNotam: { notamText: text },
+    });
+    expect(contentText(result)).toContain('> USE \\<FIX\\> \\[route\\](u) *literal*');
+    expect(contentText(result)).toContain('> FCA005:NO_AR_ATLANTIC ');
+    expect(contentText(result)).not.toContain('\u202e');
+  });
   it('carries the same data as structuredContent', async () => {
     const result = await run({ airports: ['SEA', 'KJFK', 'DEN', 'ORD', 'LAX'] });
     const text = contentText(result);

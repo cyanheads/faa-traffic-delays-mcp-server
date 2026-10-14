@@ -1,5 +1,5 @@
 /**
- * @fileoverview faa_delays_get_airport_status — current FAA traffic management status for 1–25 US
+ * @fileoverview faa_delays_get_airport_status — current FAA traffic management status for up to 25 US
  * airports: headline status, every active event with full detail, and the runway configuration
  * with arrival rate. Codes are validated against the bundled NASR directory before any upstream
  * request.
@@ -23,7 +23,7 @@ import {
   inline,
   span,
 } from '../format-helpers.js';
-import { skippedRowsNotice, staleDelayNotice } from '../notices.js';
+import { skippedRowsNotice, staleDelayNotice, unreadableSectionsNotice } from '../notices.js';
 import { AdvisoryRefSchema, DelayProfileSchema, renderDelayProfile } from '../schemas.js';
 
 const STATUSES = [
@@ -35,17 +35,18 @@ const STATUSES = [
   'no_active_events',
 ] as const;
 
-/** Most airports one call accepts. */
+/** Most distinct airports one call processes. */
 const MAX_AIRPORTS = 25;
+const MAX_SUBMITTED_AIRPORTS = 100;
 
 /**
  * Splits a comma- or whitespace-separated string into codes; other values pass through. A list is
- * cut to one past MAX_AIRPORTS, so an oversized one fails the size check with at most that many
+ * cut to one past MAX_SUBMITTED_AIRPORTS, so an oversized one fails the size check with at most that many
  * code issues rather than one per code sent.
  */
 function splitList(value: unknown): unknown {
   const list = typeof value === 'string' ? value.split(/[\s,]+/).filter(Boolean) : value;
-  return Array.isArray(list) ? list.slice(0, MAX_AIRPORTS + 1) : list;
+  return Array.isArray(list) ? list.slice(0, MAX_SUBMITTED_AIRPORTS + 1) : list;
 }
 
 const AirportCode = z
@@ -134,7 +135,13 @@ const RowSchema = z
     timezone: z
       .string()
       .optional()
-      .describe('IANA-style time zone the FAA assigns to a pacing airport (US/Pacific).'),
+      .describe(
+        'Effective IANA time zone; PHX reported as US/Mountain is corrected to America/Phoenix.',
+      ),
+    reportedTimezone: z
+      .string()
+      .optional()
+      .describe('Original FAA time zone when a verified correction was applied.'),
     runwayConfiguration: z
       .object({
         arrivalRunways: z
@@ -277,7 +284,7 @@ function buildRow(
   airport: DirectoryAirport,
   requestedAs: string | undefined,
   events: AirportEvents | undefined,
-  pacing: Map<string, { timezone?: string }> | undefined,
+  pacing: Map<string, { timezone?: string; reportedTimezone?: string }> | undefined,
 ): Row {
   const pacingEntry = pacing?.get(airport.faaId);
   const located = events ?? airport;
@@ -294,6 +301,7 @@ function buildRow(
     ...(located.longitude !== undefined && { longitude: located.longitude }),
     ...(pacing && { isPacingAirport: pacingEntry !== undefined }),
     ...(pacingEntry?.timezone && { timezone: pacingEntry.timezone }),
+    ...(pacingEntry?.reportedTimezone && { reportedTimezone: pacingEntry.reportedTimezone }),
     ...(events?.runwayConfiguration && { runwayConfiguration: events.runwayConfiguration }),
     ...(events?.groundStop && { groundStop: events.groundStop }),
     ...(events?.groundDelayProgram && { groundDelayProgram: events.groundDelayProgram }),
@@ -331,9 +339,9 @@ export const getAirportStatus = tool('faa_delays_get_airport_status', {
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
   input: z.object({
     airports: z
-      .preprocess(splitList, z.array(AirportCode).min(1).max(MAX_AIRPORTS))
+      .preprocess(splitList, z.array(AirportCode).min(1).max(MAX_SUBMITTED_AIRPORTS))
       .describe(
-        '1–25 US airports, each a 3-character FAA location identifier (SEA, ORD, 0S9) or its ICAO code (KSEA, PHNL, TJSJ), case-insensitive; a comma-separated string is also accepted. City and airport names are not accepted.',
+        '1–100 submitted US airport codes, each a 3-character FAA location identifier (SEA, ORD, 0S9) or its ICAO code (KSEA, PHNL, TJSJ), case-insensitive; a comma-separated string is also accepted. Validates every code, deduplicates FAA/ICAO equivalents, and processes the first 25 distinct airports with the canonical remainder returned as omittedAirports. City and airport names are not accepted.',
       ),
   }),
   output: z.object({
@@ -344,13 +352,30 @@ export const getAirportStatus = tool('faa_delays_get_airport_status', {
       ),
     airports: z
       .array(RowSchema)
-      .describe('One row per requested airport, in request order, duplicates dropped.'),
+      .describe(
+        'One row per processed airport, in first-seen request order, up to 25 distinct FAA identifiers.',
+      ),
   }),
   enrichment: {
+    cap: z.number().int().describe('Maximum distinct airports processed: 25.'),
+    processedCount: z.number().int().describe('Distinct airports processed in this response.'),
+    omittedAirports: z
+      .array(z.string())
+      .describe(
+        'Canonical FAA identifiers left after the first 25 distinct airports, in first-seen order; empty when all were processed.',
+      ),
     notice: z
       .string()
       .optional()
       .describe('Guidance on quiet results, stale delay entries, or partial data.'),
+  },
+  enrichmentTrailer: {
+    cap: { label: 'Cap' },
+    processedCount: { label: 'Processed count' },
+    omittedAirports: {
+      render: (codes: string[]) =>
+        `**Omitted airports:** ${codes.length ? codes.join(', ') : 'none'}`,
+    },
   },
   errors: [
     {
@@ -447,14 +472,22 @@ export const getAirportStatus = tool('faa_delays_get_airport_status', {
       pacingResult.status === 'fulfilled'
         ? new Map(pacingResult.value.rows.map((row) => [row.airportId, row]))
         : undefined;
-    const airports = requested.map(({ airport, requestedAs }) =>
-      buildRow(airport, requestedAs, eventsById.get(airport.faaId), pacing),
-    );
+    const omittedAirports = requested.slice(MAX_AIRPORTS).map(({ airport }) => airport.faaId);
+    const airports = requested
+      .slice(0, MAX_AIRPORTS)
+      .map(({ airport, requestedAs }) =>
+        buildRow(airport, requestedAs, eventsById.get(airport.faaId), pacing),
+      );
 
-    const notices: string[] = [];
+    const notices = unreadableSectionsNotice(feed.unreadableSections);
+    ctx.enrich({ cap: MAX_AIRPORTS, processedCount: airports.length, omittedAirports });
+    if (omittedAirports.length > 0)
+      notices.push(
+        'Call faa_delays_get_airport_status again with omittedAirports as airports to process the remainder.',
+      );
     if (airports.every((row) => row.status === 'no_active_events')) {
       notices.push(
-        'None of the requested airports has an active FAA traffic management event. faa_delays_get_operations_plan lists programs the FAA expects later today.',
+        'None of the processed airports has an active FAA traffic management event. faa_delays_get_operations_plan lists programs the FAA expects later today.',
       );
     }
     for (const row of airports) {
@@ -477,7 +510,9 @@ export const getAirportStatus = tool('faa_delays_get_airport_status', {
         'Pacing-airport flags and time zones are omitted because that FAA list could not be fetched.',
       );
     }
-    if (feed.skippedRows > 0) notices.push(skippedRowsNotice(feed.skippedRows));
+    const skipped =
+      feed.skippedRows + (pacingResult.status === 'fulfilled' ? pacingResult.value.skippedRows : 0);
+    if (skipped > 0) notices.push(skippedRowsNotice(skipped));
     if (notices.length > 0) ctx.enrich.notice(notices.join(' '));
 
     ctx.log.info('Airport status resolved', {
@@ -511,6 +546,8 @@ export const getAirportStatus = tool('faa_delays_get_airport_status', {
       }
 
       const config = row.runwayConfiguration;
+      if (row.reportedTimezone)
+        lines.push(`**FAA-reported time zone:** ${inline(row.reportedTimezone)}`);
       if (config) {
         lines.push('', '**Runway configuration:**');
         if (config.arrivalRunways)

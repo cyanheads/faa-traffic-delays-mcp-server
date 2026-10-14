@@ -18,7 +18,7 @@ let upstreamClients: Disposable[] = [];
 await createApp({
   name: 'faa-traffic-delays-mcp-server',
   title: 'faa-traffic-delays-mcp-server',
-  instructions: INSTRUCTIONS,
+  instructions: `${INSTRUCTIONS} Airport batches accept up to 100 submitted codes, process the first 25 distinct airports, and return omittedAirports for the next call. Use faa_delays_list_advisories query to find an FCA or reroute named in the plan by its subject or details.`,
   sessionMode: 'stateless',
   tools: allToolDefinitions,
   setup(core) {

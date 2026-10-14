@@ -7,7 +7,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/Version-0.2.0-blue.svg?style=flat-square)](./CHANGELOG.md) [![License](https://img.shields.io/badge/License-Apache%202.0-orange.svg?style=flat-square)](./LICENSE) [![Docker](https://img.shields.io/badge/Docker-ghcr.io-2496ED?style=flat-square&logo=docker&logoColor=white)](https://github.com/users/cyanheads/packages/container/package/faa-traffic-delays-mcp-server) [![MCP SDK](https://img.shields.io/badge/MCP%20SDK-^2.1.0-green.svg?style=flat-square)](https://modelcontextprotocol.io/) [![npm](https://img.shields.io/npm/v/@cyanheads/faa-traffic-delays-mcp-server?style=flat-square&logo=npm&logoColor=white)](https://www.npmjs.com/package/@cyanheads/faa-traffic-delays-mcp-server) [![TypeScript](https://img.shields.io/badge/TypeScript-^7.0.2-3178C6.svg?style=flat-square)](https://www.typescriptlang.org/) [![Bun](https://img.shields.io/badge/Bun-v1.4.2-blueviolet.svg?style=flat-square)](https://bun.sh/)
+[![Version](https://img.shields.io/badge/Version-0.2.0-blue.svg?style=flat-square)](./CHANGELOG.md) [![License](https://img.shields.io/badge/License-Apache%202.0-orange.svg?style=flat-square)](./LICENSE) [![Docker](https://img.shields.io/badge/Docker-ghcr.io-2496ED?style=flat-square&logo=docker&logoColor=white)](https://github.com/users/cyanheads/packages/container/package/faa-traffic-delays-mcp-server) [![MCP SDK](https://img.shields.io/badge/MCP%20SDK-^2.3.1-green.svg?style=flat-square)](https://modelcontextprotocol.io/) [![npm](https://img.shields.io/npm/v/@cyanheads/faa-traffic-delays-mcp-server?style=flat-square&logo=npm&logoColor=white)](https://www.npmjs.com/package/@cyanheads/faa-traffic-delays-mcp-server) [![TypeScript](https://img.shields.io/badge/TypeScript-^7.0.2-3178C6.svg?style=flat-square)](https://www.typescriptlang.org/) [![Bun](https://img.shields.io/badge/Bun-v1.4.3-blueviolet.svg?style=flat-square)](https://bun.sh/)
 
 </div>
 
@@ -35,7 +35,7 @@ Real-time air traffic management status from the FAA Air Traffic Control System 
 
 | Tool | Description |
 |:---|:---|
-| `faa_delays_get_airport_status` | Current status of 1–25 US airports: ground stop, Ground Delay Program, delays, closures, deicing, and runway configuration with arrival rate |
+| `faa_delays_get_airport_status` | Current status of up to 25 distinct US airports per call, with the remainder named: ground stops, delay programs, delays, closures, deicing, and runway configuration |
 | `faa_delays_list_active_events` | Every active event across the National Airspace System, Airspace Flow Programs included, sorted by severity with per-type counts |
 | `faa_delays_get_operations_plan` | The Command Center's operations plan: programs and initiatives expected later today, with planned time and likelihood |
 | `faa_delays_get_advisory` | Full text of one ATCSCC advisory by number and UTC date: program rate, scope, comments, and the plan's constraints |
@@ -46,9 +46,10 @@ Real-time air traffic management status from the FAA Air Traffic Control System 
 
 ### `faa_delays_get_airport_status` <sub>tool</sub>
 
-- `airports`: 1–25 codes, each a 3-character FAA identifier (`SEA`) or ICAO code (`KSEA`, `PHNL`), case-insensitive, as an array or comma-separated string; any code not in the bundled NASR directory fails the whole call as `unknown_airport` (with `unknownCodes`)
+- `airports`: 1–100 submitted codes, each a 3-character FAA identifier (`SEA`) or ICAO code (`KSEA`, `PHNL`), case-insensitive, as an array or comma-separated string. Every code is validated before fetching; an unknown code fails the whole call as `unknown_airport`. FAA/ICAO equivalents use one slot; the first 25 distinct airports are processed in order. `cap: 25`, `processedCount`, and `omittedAirports` identify the exact canonical remainder to pass in the next call
 - One row per airport, in request order: `status` (`closed`, `ground_stop`, `ground_delay_program`, `delays`, `restrictions_only`, `no_active_events`), `listedInFeed`, `airportName`, `artcc`, `latitude` / `longitude`, `requestedAs` for an ICAO input, and each active event: `groundStop`, `groundDelayProgram` with `programStartTime` and a per-15-minute `delayProfile`, `arrivalDelay` / `departureDelay`, `closure`, `closureNotam`, `deicing`
 - `artcc` comes from the NASR directory and matches the ARTCC codes in a program's `includedFacilities`; an airport the feed doesn't list takes its coordinates from the directory too. `runwayConfiguration` (runways and `arrivalRatePerHour`) appears only for listed airports; `isPacingAirport` and `timezone` are omitted, with a `notice`, when the pacing-airport list can't be read
+- PHX reported as `US/Mountain` uses effective `timezone: "America/Phoenix"` and retains `reportedTimezone: "US/Mountain"`; every other airport/value pair stays as reported
 
 ---
 
@@ -77,6 +78,7 @@ Real-time air traffic management status from the FAA Air Traffic Control System 
 
 ### `faa_delays_list_advisories` <sub>tool</sub>
 
+- Optional `query` matches a literal, case-insensitive substring in `subject` or any `details` line before paging, combined with the other filters. For a named FCA in the plan, use `query: "FCA005"`; `appliedQuery` echoes the trimmed filter
 - `date` (UTC, `YYYY-MM-DD`; `MM/DD/YYYY` accepted; no later than tomorrow; omitted → today), optional `categories` (`ground_stop`, `ground_delay_program`, `airspace_flow_program`, `ctop`, `route`, `other`; aliases `gs`, `gdp`, `afp`) and `control_element` (an airport by FAA or ICAO code, an ARTCC, or `DCC` for national advisories), `limit` 1–200 (default 50) and `offset`
 - Rows newest first: `number` and `date` for `faa_delays_get_advisory`, `controlElement`, `subject`, `details` (a reroute's or flow constrained area's name, constrained area, and valid period), and `sentAt` (ISO 8601 UTC); `totalCount` counts every match and `nextOffset` is present while more remain
 - Without `categories` the list also carries the CDM compression advisories the FAA files under no category; a date with no advisories, or a filter that matches none, returns an empty list with a `notice`
@@ -97,7 +99,7 @@ FAA-specific:
 - Reads the NAS Status feed (`nasstatus.faa.gov/api`) and the ATCSCC advisories database (`www.fly.faa.gov/adv`), keyless; FAA status and NASR airport data are US federal works in the public domain (17 U.S.C. §105)
 - Airport codes are checked against a bundled snapshot of the FAA NASR airport directory, with ICAO codes mapped to FAA identifiers (`KSEA` → `SEA`, `PHNL` → `HNL`), so a mistyped code fails instead of reading as a quiet airport; the same directory supplies each airport's ARTCC, and its coordinates when the feed doesn't list it
 - Feeds are cached in process for 60 seconds (the pacing-airport list for 6 hours) and requests to each FAA host are paced; an expired snapshot is never served when a refresh fails
-- Tolerant parsing of the undocumented feed: an unreadable row is skipped and counted in the `notice`, and a wrong-typed field is dropped rather than coerced
+- Tolerant parsing of the undocumented feed: an unreadable row is skipped and counted in the `notice`; unreadable event objects, planned lists, and invalid delay profiles are named as unknown sections. Wrong-typed scalar fields are dropped and logged. Delay-profile sequences must be exactly 1 through N after sorting, so missing intervals never shift later delays
 
 Agent-friendly output:
 

@@ -10,7 +10,7 @@ import { tool, z } from '@cyanheads/mcp-ts-core';
 import { JsonRpcErrorCode } from '@cyanheads/mcp-ts-core/errors';
 import { getNasStatusService } from '@/services/nas-status/nas-status-service.js';
 import { advisoryLine, blockquote, inline } from '../format-helpers.js';
-import { skippedRowsNotice } from '../notices.js';
+import { skippedRowsNotice, unreadableSectionsNotice } from '../notices.js';
 import { AdvisoryRefSchema } from '../schemas.js';
 
 const PlannedItemSchema = z
@@ -168,8 +168,12 @@ export const getOperationsPlan = tool('faa_delays_get_operations_plan', {
         ? announcementsResult.value.rows.map((text) => ({ text }))
         : undefined;
 
-    const notices: string[] = [];
-    if (plan.terminalPlanned.length === 0 && plan.enRoutePlanned.length === 0) {
+    const notices = unreadableSectionsNotice(plan.unreadableSections);
+    if (
+      plan.terminalPlanned.length === 0 &&
+      plan.enRoutePlanned.length === 0 &&
+      notices.length === 0
+    ) {
       notices.push(
         'The operations plan lists no planned programs. faa_delays_list_active_events shows what is active now.',
       );
@@ -182,9 +186,7 @@ export const getOperationsPlan = tool('faa_delays_get_operations_plan', {
             ? announcementsResult.reason.message
             : String(announcementsResult.reason),
       });
-      notices.push(
-        'ATCSCC announcements are omitted because that FAA list could not be read; the operations plan above is complete.',
-      );
+      notices.push('ATCSCC announcements are omitted because that FAA list could not be read.');
     }
     const skipped =
       plan.skippedRows +

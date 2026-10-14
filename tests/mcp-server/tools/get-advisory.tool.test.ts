@@ -454,6 +454,13 @@ describe('declared service errors', () => {
 });
 
 describe('format', () => {
+  it('strips multiline controls only in fenced content, retaining structured advisory text', async () => {
+    services.dispose();
+    setup({ [GDP_URL]: () => htmlResponse(advisoryPage('A\tB\u202e\nC\u2066')) });
+    const result = await run({ advisory_number: 3, date: '2026-09-30' });
+    expect(structured(result).text).toContain('A\tB\u202e\nC\u2066');
+    expect(contentText(result)).toContain('```text\nA B\nC\n```');
+  });
   it('carries the same data as structuredContent', async () => {
     const result = await run({ advisory_number: 3, date: '2026-09-30' });
     const text = contentText(result);

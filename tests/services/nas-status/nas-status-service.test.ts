@@ -117,6 +117,38 @@ describe('NasStatusService', () => {
   });
 
   describe('caching', () => {
+    it('keeps unreadable-section diagnostics snapshot-scoped across cache refreshes', async () => {
+      let malformed = true;
+      const harness = feedHarness({
+        'airport-events': () =>
+          jsonResponse(
+            malformed
+              ? [{ airportId: 'SEA', groundStop: 'active' }]
+              : [{ airportId: 'SEA', groundStop: { avgDelay: 3 } }],
+          ),
+      });
+      const clock = createClock();
+      service = makeService(harness, clock).service;
+      const ctx = createMockContext();
+      expect((await service.getAirportEvents(ctx)).unreadableSections).toEqual([
+        'airport-events[].groundStop',
+      ]);
+      malformed = false;
+      clock.advance(1_000);
+      expect((await service.getAirportEvents(ctx)).unreadableSections).toEqual([
+        'airport-events[].groundStop',
+      ]);
+      expect(callsTo(harness, feedUrl('airport-events'))).toBe(1);
+      malformed = true;
+      clock.advance(60_001);
+      expect((await service.getAirportEvents(ctx)).unreadableSections).toEqual([
+        'airport-events[].groundStop',
+      ]);
+      malformed = false;
+      clock.advance(60_001);
+      expect(await service.getAirportEvents(ctx)).not.toHaveProperty('unreadableSections');
+      expect(callsTo(harness, feedUrl('airport-events'))).toBe(3);
+    });
     it('serves a feed from cache inside 60 s and refetches at 60 s', async () => {
       const made = makeService();
       service = made.service;

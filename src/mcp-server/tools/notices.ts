@@ -30,3 +30,12 @@ export function skippedRowsNotice(count: number): string {
     ? '1 FAA feed row could not be read and was skipped.'
     : `${count} FAA feed rows could not be read and were skipped.`;
 }
+
+/** Names structured feed sections omitted from this snapshot, never ordinary scalar drift. */
+export function unreadableSectionsNotice(sections: string[] | undefined): string[] {
+  return sections?.length
+    ? [
+        `FAA feed sections could not be read and were omitted: ${sections.map(inline).join(', ')}. Their contents are unknown, not confirmed empty.`,
+      ]
+    : [];
+}

@@ -81,6 +81,7 @@ class Fields {
     private readonly obj: Obj,
     private readonly path: string,
     private readonly report: ParseReporter,
+    private readonly unreadableSections: Set<string>,
   ) {}
 
   private read(key: string): unknown {
@@ -92,6 +93,11 @@ class Fields {
   flag(key: string, value: unknown): undefined {
     this.report.drift(`${this.path}.${key}`, describeType(value));
     return;
+  }
+
+  /** Records a lost structured section independently of process-wide drift logging. */
+  unreadable(key: string): void {
+    this.unreadableSections.add(`${this.path}.${key}`);
   }
 
   /** A non-blank string, verbatim. Blank strings read as absent. */
@@ -149,11 +155,14 @@ class Fields {
     return this.string(key);
   }
 
-  object(key: string): Fields | undefined {
+  object(key: string, section = false): Fields | undefined {
     const value = this.read(key);
     if (value === undefined) return;
-    if (!isRecord(value)) return this.flag(key, value);
-    return new Fields(value, `${this.path}.${key}`, this.report);
+    if (!isRecord(value)) {
+      if (section) this.unreadable(key);
+      return this.flag(key, value);
+    }
+    return new Fields(value, `${this.path}.${key}`, this.report, this.unreadableSections);
   }
 
   /** The raw value, for fields read in more than one shape. */
@@ -162,7 +171,7 @@ class Fields {
   }
 
   sub(path: string, value: Obj): Fields {
-    return new Fields(value, `${this.path}.${path}`, this.report);
+    return new Fields(value, `${this.path}.${path}`, this.report, this.unreadableSections);
   }
 }
 
@@ -177,6 +186,7 @@ function parseRows<T>(
   if (!Array.isArray(body))
     throw feedContractChanged(feed, `expected an array, got ${describeType(body)}`);
   const rows: T[] = [];
+  const unreadableSections = new Set<string>();
   let skippedRows = 0;
   for (const item of body) {
     if (!isRecord(item)) {
@@ -186,14 +196,18 @@ function parseRows<T>(
     for (const key of Object.keys(item)) {
       if (!knownKeys.has(key)) report.unknownKey(feed, key);
     }
-    const row = parseRow(new Fields(item, `${feed}[]`, report));
+    const row = parseRow(new Fields(item, `${feed}[]`, report, unreadableSections));
     if (row) rows.push(row);
     else skippedRows++;
   }
   if (body.length > 0 && rows.length === 0) {
     throw feedContractChanged(feed, `none of its ${body.length} rows could be read`);
   }
-  return { rows, skippedRows };
+  return {
+    rows,
+    skippedRows,
+    ...(unreadableSections.size > 0 && { unreadableSections: [...unreadableSections] }),
+  };
 }
 
 /** `": ALL CONTIGUOUS US DEP"` → `"ALL CONTIGUOUS US DEP"`. */
@@ -233,11 +247,18 @@ function parseDelayProfile(dasDelays: Fields, anchor: number): DelayProfile | un
   for (const entry of entries) {
     const delay = isRecord(entry) ? finite(entry.delay) : undefined;
     const seq = isRecord(entry) ? finite(entry.seq) : undefined;
-    if (delay === undefined || seq === undefined) return dasDelays.flag('dasDelay[]', entry);
+    if (delay === undefined || seq === undefined) {
+      dasDelays.unreadable('dasDelay');
+      return dasDelays.flag('dasDelay[]', entry);
+    }
     values.push({ delay, seq });
   }
   if (values.length === 0) return;
   values.sort((a, b) => a.seq - b.seq);
+  if (values.some((value, index) => value.seq !== index + 1)) {
+    dasDelays.unreadable('dasDelay');
+    return;
+  }
   return {
     averageDelayMinutes: values.map((v) => v.delay),
     intervalMinutes: PROFILE_INTERVAL_MINUTES,
@@ -256,7 +277,7 @@ function parseFuelFlowAdvisoryDelayTime(fields: Fields | undefined): {
   programStartTime?: string;
 } {
   const programStartTime = fields?.string('startTime');
-  const dasDelays = fields?.object('dasDelays');
+  const dasDelays = fields?.object('dasDelays', true);
   const programStart = instant(programStartTime);
   const anchor =
     instant(dasDelays?.string('delayTimeAmount')) ??
@@ -327,7 +348,7 @@ function parseGroundDelay(f: Fields): GroundDelayProgram {
   const includedFacilities = f.stringList('includedFacilities');
   const includedFlights = stripFlightsPrefix(f.string('includedFlights'));
   const { delayProfile, programStartTime } = parseFuelFlowAdvisoryDelayTime(
-    f.object('fuelFlowAdvisoryDelayTime'),
+    f.object('fuelFlowAdvisoryDelayTime', true),
   );
   const advisory = parseAdvisoryLink(f.string('advisoryUrl'));
   return {
@@ -460,14 +481,14 @@ export function parseAirportEvents(body: unknown, report: ParseReporter): FeedRo
     const airportName = f.string('airportLongName');
     const latitude = f.coordinate('latitude');
     const longitude = f.coordinate('longitude');
-    const groundStop = f.object('groundStop');
-    const groundDelay = f.object('groundDelay');
-    const closure = f.object('airportClosure');
-    const freeForm = f.object('freeForm');
-    const arrivalDelay = f.object('arrivalDelay');
-    const departureDelay = f.object('departureDelay');
-    const config = f.object('airportConfig');
-    const deicing = f.object('deicing');
+    const groundStop = f.object('groundStop', true);
+    const groundDelay = f.object('groundDelay', true);
+    const closure = f.object('airportClosure', true);
+    const freeForm = f.object('freeForm', true);
+    const arrivalDelay = f.object('arrivalDelay', true);
+    const departureDelay = f.object('departureDelay', true);
+    const config = f.object('airportConfig', true);
+    const deicing = f.object('deicing', true);
     const deicingStartedAt = deicing?.string('eventTime');
     return {
       airportId,
@@ -534,7 +555,7 @@ export function parseEnrouteEvents(
   report: ParseReporter,
 ): FeedRows<AirspaceFlowProgram> {
   return parseRows(body, 'enroute-events', report, ENROUTE_ROW_KEYS, (f) => {
-    const afp = f.object('airspaceFlowProgram');
+    const afp = f.object('airspaceFlowProgram', true);
     const name = afp?.string('afpName');
     if (!afp || !name) return;
     const reason = afp.string('impactingCondition');
@@ -545,7 +566,7 @@ export function parseEnrouteEvents(
     const altitudeFloor = afp.string('lowerAltitude');
     const altitudeCeiling = afp.string('upperAltitude');
     const { delayProfile } = parseFuelFlowAdvisoryDelayTime(
-      afp.object('fuelFlowAdvisoryDelayTime'),
+      afp.object('fuelFlowAdvisoryDelayTime', true),
     );
     const advisory = parseAdvisoryLink(f.string('advisoryUrl'));
     const departsFrom = f.filterText('departsAny');
@@ -609,6 +630,7 @@ function parsePlannedList(
   if (value === undefined) return { rows: [], skippedRows: 0 };
   if (!Array.isArray(value)) {
     f.flag(key, value);
+    f.unreadable(key);
     return { rows: [], skippedRows: 0 };
   }
   const rows: PlannedItem[] = [];
@@ -642,7 +664,8 @@ export function parseOperationsPlan(
       `expected an object with link, terminalPlanned, or enRoutePlanned, got ${describeType(body)}`,
     );
   }
-  const f = new Fields(body, 'operations-plan', report);
+  const unreadableSections = new Set<string>();
+  const f = new Fields(body, 'operations-plan', report, unreadableSections);
   const advisory = parseAdvisoryLink(f.string('link'));
   const terminal = parsePlannedList(f, 'terminalPlanned');
   const enRoute = parsePlannedList(f, 'enRoutePlanned');
@@ -650,6 +673,7 @@ export function parseOperationsPlan(
     enRoutePlanned: enRoute.rows,
     skippedRows: terminal.skippedRows + enRoute.skippedRows,
     terminalPlanned: terminal.rows,
+    ...(unreadableSections.size > 0 && { unreadableSections: [...unreadableSections] }),
     ...(advisory && { advisory }),
   };
 }
@@ -668,13 +692,15 @@ export function parsePacingAirports(body: unknown, report: ParseReporter): FeedR
     const airportId = f.string('airportId')?.trim().toUpperCase();
     if (!airportId) return;
     const timezone = f.string('timezone');
+    const corrected = airportId === 'PHX' && timezone === 'US/Mountain';
     const latitude = f.coordinate('latitude');
     const longitude = f.coordinate('longitude');
     const isPacing = f.boolean('isPacing');
     return {
       airportId,
       isPacing,
-      ...(timezone && { timezone }),
+      ...(timezone && { timezone: corrected ? 'America/Phoenix' : timezone }),
+      ...(corrected && { reportedTimezone: timezone }),
       ...(latitude !== undefined && { latitude }),
       ...(longitude !== undefined && { longitude }),
     };

@@ -19,7 +19,7 @@ import {
   inline,
   span,
 } from '../format-helpers.js';
-import { skippedRowsNotice, staleDelayNotice } from '../notices.js';
+import { skippedRowsNotice, staleDelayNotice, unreadableSectionsNotice } from '../notices.js';
 import {
   AdvisoryRefSchema,
   DelayProfileSchema,
@@ -532,7 +532,12 @@ export const listActiveEvents = tool('faa_delays_list_active_events', {
       totalActive: all.length,
     });
 
-    const notices: string[] = [];
+    const notices = [
+      ...unreadableSectionsNotice(airportFeed.unreadableSections),
+      ...unreadableSectionsNotice(
+        enrouteResult.status === 'fulfilled' ? enrouteResult.value.unreadableSections : undefined,
+      ),
+    ];
     if (enRouteFeed === 'unavailable') {
       ctx.log.warning('En-route leg failed; omitting Airspace Flow Programs', {
         reason: String(
@@ -545,7 +550,7 @@ export const listActiveEvents = tool('faa_delays_list_active_events', {
     }
     if (enRouteFeed === 'format_changed') {
       notices.push(
-        'The FAA en-route feed returned a format this server does not read, so Airspace Flow Programs are missing from this list; airport events are complete, and faa_delays_get_operations_plan names the en-route initiatives the FAA plans.',
+        'The FAA en-route feed returned a format this server does not read, so Airspace Flow Programs are missing from this list; faa_delays_get_operations_plan names the en-route initiatives the FAA plans.',
       );
     }
     if (filter && events.length === 0 && all.length > 0) {
@@ -553,7 +558,7 @@ export const listActiveEvents = tool('faa_delays_list_active_events', {
         `No active ${filter.join(' or ')} events; ${all.length} other events are active (see countsByType). Call faa_delays_list_active_events without event_types to see them.`,
       );
     }
-    if (all.length === 0 && enRouteFeed === 'ok') {
+    if (all.length === 0 && enRouteFeed === 'ok' && notices.length === 0) {
       notices.push(
         'The FAA reports no active traffic management events nationwide. Call faa_delays_get_operations_plan for programs expected later today.',
       );

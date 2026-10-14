@@ -88,6 +88,28 @@ describe('topic input', () => {
 });
 
 describe('static topics', () => {
+  it('discloses skipped pacing rows and corrected PHX provenance in complete results', async () => {
+    services.dispose();
+    setup({ 'pacing-airports': [{ airportId: 'PHX', timezone: 'US/Mountain' }, {}] });
+    const result = await run('pacing_airports');
+    expect(structured(result).pacingAirports).toEqual([
+      { airportId: 'PHX', timezone: 'America/Phoenix', reportedTimezone: 'US/Mountain' },
+    ]);
+    expect(structured(result).notice).toContain('1 FAA feed row');
+    expect(contentText(result)).toContain('America/Phoenix (FAA reported: US/Mountain)');
+    expect(contentText(result)).toContain('1 FAA feed row');
+  });
+  it('expands NOTAM as Notice to Airmen on both surfaces', async () => {
+    const result = await run('terms');
+    const notam = structured(result).terms.find(
+      (entry: { term: string }) => entry.term === 'NOTAM',
+    );
+    expect(notam.meaning).toMatch(/^Notice to Airmen:/);
+    expect(notam.meaning).toContain(
+      'a published notice of a change to facilities, services, or procedures',
+    );
+    expect(contentText(result)).toContain(`| NOTAM | ${notam.meaning} |`);
+  });
   it('never call the FAA', async () => {
     for (const topic of ['event_types', 'terms', 'artccs', 'identifiers']) {
       const result = await run(topic);

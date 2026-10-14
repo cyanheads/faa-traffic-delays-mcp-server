@@ -145,12 +145,14 @@ export interface OperationsPlan {
   advisory?: AdvisoryRef;
   enRoutePlanned: PlannedItem[];
   terminalPlanned: PlannedItem[];
+  unreadableSections?: string[];
 }
 
 export interface PacingAirport {
   airportId: string;
   latitude?: number;
   longitude?: number;
+  reportedTimezone?: string;
   timezone?: string;
 }
 
@@ -158,6 +160,7 @@ export interface PacingAirport {
 export interface FeedRows<T> {
   rows: T[];
   skippedRows: number;
+  unreadableSections?: string[];
 }
 
 /** A feed read as served to a tool: its content plus when this server fetched it. */
