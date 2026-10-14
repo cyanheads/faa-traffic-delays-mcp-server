@@ -7,7 +7,7 @@
     "url": "https://github.com/cyanheads/faa-traffic-delays-mcp-server",
     "source": "github"
   },
-  "version": "0.2.0",
+  "version": "0.2.1",
   "remotes": [
     {
       "type": "streamable-http",
@@ -20,7 +20,7 @@
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@cyanheads/faa-traffic-delays-mcp-server",
       "runtimeHint": "npx",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "environmentVariables": [
         {
           "name": "MCP_LOG_LEVEL",
@@ -39,7 +39,7 @@
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@cyanheads/faa-traffic-delays-mcp-server",
       "runtimeHint": "npx",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "environmentVariables": [
         {
           "name": "MCP_TRANSPORT_TYPE",

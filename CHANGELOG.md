@@ -2,6 +2,10 @@
 
 All notable changes to this project. Each entry links to its full per-version file in [changelog/](changelog/).
 
+## [0.2.1](changelog/0.2.x/0.2.1.md) — 2026-10-14
+
+FAA feed integrity and advisory discovery
+
 ## [0.2.0](changelog/0.2.x/0.2.0.md) — 2026-10-02
 
 New faa_delays_list_advisories reads the per-date index of ATCSCC advisories, canceled, proposed, and past programs included; GDP rows gain programStartTime with a quarter-hour-anchored delay profile, and airport rows gain their ARTCC, with directory coordinates for unlisted airports.

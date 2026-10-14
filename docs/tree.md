@@ -1,6 +1,6 @@
 # faa-traffic-delays-mcp-server - Directory Structure
 
-Generated on: 2026-10-02 14:06:11
+Generated on: 2026-10-14 13:28:47
 
 ```text
 faa-traffic-delays-mcp-server/
@@ -131,6 +131,7 @@ faa-traffic-delays-mcp-server/
 │   ├── lint-mcp.ts
 │   ├── lint-packaging.ts
 │   ├── list-skills.ts
+│   ├── prune-musl-packages.ts
 │   ├── refresh-airport-directory.ts
 │   ├── release-github.ts
 │   └── tree.ts
@@ -177,6 +178,7 @@ faa-traffic-delays-mcp-server/
 │   │   ├── advisory-index-2026-10-01-other.page
 │   │   ├── advisory-index-2026-10-01-route.page
 │   │   ├── advisory-index-2026-10-01.page
+│   │   ├── advisory-index-2026-10-13.page
 │   │   ├── advisory-index-error.page
 │   │   ├── advisory-index-none.page
 │   │   ├── advisory-miss.page
