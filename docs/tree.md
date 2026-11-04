@@ -1,6 +1,6 @@
 # faa-traffic-delays-mcp-server - Directory Structure
 
-Generated on: 2026-10-14 13:28:47
+Generated on: 2026-11-04 09:54:29
 
 ```text
 faa-traffic-delays-mcp-server/
@@ -26,6 +26,7 @@ faa-traffic-delays-mcp-server/
 ├── changelog/
 │   ├── 0.1.x/
 │   ├── 0.2.x/
+│   ├── 0.3.x/
 │   └── template.md
 ├── docs/
 │   └── design.md
@@ -37,6 +38,8 @@ faa-traffic-delays-mcp-server/
 │   ├── add-resource/
 │   │   └── SKILL.md
 │   ├── add-service/
+│   │   └── SKILL.md
+│   ├── add-skill/
 │   │   └── SKILL.md
 │   ├── add-test/
 │   │   └── SKILL.md
@@ -135,6 +138,9 @@ faa-traffic-delays-mcp-server/
 │   ├── refresh-airport-directory.ts
 │   ├── release-github.ts
 │   └── tree.ts
+├── skills/
+│   └── faa-traffic-delays-guide/
+│       └── SKILL.md
 ├── src/
 │   ├── mcp-server/
 │   │   └── tools/
@@ -147,6 +153,7 @@ faa-traffic-delays-mcp-server/
 │   │       │   ├── list-advisories.tool.ts
 │   │       │   └── list-reference.tool.ts
 │   │       ├── advisory-date.ts
+│   │       ├── closure-window.ts
 │   │       ├── format-helpers.ts
 │   │       ├── notices.ts
 │   │       └── schemas.ts
@@ -170,6 +177,7 @@ faa-traffic-delays-mcp-server/
 │   │   ├── advisory-error.page
 │   │   ├── advisory-gdp.page
 │   │   ├── advisory-index-2004-06-15.page
+│   │   ├── advisory-index-2025-07-14.page
 │   │   ├── advisory-index-2026-10-01-airspace-flow-program.page
 │   │   ├── advisory-index-2026-10-01-all-categories.page
 │   │   ├── advisory-index-2026-10-01-ctop.page
@@ -195,6 +203,7 @@ faa-traffic-delays-mcp-server/
 │   │   └── feed-failures.ts
 │   ├── mcp-server/
 │   │   └── tools/
+│   │       ├── closure-window.test.ts
 │   │       ├── format-helpers.test.ts
 │   │       ├── get-advisory.tool.test.ts
 │   │       ├── get-airport-status.tool.test.ts
@@ -203,6 +212,7 @@ faa-traffic-delays-mcp-server/
 │   │       ├── list-advisories.tool.test.ts
 │   │       └── list-reference.tool.test.ts
 │   ├── scripts/
+│   │   ├── mcpb-agent-docs.test.ts
 │   │   └── refresh-airport-directory.test.ts
 │   ├── services/
 │   │   ├── advisory/
@@ -234,7 +244,9 @@ faa-traffic-delays-mcp-server/
 ├── Dockerfile
 ├── LICENSE
 ├── manifest.json
+├── mcp.json
 ├── package.json
+├── plugin.json
 ├── README.md
 ├── server.json
 ├── tsconfig.build.json
