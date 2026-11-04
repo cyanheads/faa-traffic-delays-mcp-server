@@ -7,7 +7,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/Version-0.2.1-blue.svg?style=flat-square)](./CHANGELOG.md) [![License](https://img.shields.io/badge/License-Apache%202.0-orange.svg?style=flat-square)](./LICENSE) [![Docker](https://img.shields.io/badge/Docker-ghcr.io-2496ED?style=flat-square&logo=docker&logoColor=white)](https://github.com/users/cyanheads/packages/container/package/faa-traffic-delays-mcp-server) [![MCP SDK](https://img.shields.io/badge/MCP%20SDK-^2.3.1-green.svg?style=flat-square)](https://modelcontextprotocol.io/) [![npm](https://img.shields.io/npm/v/@cyanheads/faa-traffic-delays-mcp-server?style=flat-square&logo=npm&logoColor=white)](https://www.npmjs.com/package/@cyanheads/faa-traffic-delays-mcp-server) [![TypeScript](https://img.shields.io/badge/TypeScript-^7.0.2-3178C6.svg?style=flat-square)](https://www.typescriptlang.org/) [![Bun](https://img.shields.io/badge/Bun-v1.4.3-blueviolet.svg?style=flat-square)](https://bun.sh/)
+[![Version](https://img.shields.io/badge/Version-0.2.1-blue.svg?style=flat-square)](./CHANGELOG.md) [![License](https://img.shields.io/badge/License-Apache%202.0-orange.svg?style=flat-square)](./LICENSE) [![Docker](https://img.shields.io/badge/Docker-ghcr.io-2496ED?style=flat-square&logo=docker&logoColor=white)](https://github.com/users/cyanheads/packages/container/package/faa-traffic-delays-mcp-server) [![MCP SDK](https://img.shields.io/badge/MCP%20SDK-^2.4.0-green.svg?style=flat-square)](https://modelcontextprotocol.io/) [![npm](https://img.shields.io/npm/v/@cyanheads/faa-traffic-delays-mcp-server?style=flat-square&logo=npm&logoColor=white)](https://www.npmjs.com/package/@cyanheads/faa-traffic-delays-mcp-server) [![TypeScript](https://img.shields.io/badge/TypeScript-^7.0.2-3178C6.svg?style=flat-square)](https://www.typescriptlang.org/) [![Bun](https://img.shields.io/badge/Bun-v1.4.4-blueviolet.svg?style=flat-square)](https://bun.sh/)
 
 </div>
 
@@ -35,26 +35,31 @@ Live US air traffic status from the FAA Command Center, the source behind [nasst
 
 | Tool | Description |
 |:---|:---|
-| `faa_delays_get_airport_status` | Current status of up to 25 distinct US airports per call, with the remainder named: ground stops, delay programs, delays, closures, deicing, and runway configuration |
+| `faa_delays_get_airport_status` | Current status of up to 25 distinct US airports per call, with the remainder named: ground stops, delay programs, delays, closures, deicing, runway configuration, and the programs the operations plan names for each |
 | `faa_delays_list_active_events` | Every active event across the National Airspace System, Airspace Flow Programs included, sorted by severity with per-type counts |
 | `faa_delays_get_operations_plan` | The Command Center's operations plan: programs and initiatives expected later today, with planned time and likelihood |
 | `faa_delays_get_advisory` | Full text of one ATCSCC advisory by number and UTC date: program rate, scope, comments, and the plan's constraints |
 | `faa_delays_list_advisories` | The ATCSCC advisories issued on one UTC date, newest first, with their numbers: programs as issued, proposed, revised, and canceled, reroutes, and the operations plan |
 | `faa_delays_list_reference` | Decode event types, traffic-management terms, ARTCC codes, the FAA pacing airports, and identifier formats |
 
+### Agent skill
+
+[`skills/faa-traffic-delays-guide`](skills/faa-traffic-delays-guide/SKILL.md) carries the checks an agent runs before answering with these tools: which flights a program holds, a closure's scope and daily schedule, the age of the operations plan, UTC dates, and finding revised, canceled, or past programs in the advisory index. Plugin hosts load it from the repository, the `.mcpb` bundle ships it, and the server serves it over MCP as `skill://faa-traffic-delays-guide/SKILL.md`.
+
 ## Capability reference
 
 ### `faa_delays_get_airport_status` <sub>tool</sub>
 
 - `airports`: 1–100 codes, each a 3-character FAA identifier (`SEA`) or ICAO code (`KSEA`, `PHNL`), as an array or comma-separated string. An unknown code fails the whole call as `unknown_airport`. Only the first 25 distinct airports are processed (`cap: 25`); `processedCount` and `omittedAirports` give the remainder to pass in the next call
-- One row per airport, in request order: `status` (`closed`, `ground_stop`, `ground_delay_program`, `delays`, `restrictions_only`, `no_active_events`), `listedInFeed`, `airportName`, `artcc`, coordinates, and each active event (`groundStop`, `groundDelayProgram` with a per-15-minute `delayProfile`, `arrivalDelay` / `departureDelay`, `closure`, `closureNotam`, `deicing`)
+- One row per airport, in request order: `status` (`closed`, `ground_stop`, `ground_delay_program`, `delays`, `restrictions_only`, `no_active_events`), `listedInFeed`, `airportName`, `artcc`, coordinates, and each active event (`groundStop`, `groundDelayProgram` with a per-15-minute `delayProfile`, `arrivalDelay` / `departureDelay`, `closure` and `closureNotam` with their NOTAM text, `deicing`). A closure the NOTAM schedules `DLY HHMM-HHMM` carries `dailyWindowUtc` and `inEffect`; outside its window it does not set `status` to `closed`
 - `runwayConfiguration` (runways and `arrivalRatePerHour`) appears only for airports the feed lists. PHX reports `timezone: "America/Phoenix"` with `reportedTimezone: "US/Mountain"`
+- `plannedPrograms`: the operations plan's terminal items naming the airport, with the plan's `advisory`; `[]` when the plan names it nowhere (not an all-clear), absent when the plan could not be read
 
 ---
 
 ### `faa_delays_list_active_events` <sub>tool</sub>
 
-- Optional `event_types` filter over `ground_stop`, `ground_delay_program`, `airspace_flow_program`, `arrival_delay`, `departure_delay`, `airport_closure`, `closure_notam`, `deicing` (aliases `gs`, `gdp`, `afp`). Rows are sorted by severity, with `reason`, delay figures, times, and an `advisory` reference where the FAA links one
+- Optional `event_types` filter over `ground_stop`, `ground_delay_program`, `airspace_flow_program`, `arrival_delay`, `departure_delay`, `airport_closure`, `closure_notam`, `deicing` (aliases `gs`, `gdp`, `afp`). Rows are sorted by severity, with `reason`, delay figures, times, and an `advisory` reference where the FAA links one; closure rows carry the NOTAM as `closureText`, plus `dailyWindowUtc` and `inEffect` for a daily schedule
 - `totalActive` and `countsByType` cover the whole feed before the filter. `airspace_flow_program` rows carry `afp` detail (constrained area, filters, altitudes, delay profile)
 - `enRouteFeed` (`ok`, `unavailable`, `format_changed`) says whether Airspace Flow Programs were read; if they can't be, they are omitted with a `notice` unless they were the only type requested
 
@@ -63,6 +68,7 @@ Live US air traffic status from the FAA Command Center, the source behind [nasst
 ### `faa_delays_get_operations_plan` <sub>tool</sub>
 
 - No input; `terminalPlanned` and `enRoutePlanned` items carry `text`, `timeQualifier` (`after`, `until`, `by`, `between`), `timeUtc` (`HHMM` with no date), and `likelihood` (`possible`, `probable`, `expected`)
+- Terminal items also carry `airports`, the FAA identifiers they name (`SEA/BFI` → `SEA`, `BFI`), absent when they name none, such as a metro area or an ARTCC
 - `announcements` lists current ATCSCC announcements (omitted with a `notice` if unreadable); `advisory` points to the full plan text for `faa_delays_get_advisory`
 
 ---
@@ -70,14 +76,14 @@ Live US air traffic status from the FAA Command Center, the source behind [nasst
 ### `faa_delays_get_advisory` <sub>tool</sub>
 
 - `advisory_number` (1–999) and `date` (UTC, `YYYY-MM-DD`; `MM/DD/YYYY` accepted), taken from a `faa_delays_list_advisories` row or an `advisory` reference. Numbers restart at 1 each UTC day; past advisories stay readable
-- Returns `title`, `controlElement`, `subject`, `effectiveTime`, `sentAt`, and the full `text`. An unknown number returns `found: false` with `guidance` pointing to `faa_delays_list_advisories`
+- Returns `title`, `controlElement`, `subject`, `effectiveTime` as printed (`DDHHMM-DDHHMM`) with its `effectiveStart` and `effectiveEnd` in ISO 8601 UTC, `sentAt` in ISO 8601 UTC, and the full `text`. An unknown number returns `found: false` with `guidance` pointing to `faa_delays_list_advisories`
 - Text past 50,000 characters is cut and flagged with `truncated` and `totalChars`; failures surface as `advisory_service_unavailable` or `advisory_contract_changed`
 
 ---
 
 ### `faa_delays_list_advisories` <sub>tool</sub>
 
-- `date` (UTC, `YYYY-MM-DD`; `MM/DD/YYYY` accepted; no later than tomorrow; default today), optional `categories` (`ground_stop`, `ground_delay_program`, `airspace_flow_program`, `ctop`, `route`, `other`; aliases `gs`, `gdp`, `afp`), `control_element` (an airport by FAA or ICAO code, an ARTCC, or `DCC` for national advisories), `limit` 1–200 (default 50), and `offset`
+- `date` (UTC, `YYYY-MM-DD`; `MM/DD/YYYY` accepted; no later than tomorrow; default today), optional `categories` (`ground_stop`, `ground_delay_program`, `airspace_flow_program`, `ctop`, `route`, `other`; aliases `gs`, `gdp`, `afp`), `control_element` (an airport by FAA or ICAO code, an ARTCC, or `DCC` for national advisories), `limit` (default 50; 999 returns any date whole), and `offset`
 - `query` matches a case-insensitive substring in `subject` or `details`, e.g. `query: "FCA005"` for a named FCA in the plan
 - Rows are newest first: `number` and `date` (for `faa_delays_get_advisory`), `controlElement`, `subject`, `details`, and `sentAt`. `totalCount` counts every match and `nextOffset` is present while more remain; no matches returns an empty list with a `notice`
 
@@ -102,8 +108,8 @@ FAA-specific:
 Agent-friendly output:
 
 - Typed failure reasons separate an outage (`feed_unavailable`), a slow or throttled FAA (`retry_deadline_exceeded`, `upstream_rate_limited`, `pacer_shed`), and a format change (`feed_contract_changed`, not retryable); recovery hints name the next tool to call
-- A secondary list that can't be read (pacing airports, en-route events, announcements) is omitted with a `notice` instead of failing the call
-- `fetchedAt` dates the snapshot, and a `notice` flags delays last updated more than 6 hours ago
+- A secondary list that can't be read (pacing airports, the operations plan on airport status, en-route events, announcements) is omitted with a `notice` instead of failing the call
+- `fetchedAt` dates the snapshot, and a `notice` flags delays last updated more than 6 hours ago and daily-scheduled closures outside their window
 - FAA-authored text is quoted in `content[]` so it reads as data, and stays verbatim in `structuredContent`
 
 Limitations:
@@ -277,6 +283,7 @@ See [`.env.example`](./.env.example) for the common framework overrides.
 | `scripts/refresh-airport-directory.ts` | Regenerates the airport directory module (`bun run refresh:airports`). |
 | `tests/` | Unit and integration tests, mirroring the `src/` structure, with synthetic FAA fixtures. |
 | `docs/design.md` | Tool surface design, upstream API notes, design decisions, and known limitations. |
+| `skills/` | The published agent skill, served over MCP and shipped to plugin hosts and the `.mcpb` bundle. |
 
 ## Development guide
 
