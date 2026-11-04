@@ -1,7 +1,8 @@
 /**
  * @fileoverview Tests for faa_delays_list_active_events: event_types normalization (blank and
  * empty read as unset), severity sort, whole-feed counts, the required enrichment on the
- * zero-result and under-cap pages, stale-delay and skipped-row notices, the en-route degrade paths
+ * zero-result and under-cap pages, stale-delay, daily-closure-window, and skipped-row notices, the
+ * en-route degrade paths
  * and AFP-only rethrow, declared feed errors, and format() fidelity and sanitizing.
  * @module tests/mcp-server/tools/list-active-events.tool.test
  */
@@ -265,8 +266,14 @@ describe('results', () => {
       delayRangeMinutes: { max: 30, min: 16 },
       trend: 'increasing',
     });
-    expect(byKey.get('airport_closure:JFK')).toMatchObject({
-      closureText: 'CLOSED EXC EMERGENCY AND MILITARY',
+    expect(byKey.get('airport_closure:JFK')).toEqual({
+      closureText: '!JFK 09/412 JFK AD AP CLSD EXC EMERGENCY AND MILITARY 2609292000-2609300400',
+      endTime: '2026-09-30T04:00:00Z',
+      eventType: 'airport_closure',
+      location: 'JFK',
+      locationName: 'John F Kennedy International',
+      startTime: '2026-09-29T20:00:00Z',
+      updatedAt: '2026-09-29T19:30:00Z',
     });
     expect(byKey.get('closure_notam:LAX')?.closureText).toContain('!LAX 05/277');
     expect(byKey.get('deicing:MSP')).toMatchObject({ startTime: '2026-09-29T21:00:00Z' });
@@ -281,6 +288,25 @@ describe('results', () => {
       averageDelayMinutes: 42.5,
       location: 'FCAA05',
     });
+  });
+
+  it('falls back to the closure wording when the FAA sends no NOTAM text', async () => {
+    services.dispose();
+    setup({
+      'airport-events': [
+        { airportId: 'PVD', airportClosure: { text: 'except HEL' } },
+        { airportId: 'ASE', freeForm: { notamNumber: 64, text: 'except LIFE FLT HEL' } },
+      ],
+    });
+
+    const result = await run({ event_types: ['airport_closure', 'closure_notam'] });
+
+    expect(structured(result).events).toEqual([
+      { closureText: 'except HEL', eventType: 'airport_closure', location: 'PVD' },
+      { closureText: 'except LIFE FLT HEL', eventType: 'closure_notam', location: 'ASE' },
+    ]);
+    expect(contentText(result)).toContain('### airport_closure — PVD\n\n> except HEL');
+    expect(contentText(result)).toContain('### closure_notam — ASE\n\n> except LIFE FLT HEL');
   });
 
   it("keeps each GDP row's feed startTime and endTime verbatim", async () => {
@@ -500,6 +526,119 @@ describe('results', () => {
       'arrival_delay:CCC',
       'arrival_delay:AAA',
     ]);
+  });
+});
+
+describe('daily closure window', () => {
+  /** PVD and SNA as listed at 2026-11-04T08:28Z: closed 0515–1030Z and 0730–1415Z daily. */
+  const PVD_CLOSURE = {
+    endTime: '2026-11-04T10:30:00Z',
+    issuedDate: '2026-11-01T20:01:00Z',
+    notamNumber: 5,
+    simpleText: '!PVD 11/005 PVD AD AP CLSD EXC HEL DLY 0515-1030 2611030515-2611041030',
+    startTime: '2026-11-03T05:15:00Z',
+    text: 'except HEL DLY 0515-1030',
+    updatedAt: '2026-11-01T20:06:09Z',
+  };
+  const SNA_CLOSURE = {
+    endTime: '2026-11-08T14:15:00Z',
+    simpleText: '!SNA 11/003 SNA AD AP CLSD DLY 0730-1415 2611030730-2611081415',
+    startTime: '2026-11-03T07:30:00Z',
+    text: 'DLY 0730-1415',
+  };
+  const PVD_NOTICE =
+    'PVD airport closure applies daily 0515–1030 UTC and is not in effect at fetchedAt; its next window starts 2026-11-04T05:15:00Z.';
+
+  /** At 12:23Z on Nov 3, SNA is inside its window and PVD between its windows. */
+  beforeEach(() => {
+    services.dispose();
+    setup(
+      {
+        'airport-events': [
+          { airportId: 'PVD', airportClosure: PVD_CLOSURE },
+          { airportId: 'SNA', airportClosure: SNA_CLOSURE },
+          { airportId: 'DEN', groundStop: { impactingCondition: 'thunderstorms' } },
+          { airportId: 'ORD', departureDelay: { averageDelay: '15', trend: 'increasing' } },
+          { airportId: 'LAX', freeForm: { simpleText: '!LAX 05/277 LAX AD AP CLSD TO GA' } },
+          { airportId: 'MSP', deicing: { eventTime: '2026-11-03T11:00:00Z' } },
+        ],
+        'enroute-events': [],
+      },
+      '2026-11-03T12:23:00Z',
+    );
+  });
+
+  it('ranks a closure inside its window first and one between windows with closure NOTAMs', async () => {
+    const result = await run();
+
+    expect(locations(result)).toEqual([
+      'airport_closure:SNA',
+      'ground_stop:DEN',
+      'departure_delay:ORD',
+      'closure_notam:LAX',
+      'airport_closure:PVD',
+      'deicing:MSP',
+    ]);
+    expect(structured(result).countsByType).toMatchObject({ airport_closure: 2, closure_notam: 1 });
+  });
+
+  it('carries the daily window and whether it is in effect on the row', async () => {
+    const byLocation = new Map(
+      structured(await run({ event_types: 'airport_closure' })).events.map((event) => [
+        event.location,
+        event,
+      ]),
+    );
+
+    expect(byLocation.get('PVD')).toEqual({
+      closureText: PVD_CLOSURE.simpleText,
+      dailyWindowUtc: { end: '1030', start: '0515' },
+      endTime: '2026-11-04T10:30:00Z',
+      eventType: 'airport_closure',
+      inEffect: false,
+      location: 'PVD',
+      startTime: '2026-11-03T05:15:00Z',
+      updatedAt: '2026-11-01T20:06:09Z',
+    });
+    expect(byLocation.get('SNA')).toMatchObject({
+      dailyWindowUtc: { end: '1415', start: '0730' },
+      inEffect: true,
+    });
+    expect(byLocation.get('SNA')).not.toHaveProperty('updatedAt');
+  });
+
+  it('names the next window of a closure not in effect, on both surfaces', async () => {
+    const result = await run();
+    const text = contentText(result);
+
+    expect(structured(result).notice).toBe(PVD_NOTICE);
+    expect(text).toContain(PVD_NOTICE);
+    expect(text).toContain(
+      '### airport_closure — PVD\n- Window: 2026-11-03T05:15:00Z → 2026-11-04T10:30:00Z · daily 0515–1030 UTC, not in effect',
+    );
+    expect(text).toContain(
+      '### airport_closure — SNA\n- Window: 2026-11-03T07:30:00Z → 2026-11-08T14:15:00Z · daily 0730–1415 UTC, in effect',
+    );
+  });
+
+  it('checks only the rows the event_types filter returns', async () => {
+    expect(structured(await run({ event_types: 'gs' })).notice).toBeUndefined();
+  });
+
+  it('sorts every airport closure first once all are in effect', async () => {
+    services.dispose();
+    setup(
+      {
+        'airport-events': [
+          { airportId: 'PVD', airportClosure: PVD_CLOSURE },
+          { airportId: 'DEN', groundStop: { impactingCondition: 'thunderstorms' } },
+        ],
+        'enroute-events': [],
+      },
+      '2026-11-04T08:28:00Z',
+    );
+
+    expect(locations(await run())).toEqual(['airport_closure:PVD', 'ground_stop:DEN']);
   });
 });
 

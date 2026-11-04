@@ -1,24 +1,29 @@
 /**
  * @fileoverview Tests for faa_delays_get_airport_status: input normalization and validation,
  * ICAO crosswalk, unknown_airport before any upstream call, each row's ARTCC and the coordinate
- * fallback to the NASR directory, status precedence, degrade paths, staleness and skipped-row
- * notices, declared feed errors, and format() fidelity and sanitizing.
+ * fallback to the NASR directory, status precedence, the daily closure window, the operations
+ * plan's planned programs per airport, degrade paths, staleness and skipped-row notices, declared feed errors, and format()
+ * fidelity and sanitizing.
  * @module tests/mcp-server/tools/get-airport-status.tool.test
  */
 
 import { JsonRpcErrorCode, rateLimited } from '@cyanheads/mcp-ts-core/errors';
 import { createMockContext, runToolContract } from '@cyanheads/mcp-ts-core/testing';
+import MarkdownIt from 'markdown-it';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getAirportStatus } from '@/mcp-server/tools/definitions/get-airport-status.tool.js';
+import { getOperationsPlan } from '@/mcp-server/tools/definitions/get-operations-plan.tool.js';
 import { NASR_AIRPORTS_TSV } from '@/services/airport-directory/nasr-airports.generated.js';
 import { getNasStatusService } from '@/services/nas-status/nas-status-service.js';
 import {
+  callsTo,
   contentText,
   createClock,
   errorOf,
   type FeedName,
   type FeedOverride,
   feedHarness,
+  feedUrl,
   installServices,
   type Responder,
   recoveryHint,
@@ -47,6 +52,13 @@ const rowsOf = (result: Awaited<ReturnType<typeof run>>): Row[] =>
   (result.structuredContent as { airports: Row[] }).airports;
 const noticeOf = (result: Awaited<ReturnType<typeof run>>): string | undefined =>
   (result.structuredContent as { notice?: string }).notice;
+
+/** The text of every paragraph and heading a CommonMark parse of `markdown` yields. */
+const commonmarkTexts = (markdown: string): string[] =>
+  new MarkdownIt('commonmark')
+    .parse(markdown, {})
+    .filter((token) => token.type === 'inline')
+    .map((token) => token.content);
 
 beforeEach(() => {
   vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('unmocked fetch'));
@@ -119,9 +131,11 @@ describe('input', () => {
 
       expect(errorOf(result)).toEqual(errorOf(atLimit));
       expect(errorOf(result).code).toBe(JsonRpcErrorCode.InvalidParams);
-      // The framework caps the wire list while reporting all 102 schema issues.
-      expect(errorOf(result).data?.issues).toHaveLength(10);
-      expect(errorOf(result).data?.issuesCount).toBe(102);
+      // Zod checks the array's size bound before its elements, so the list fails as one issue.
+      expect(errorOf(result).data?.issues).toEqual([
+        expect.objectContaining({ code: 'too_big', maximum: 100, path: ['airports'] }),
+      ]);
+      expect(errorOf(result).data?.issuesCount).toBeUndefined();
       expect(JSON.stringify(result).length).toBeLessThan(20_000);
     },
   );
@@ -528,6 +542,21 @@ describe('status', () => {
     expect(sea).not.toHaveProperty('groundStop');
   });
 
+  it('carries the NOTAM text, number, and issue time of an airport closure', async () => {
+    const result = await run({ airports: ['JFK'] });
+
+    expect(result.isError).toBeFalsy();
+    expect(rowsOf(result)[0]?.closure).toEqual({
+      endTime: '2026-09-30T04:00:00Z',
+      issuedAt: '2026-09-29T19:25:00Z',
+      notamNumber: 412,
+      notamText: '!JFK 09/412 JFK AD AP CLSD EXC EMERGENCY AND MILITARY 2609292000-2609300400',
+      startTime: '2026-09-29T20:00:00Z',
+      text: 'CLOSED EXC EMERGENCY AND MILITARY',
+      updatedAt: '2026-09-29T19:30:00Z',
+    });
+  });
+
   it('marks pacing airports with their time zone, listed or not', async () => {
     const [sea, stl, pdx] = rowsOf(await run({ airports: ['SEA', 'STL', 'PDX'] }));
     expect(sea).toMatchObject({ isPacingAirport: true, timezone: 'US/Pacific' });
@@ -545,6 +574,141 @@ describe('status', () => {
     expect((result.structuredContent as { fetchedAt: string }).fetchedAt).toBe(
       '2026-09-30T02:00:00.000Z',
     );
+  });
+});
+
+describe('daily closure window', () => {
+  /** PVD's closure as listed at 2026-11-04T08:28Z: closed 0515–1030Z daily, Nov 3 to Nov 4. */
+  const PVD_CLOSURE = {
+    airportId: 'PVD',
+    createdAt: '2026-11-01T20:06:09Z',
+    endTime: '2026-11-04T10:30:00Z',
+    id: '00000000-0000-4000-8000-000000000005',
+    issuedDate: '2026-11-01T20:01:00Z',
+    notamNumber: 5,
+    simpleText: '!PVD 11/005 PVD AD AP CLSD EXC HEL DLY 0515-1030 2611030515-2611041030',
+    startTime: '2026-11-03T05:15:00Z',
+    text: 'except HEL DLY 0515-1030',
+    updatedAt: '2026-11-01T20:06:09Z',
+  };
+  const NEXT_WINDOW_NOTICE =
+    'PVD airport closure applies daily 0515–1030 UTC and is not in effect at fetchedAt; its next window starts 2026-11-04T05:15:00Z.';
+
+  function setupPvd(at: string, events: Record<string, unknown> = {}): void {
+    services.dispose();
+    setup({ 'airport-events': [{ airportId: 'PVD', airportClosure: PVD_CLOSURE, ...events }] }, at);
+  }
+
+  it('reads a daily closure between its windows as listed but not in effect', async () => {
+    setupPvd('2026-11-03T12:23:00Z');
+
+    const result = await run({ airports: ['PVD'] });
+    const [row] = rowsOf(result);
+
+    expect(row).toMatchObject({
+      closure: { dailyWindowUtc: { end: '1030', start: '0515' }, inEffect: false },
+      listedInFeed: true,
+      status: 'restrictions_only',
+    });
+    expect(noticeOf(result)).toContain(NEXT_WINDOW_NOTICE);
+    expect(contentText(result)).toContain('**Status:** restrictions_only');
+    expect(contentText(result)).toContain(
+      '**Airport closure (NOTAM 5):** 2026-11-03T05:15:00Z → 2026-11-04T10:30:00Z · daily 0515–1030 UTC, not in effect',
+    );
+    expect(contentText(result)).not.toContain('Airport closed');
+    expect(contentText(result)).toContain(NEXT_WINDOW_NOTICE);
+  });
+
+  it('reads a daily closure inside its window as closed', async () => {
+    setupPvd('2026-11-04T08:28:00Z');
+
+    const result = await run({ airports: ['PVD'] });
+
+    expect(rowsOf(result)[0]).toMatchObject({
+      closure: { dailyWindowUtc: { end: '1030', start: '0515' }, inEffect: true },
+      status: 'closed',
+    });
+    expect(noticeOf(result) ?? '').not.toContain('daily');
+    expect(contentText(result)).toContain(
+      '**Airport closed (NOTAM 5):** 2026-11-03T05:15:00Z → 2026-11-04T10:30:00Z · daily 0515–1030 UTC, in effect',
+    );
+  });
+
+  it('says the last window has ended once the closure passes its endTime', async () => {
+    setupPvd('2026-11-04T15:00:00Z');
+
+    const result = await run({ airports: ['PVD'] });
+
+    expect(rowsOf(result)[0]).toMatchObject({
+      closure: { inEffect: false },
+      status: 'restrictions_only',
+    });
+    expect(noticeOf(result)).toContain(
+      'PVD airport closure applies daily 0515–1030 UTC; its last window ended 2026-11-04T10:30:00Z.',
+    );
+    expect(contentText(result)).toContain('**Airport closure (NOTAM 5):**');
+    expect(contentText(result)).not.toContain('Airport closed');
+  });
+
+  it.each([
+    ['inside its window', '2026-11-04T08:28:00Z', 'closed'],
+    ['between its windows', '2026-11-03T12:23:00Z', 'ground_stop'],
+  ])('ranks a daily closure %s against a ground stop', async (_label, at, status) => {
+    setupPvd(at, { groundStop: { impactingCondition: 'thunderstorms' } });
+
+    expect(rowsOf(await run({ airports: ['PVD'] }))[0]?.status).toBe(status);
+  });
+
+  it('evaluates a daily closure NOTAM without letting it set the status', async () => {
+    services.dispose();
+    setup(
+      { 'airport-events': [{ airportId: 'PVD', freeForm: PVD_CLOSURE }] },
+      '2026-11-03T12:23:00Z',
+    );
+
+    const result = await run({ airports: ['PVD'] });
+
+    expect(rowsOf(result)[0]).toMatchObject({
+      closureNotam: { dailyWindowUtc: { end: '1030', start: '0515' }, inEffect: false },
+      status: 'restrictions_only',
+    });
+    expect(noticeOf(result)).toContain('PVD closure NOTAM applies daily 0515–1030 UTC');
+    expect(contentText(result)).toContain(
+      '**Closure NOTAM 5:** 2026-11-03T05:15:00Z → 2026-11-04T10:30:00Z · daily 0515–1030 UTC, not in effect',
+    );
+  });
+
+  it('evaluates the window at fetchedAt, so a cached snapshot keeps status and inEffect agreed', async () => {
+    setupPvd('2026-11-04T10:29:30Z');
+    const before = await run({ airports: ['PVD'] });
+
+    clock.advance(45_000);
+    const cached = await run({ airports: ['PVD'] });
+
+    expect(cached.structuredContent).toMatchObject({ fetchedAt: '2026-11-04T10:29:30.000Z' });
+    expect(rowsOf(cached)[0]).toMatchObject({ closure: { inEffect: true }, status: 'closed' });
+    expect(rowsOf(cached)).toEqual(rowsOf(before));
+
+    clock.advance(30_000);
+    const refreshed = await run({ airports: ['PVD'] });
+
+    expect(refreshed.structuredContent).toMatchObject({ fetchedAt: '2026-11-04T10:30:45.000Z' });
+    expect(rowsOf(refreshed)[0]).toMatchObject({
+      closure: { inEffect: false },
+      status: 'restrictions_only',
+    });
+  });
+
+  it('leaves a closure whose schedule disagrees with its bounds unscheduled and closed', async () => {
+    setupPvd('2026-11-03T12:23:00Z', {
+      airportClosure: { ...PVD_CLOSURE, startTime: '2026-11-03T05:00:00Z' },
+    });
+
+    const [row] = rowsOf(await run({ airports: ['PVD'] }));
+
+    expect(row?.status).toBe('closed');
+    expect(row?.closure).not.toHaveProperty('dailyWindowUtc');
+    expect(row?.closure).not.toHaveProperty('inEffect');
   });
 });
 
@@ -730,10 +894,10 @@ describe('empty and partial feeds', () => {
       'no_active_events',
     ]);
     expect(rowsOf(result).every((row) => row.listedInFeed === false)).toBe(true);
-    expect(noticeOf(result)).toContain(
-      'None of the processed airports has an active FAA traffic management event',
+    expect(noticeOf(result)).toBe(
+      'None of the processed airports has an active FAA traffic management event.',
     );
-    expect(contentText(result)).toContain('faa_delays_get_operations_plan');
+    expect(contentText(result)).not.toContain('faa_delays_get_operations_plan');
   });
 
   it('omits that notice when at least one airport is listed', async () => {
@@ -880,6 +1044,234 @@ describe('degrade paths', () => {
   });
 });
 
+describe('planned programs', () => {
+  const FIXTURE_ADVISORY = {
+    date: '2026-09-29',
+    number: 82,
+    url: 'https://www.fly.faa.gov/adv/adv_otherdis?advn=82&adv_date=09292026',
+  };
+  const PLAN_ADVISORY = {
+    date: '2026-11-04',
+    number: 3,
+    url: 'https://www.fly.faa.gov/adv/adv_otherdis?advn=3&adv_date=11042026',
+  };
+  const PLAN_OMITTED =
+    'plannedPrograms is omitted because the FAA operations plan could not be read; faa_delays_get_operations_plan returns the reason and when to retry.';
+  const plan = (terminalPlanned: unknown, extra: Record<string, unknown> = {}) => ({
+    enRoutePlanned: [],
+    link: 'https://x.test/?advn=3&adv_date=11042026',
+    terminalPlanned,
+    ...extra,
+  });
+  const textsOf = (row: Row | undefined): string[] | undefined =>
+    (row?.plannedPrograms as { text: string }[] | undefined)?.map((item) => item.text);
+
+  it('gives each row the plan items naming it, with the plan advisory, and [] when none do', async () => {
+    const [bos, mia, fll, sea] = rowsOf(await run({ airports: ['BOS', 'MIA', 'FLL', 'SEA'] }));
+    const miaFll = {
+      advisory: FIXTURE_ADVISORY,
+      likelihood: 'probable',
+      text: 'AFTER 1800 MIA/FLL GROUND STOP PROBABLE',
+      timeQualifier: 'after',
+      timeUtc: '1800',
+    };
+
+    expect(bos?.plannedPrograms).toEqual([
+      {
+        advisory: FIXTURE_ADVISORY,
+        likelihood: 'expected',
+        text: 'AFTER 1600 BOS GROUND STOP/DELAY PROGRAM EXPECTED',
+        timeQualifier: 'after',
+        timeUtc: '1600',
+      },
+    ]);
+    expect(mia?.plannedPrograms).toEqual([miaFll]);
+    expect(fll?.plannedPrograms).toEqual([miaFll]);
+    expect(sea?.plannedPrograms).toEqual([]);
+  });
+
+  it('leaves status as the active events set it', async () => {
+    const rows = rowsOf(await run({ airports: ['BOS', 'MIA', 'SEA'] }));
+
+    expect(rows.map((row) => [row.airportId, row.status])).toEqual([
+      ['BOS', 'delays'],
+      ['MIA', 'no_active_events'],
+      ['SEA', 'ground_delay_program'],
+    ]);
+  });
+
+  it('collapses identical plan items to one entry per row', async () => {
+    services.dispose();
+    setup({
+      'operations-plan': plan([
+        { event: 'AFTER 1600\t-SEA/BFI GROUND STOP/DELAY PROGRAM POSSIBLE', time: '' },
+        { event: 'AFTER 1500\t-SEA GROUND STOP PROBABLE', time: '' },
+        { event: 'AFTER 1600\t-SEA/BFI GROUND STOP/DELAY PROGRAM POSSIBLE', time: '' },
+      ]),
+    });
+
+    const [sea, bfi] = rowsOf(await run({ airports: ['SEA', 'BFI'] }));
+
+    expect(textsOf(sea)).toEqual([
+      'AFTER 1600 SEA/BFI GROUND STOP/DELAY PROGRAM POSSIBLE',
+      'AFTER 1500 SEA GROUND STOP PROBABLE',
+    ]);
+    expect(textsOf(bfi)).toEqual(['AFTER 1600 SEA/BFI GROUND STOP/DELAY PROGRAM POSSIBLE']);
+  });
+
+  it('passes items through with the plan times as written, a lapsed UNTIL item included', async () => {
+    services.dispose();
+    // The clock reads 2026-09-30T02:00Z, an hour past the item's 0100.
+    setup({ 'operations-plan': plan([{ event: 'UNTIL 0100\t-MEM GROUND STOP PROBABLE' }]) });
+
+    expect(rowsOf(await run({ airports: ['MEM'] }))[0]?.plannedPrograms).toEqual([
+      {
+        advisory: PLAN_ADVISORY,
+        likelihood: 'probable',
+        text: 'UNTIL 0100 MEM GROUND STOP PROBABLE',
+        timeQualifier: 'until',
+        timeUtc: '0100',
+      },
+    ]);
+  });
+
+  it('leaves out what the plan does not state, the advisory included', async () => {
+    services.dispose();
+    setup({
+      'operations-plan': { enRoutePlanned: [], terminalPlanned: [{ event: 'BOS GROUND STOP' }] },
+    });
+
+    expect(rowsOf(await run({ airports: ['BOS'] }))[0]?.plannedPrograms).toEqual([
+      { text: 'BOS GROUND STOP' },
+    ]);
+  });
+
+  it('carries no en-route item, even one naming the airport', async () => {
+    services.dispose();
+    setup({
+      'operations-plan': plan([], {
+        enRoutePlanned: [{ event: 'AFTER 1700\t-ORD/MDW ARRIVAL ROUTES POSSIBLE' }],
+      }),
+    });
+
+    expect(rowsOf(await run({ airports: ['ORD'] }))[0]?.plannedPrograms).toEqual([]);
+  });
+
+  it('omits plannedPrograms and names the section when the terminal list is unreadable', async () => {
+    services.dispose();
+    setup({ 'operations-plan': plan('AFTER 1500\t-BOS GDP EXPECTED') });
+
+    const result = await run({ airports: ['BOS'] });
+
+    expect(rowsOf(result)[0]).not.toHaveProperty('plannedPrograms');
+    for (const text of [noticeOf(result), contentText(result)]) {
+      expect(text).toContain('operations-plan.terminalPlanned');
+      expect(text).toContain('unknown, not confirmed empty');
+    }
+  });
+
+  it('keeps plannedPrograms and stays quiet when only the en-route list is unreadable', async () => {
+    services.dispose();
+    setup({ 'operations-plan': plan([], { enRoutePlanned: 'unreadable' }) });
+
+    const result = await run({ airports: ['SEA'] });
+
+    expect(rowsOf(result)[0]?.plannedPrograms).toEqual([]);
+    expect(noticeOf(result)).toBeUndefined();
+  });
+
+  it('counts skipped plan rows in the notice', async () => {
+    services.dispose();
+    setup({
+      'operations-plan': plan([{ event: 'AFTER 1500\t-SEA GROUND STOP' }, { time: '1200' }]),
+    });
+
+    const result = await run({ airports: ['SEA'] });
+
+    expect(textsOf(rowsOf(result)[0])).toEqual(['AFTER 1500 SEA GROUND STOP']);
+    expect(noticeOf(result)).toBe('1 FAA feed row could not be read and was skipped.');
+  });
+
+  it('reads the plan through the cache entry faa_delays_get_operations_plan uses', async () => {
+    await run({ airports: ['SEA'] });
+    expect(callsTo(harness, feedUrl('operations-plan'))).toBe(1);
+
+    await runToolContract(getOperationsPlan, {});
+    expect(callsTo(harness, feedUrl('operations-plan'))).toBe(1);
+  });
+
+  it('stops pointing the all-quiet notice at faa_delays_get_operations_plan once the plan is read', async () => {
+    services.dispose();
+    setup({ 'airport-events': [] });
+
+    const result = await run({ airports: ['MIA', 'ORD'] });
+
+    expect(noticeOf(result)).toBe(
+      'None of the processed airports has an active FAA traffic management event.',
+    );
+    expect(rowsOf(result)[0]?.plannedPrograms).toHaveLength(1);
+  });
+
+  it('describes [] as the plan naming the airport nowhere, and absent as unread', () => {
+    const description = getAirportStatus.output.shape.airports.element.shape.plannedPrograms
+      .description as string;
+
+    expect(description).toContain('does not mean no trouble is expected');
+    expect(description).toContain('Absent when the operations plan could not be read');
+  });
+
+  describe('when the plan leg fails', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    it.each(FEED_FAILURES)('omits plannedPrograms with a notice on $label', async ({ respond }) => {
+      services.dispose();
+      setup({ 'operations-plan': respond });
+
+      const result = await withLadder(() => run({ airports: ['SEA', 'MIA'] }));
+
+      expect(result.isError).toBeFalsy();
+      expect(rowsOf(result).map((row) => row.status)).toEqual([
+        'ground_delay_program',
+        'no_active_events',
+      ]);
+      for (const row of rowsOf(result)) expect(row).not.toHaveProperty('plannedPrograms');
+      expect(noticeOf(result)).toBe(PLAN_OMITTED);
+      expect(contentText(result)).not.toContain('**Planned programs');
+    });
+
+    it('points at faa_delays_get_operations_plan once when every airport is quiet', async () => {
+      services.dispose();
+      setup({
+        'airport-events': [],
+        'operations-plan': () => new Response('down', { status: 503 }),
+      });
+
+      const result = await withLadder(() => run({ airports: ['SEA'] }));
+
+      expect(noticeOf(result)).toBe(
+        `None of the processed airports has an active FAA traffic management event. ${PLAN_OMITTED}`,
+      );
+      expect(contentText(result).split('faa_delays_get_operations_plan')).toHaveLength(2);
+    });
+
+    it('rethrows the failed plan leg when the caller was cancelled', async () => {
+      const live = createMockContext();
+      await getNasStatusService().getAirportEvents(live);
+      await getNasStatusService().getPacingAirports(live);
+      const controller = new AbortController();
+      const reason = new Error('client cancelled');
+      controller.abort(reason);
+      const ctx = createMockContext({ errors: getAirportStatus.errors, signal: controller.signal });
+
+      await expect(
+        getAirportStatus.handler(getAirportStatus.input.parse({ airports: ['SEA'] }), ctx),
+      ).rejects.toBe(reason);
+    });
+  });
+});
+
 describe('declared feed errors', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -976,8 +1368,15 @@ describe('format', () => {
       '- Advisory: ADVZY 3 · 2026-09-30 · https://www.fly.faa.gov/adv/adv_otherdis?advn=3&adv_date=09302026',
     );
     expect(text).toContain('**Requested as:** KJFK');
-    expect(text).toContain('**Airport closed:** 2026-09-29T20:00:00Z → 2026-09-30T04:00:00Z');
-    expect(text).toContain('> CLOSED EXC EMERGENCY AND MILITARY');
+    expect(text).toContain(
+      [
+        '**Airport closed (NOTAM 412):** 2026-09-29T20:00:00Z → 2026-09-30T04:00:00Z',
+        '- Issued: 2026-09-29T19:25:00Z',
+        '- Updated: 2026-09-29T19:30:00Z',
+        '- Detail: CLOSED EXC EMERGENCY AND MILITARY',
+        '> !JFK 09/412 JFK AD AP CLSD EXC EMERGENCY AND MILITARY 2609292000-2609300400',
+      ].join('\n'),
+    );
     expect(text).toContain('- Probability of extension: high');
     expect(text).toContain('- Included facilities: ZAU ZDC');
     expect(text).toContain('**Departure delay:** 16–30 min, increasing');
@@ -1043,6 +1442,19 @@ describe('format', () => {
     expect(text).not.toContain('?');
   });
 
+  it('renders the exceptions of a closure that carries no NOTAM fields', async () => {
+    services.dispose();
+    setup({ 'airport-events': [{ airportId: 'SEA', airportClosure: { text: 'except HEL' } }] });
+
+    const result = await run({ airports: ['SEA'] });
+
+    expect(rowsOf(result)[0]?.closure).toEqual({ text: 'except HEL' });
+    expect(contentText(result)).toContain(
+      '**Airport closed:** times not reported\n- Detail: except HEL',
+    );
+    expect(contentText(result)).not.toContain('- Issued:');
+  });
+
   it('keeps upstream CR/LF/TAB out of inline slots and quotes multi-line free text', async () => {
     services.dispose();
     setup({
@@ -1051,7 +1463,9 @@ describe('format', () => {
           airportId: 'SEA',
           airportClosure: {
             endTime: '2026-09-30T05:00:00Z\n## Closure end',
-            text: 'LINE ONE\r\nLINE TWO\n## Injected heading',
+            issuedDate: '2026-09-29T19:25:00Z\n## Closure issued',
+            simpleText: 'LINE ONE\r\nLINE TWO\n## Injected heading',
+            text: 'EXC HEL\r\n## Detail injection',
           },
           airportConfig: {
             arrivalRunwayConfig: '34L\r\n## Runway injection',
@@ -1103,6 +1517,8 @@ describe('format', () => {
       '## Flights',
       '## Fac',
       '## Closure end',
+      '## Closure issued',
+      '## Detail injection',
       '## Reported',
       '## Deicing',
       '## Band updated',
@@ -1122,10 +1538,85 @@ describe('format', () => {
     expect(lines).toContain('> LINE ONE');
     expect(lines).toContain('> LINE TWO');
     expect(lines).toContain('> ## Injected heading');
+    expect(lines).toContain('- Detail:');
+    expect(lines).toContain('  > EXC HEL');
+    expect(lines).toContain('  > ## Detail injection');
     expect(lines).toContain('> !SEA 1');
     expect(lines).toContain('> 3');
-    expect(lines).toContain('- Restriction: NARROW RESTRICTION - injected');
+    expect(lines).toContain('- Restriction:');
+    expect(lines).toContain('  > NARROW RESTRICTION');
+    expect(lines).toContain('  > - injected');
     expect(lines).toContain('- Program start: 2026-09-30T01:00:00Z ## Profile start');
+  });
+
+  it('keeps the line breaks of a multi-line closure text through a CommonMark parse', async () => {
+    services.dispose();
+    setup({
+      'airport-events': [
+        {
+          airportId: 'SEA',
+          airportClosure: { simpleText: '!SEA 11/001 SEA AD AP CLSD', text: 'EXC HEL\r\nAND SAR' },
+          freeForm: { text: 'CLSD TO NON SKED\nTRANSIENT GA' },
+        },
+      ],
+    });
+
+    const result = await run({ airports: ['SEA'] });
+    const texts = commonmarkTexts(contentText(result));
+
+    expect(rowsOf(result)[0]).toMatchObject({
+      closure: { text: 'EXC HEL\r\nAND SAR' },
+      closureNotam: { text: 'CLSD TO NON SKED\nTRANSIENT GA' },
+    });
+    expect(texts).toContain('EXC HEL\nAND SAR');
+    expect(texts).toContain('CLSD TO NON SKED\nTRANSIENT GA');
+    expect(texts).toContain('!SEA 11/001 SEA AD AP CLSD');
+    expect(texts).toContain('Detail:');
+    expect(texts).toContain('Restriction:');
+  });
+
+  it('keeps a one-line closure text on its label line', async () => {
+    services.dispose();
+    setup({ 'airport-events': [{ airportId: 'SEA', freeForm: { text: 'CLSD TO GA' } }] });
+
+    expect(contentText(await run({ airports: ['SEA'] })).split('\n')).toContain(
+      '- Restriction: CLSD TO GA',
+    );
+  });
+
+  it('renders each planned program with its time, likelihood, and advisory line', async () => {
+    services.dispose();
+    setup({
+      'operations-plan': {
+        enRoutePlanned: [],
+        link: 'https://x.test/?advn=3&adv_date=11042026',
+        terminalPlanned: [
+          { event: 'AFTER 1600\t-SEA/BFI GROUND STOP/DELAY PROGRAM POSSIBLE', time: '' },
+          { event: 'SEA GROUND STOP', time: '' },
+        ],
+      },
+    });
+
+    const text = contentText(await run({ airports: ['SEA', 'ORD'] }));
+    const advisory =
+      'ADVZY 3 · 2026-11-04 · https://www.fly.faa.gov/adv/adv_otherdis?advn=3&adv_date=11042026';
+
+    expect(text).toContain(
+      [
+        '**Planned programs (2):**',
+        '',
+        `1. after 1600 UTC · possible · ${advisory}`,
+        '> AFTER 1600 SEA/BFI GROUND STOP/DELAY PROGRAM POSSIBLE',
+        '',
+        `2. no time or likelihood stated · ${advisory}`,
+        '> SEA GROUND STOP',
+      ].join('\n'),
+    );
+    expect(text).toContain('**Planned programs:** none named in the operations plan');
+    const texts = commonmarkTexts(text);
+    expect(texts).toContain(`after 1600 UTC · possible · ${advisory}`);
+    expect(texts).toContain(`no time or likelihood stated · ${advisory}`);
+    expect(texts).toContain('SEA GROUND STOP');
   });
 
   it('keeps structuredContent verbatim while the text flattens', async () => {

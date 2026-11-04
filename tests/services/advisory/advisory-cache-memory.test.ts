@@ -2,8 +2,8 @@
  * @fileoverview Memory test for the AdvisoryService caches: a cached advisory page or index keeps
  * its parsed values without the fetched page they were read from. V8 keeps a sliced string's
  * parent alive, so a cached value sliced straight out of the page would pin the whole page for as
- * long as the entry lives (6 h for a settled date). Kept in its own file because it turns on
- * `--expose_gc` for the worker process it runs in.
+ * long as the entry lives (6 h for a settled date). Kept in its own file because it forces full
+ * collections in the worker process it runs in (`Bun.gc` on Bun, `--expose_gc` on Node).
  * @module tests/services/advisory/advisory-cache-memory.test
  */
 
@@ -14,8 +14,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdvisoryService } from '@/services/advisory/advisory-service.js';
 import { htmlResponse, readFixture } from '../../helpers/faa-fakes.js';
 
-v8.setFlagsFromString('--expose_gc');
-const gc = vm.runInNewContext('gc') as () => void;
+/**
+ * A full, synchronous collection. Bun runs on JavaScriptCore, where `--expose_gc` exposes nothing
+ * and `Bun.gc(true)` is the equivalent; Node exposes V8's `gc` once the flag is set.
+ */
+const gc: () => void = (() => {
+  const bun = (globalThis as { Bun?: { gc(force: boolean): void } }).Bun;
+  if (bun) return () => bun.gc(true);
+  v8.setFlagsFromString('--expose_gc');
+  return vm.runInNewContext('gc') as () => void;
+})();
 
 /** Page size: large enough that holding it dwarfs measurement noise, under the 2 MiB body ceiling. */
 const PAGE_BYTES = 1_500_000;

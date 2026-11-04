@@ -34,8 +34,14 @@ const EVENT_TYPE_REFERENCE: {
     eventType: 'airport_closure',
     label: 'Airport closure',
     meaning:
-      'The local airport authority has closed the airport to all operations; the closure text lists exceptions (emergency, military, prior permission). The most severe status.',
-    keyFields: ['closureText', 'startTime', 'endTime'],
+      'The local airport authority has closed the airport to all operations; the closure text is the NOTAM, giving its scope and any exceptions (emergency, military, prior permission). The most severe status while it is in effect: a closure the NOTAM schedules daily applies only inside that window, and outside it the airport is not closed.',
+    keyFields: [
+      'closureText (the NOTAM text)',
+      'startTime',
+      'endTime',
+      'dailyWindowUtc (HHMM UTC)',
+      'inEffect (at fetchedAt)',
+    ],
   },
   {
     eventType: 'ground_stop',
@@ -104,7 +110,12 @@ const EVENT_TYPE_REFERENCE: {
     label: 'Closure NOTAM',
     meaning:
       'A NOTAM-worded closure or restriction, often narrow (for example closed to non-scheduled transient general aviation). The FAA dashboard labels it an airport closure; it is kept separate here because it rarely closes the airport to all traffic.',
-    keyFields: ['closureText (the NOTAM text)', 'startTime', 'endTime'],
+    keyFields: [
+      'closureText (the NOTAM text)',
+      'startTime',
+      'endTime',
+      'dailyWindowUtc / inEffect (a daily schedule)',
+    ],
   },
   {
     eventType: 'deicing',
@@ -324,13 +335,15 @@ const IDENTIFIER_FORMATS: { example: string; format: string; identifier: string 
   },
   {
     identifier: 'Advisory effective time',
-    format: 'DDHHMM-DDHHMM in UTC (day of month, hour, minute).',
-    example: '151900-160159',
+    format:
+      'DDHHMM-DDHHMM in UTC (day of month, hour, minute), returned as printed in effectiveTime. faa_delays_get_advisory resolves it to ISO 8601 effectiveStart and effectiveEnd: the start on the date nearest the advisory date with that day of month (previous, same, or next month), the end on the first date at or after the start with its day of month, in the month of the start or the next.',
+    example: '151900-160159 on 2026-07-15: 2026-07-15T19:00:00Z to 2026-07-16T01:59:00Z',
   },
   {
     identifier: 'Advisory signature time',
-    format: 'YY/MM/DD HH:MM in UTC.',
-    example: '26/07/15 18:52',
+    format:
+      "YY/MM/DD HH:MM in UTC as the advisory prints it, and the last line of a raw-text advisory's text (operations plans, reroutes) before an operator ID. faa_delays_get_advisory returns it as sentAt in ISO 8601, in the century nearest the advisory date.",
+    example: '26/07/15 18:52: 2026-07-15T18:52:00Z',
   },
 ];
 

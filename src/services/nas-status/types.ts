@@ -55,14 +55,19 @@ export interface DelayBand {
   updatedAt?: string;
 }
 
-export interface Closure {
-  endTime?: string;
-  startTime?: string;
-  text?: string;
-  updatedAt?: string;
+/** A NOTAM's `DLY HHMM-HHMM` schedule, both times `HHMM` UTC; `end` before `start` crosses 0000Z. */
+export interface DailyWindow {
+  end: string;
+  start: string;
 }
 
-export interface ClosureNotam {
+/**
+ * An `airportClosure` or `freeForm` object: the feed sends both as the same NOTAM record. `text`
+ * is `notamText` without its header and effective period.
+ */
+export interface Closure {
+  /** Set only beside `startTime` and `endTime`, which sit on the first window's start and the last window's end. */
+  dailyWindowUtc?: DailyWindow;
   endTime?: string;
   issuedAt?: string;
   notamNumber?: number;
@@ -89,7 +94,7 @@ export interface AirportEvents {
   airportName?: string;
   arrivalDelay?: DelayBand;
   closure?: Closure;
-  closureNotam?: ClosureNotam;
+  closureNotam?: Closure;
   deicing?: Deicing;
   departureDelay?: DelayBand;
   groundDelayProgram?: GroundDelayProgram;
@@ -141,10 +146,16 @@ export interface PlannedItem {
   timeUtc?: string;
 }
 
+/** A terminal planned item, with the airports its text names. */
+export interface TerminalPlannedItem extends PlannedItem {
+  /** FAA identifiers in the directory, in text order; absent when the item names none. */
+  airports?: string[];
+}
+
 export interface OperationsPlan {
   advisory?: AdvisoryRef;
   enRoutePlanned: PlannedItem[];
-  terminalPlanned: PlannedItem[];
+  terminalPlanned: TerminalPlannedItem[];
   unreadableSections?: string[];
 }
 

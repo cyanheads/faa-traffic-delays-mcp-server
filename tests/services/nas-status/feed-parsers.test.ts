@@ -5,6 +5,7 @@
  * @module tests/services/nas-status/feed-parsers.test
  */
 
+import { threadCpuUsage } from 'node:process';
 import { JsonRpcErrorCode, McpError } from '@cyanheads/mcp-ts-core/errors';
 import { describe, expect, it } from 'vitest';
 import {
@@ -16,6 +17,7 @@ import {
   parseOperationsPlan,
   parsePacingAirports,
   parsePlannedEvent,
+  parseTerminalPlannedEvent,
 } from '@/services/nas-status/feed-parsers.js';
 import type { AirportEvents } from '@/services/nas-status/types.js';
 import { feedFixture } from '../../helpers/faa-fakes.js';
@@ -237,6 +239,148 @@ describe('parseAirportEvents', () => {
       maxMinutes: 29,
       minMinutes: 15,
       trend: 'decreasing',
+    });
+  });
+
+  describe('closures', () => {
+    it('reads the NOTAM text, number, and issue time of an airport closure', () => {
+      const { rows } = parseAirportEvents(feedFixture('airport-events'), recorder().report);
+
+      expect(rows.find((row) => row.airportId === 'JFK')?.closure).toEqual({
+        endTime: '2026-09-30T04:00:00Z',
+        issuedAt: '2026-09-29T19:25:00Z',
+        notamNumber: 412,
+        notamText: '!JFK 09/412 JFK AD AP CLSD EXC EMERGENCY AND MILITARY 2609292000-2609300400',
+        startTime: '2026-09-29T20:00:00Z',
+        text: 'CLOSED EXC EMERGENCY AND MILITARY',
+        updatedAt: '2026-09-29T19:30:00Z',
+      });
+    });
+
+    it('reads a closure that carries only its text', () => {
+      const { drift, row } = parseOneAirport({ airportClosure: { text: 'except HEL' } });
+
+      expect(row.closure).toEqual({ text: 'except HEL' });
+      expect(drift).toEqual([]);
+    });
+
+    it('omits wrong-typed closure NOTAM fields and reports them', () => {
+      const { drift, row } = parseOneAirport({
+        airportClosure: {
+          issuedDate: 20_261_101,
+          notamNumber: '5',
+          simpleText: ['!PVD'],
+          text: 'x',
+        },
+      });
+
+      expect(row.closure).toEqual({ text: 'x' });
+      expect(drift).toEqual([
+        ['airport-events[].airportClosure.simpleText', 'array'],
+        ['airport-events[].airportClosure.notamNumber', 'string'],
+        ['airport-events[].airportClosure.issuedDate', 'number'],
+      ]);
+    });
+
+    /** PVD as listed at 2026-11-04T08:28Z: closed 0515–1030Z daily from Nov 3 to Nov 4. */
+    const PVD = {
+      endTime: '2026-11-04T10:30:00Z',
+      startTime: '2026-11-03T05:15:00Z',
+      text: 'except HEL DLY 0515-1030',
+    };
+
+    it.each([
+      ['a daily window after exceptions (PVD)', PVD, { end: '1030', start: '0515' }],
+      [
+        'a window alone (SNA)',
+        {
+          endTime: '2026-11-08T14:15:00Z',
+          startTime: '2026-11-03T07:30:00Z',
+          text: 'DLY 0730-1415',
+        },
+        { end: '1415', start: '0730' },
+      ],
+      [
+        'a window crossing 0000Z',
+        {
+          endTime: '2026-11-06T06:00:00Z',
+          startTime: '2026-11-03T23:00:00Z',
+          text: 'DLY 2300-0600',
+        },
+        { end: '0600', start: '2300' },
+      ],
+      [
+        'bounds written with an offset',
+        { ...PVD, endTime: '2026-11-04T05:30:00-05:00', startTime: '2026-11-03T00:15:00-05:00' },
+        { end: '1030', start: '0515' },
+      ],
+      ['trailing whitespace', { ...PVD, text: 'DLY 0515-1030 \t' }, { end: '1030', start: '0515' }],
+    ])('reads %s into dailyWindowUtc', (_label, closure, window) => {
+      const { drift, row } = parseOneAirport({ airportClosure: closure, freeForm: closure });
+
+      expect(row.closure).toEqual({ ...closure, dailyWindowUtc: window });
+      expect(row.closureNotam).toEqual({ ...closure, dailyWindowUtc: window });
+      expect(drift).toEqual([]);
+    });
+
+    it.each([
+      ['no schedule', { ...PVD, text: 'except HEL' }],
+      ['a schedule before more text', { ...PVD, text: 'DLY 0515-1030 EXC HEL' }],
+      ['DLY inside a word', { ...PVD, text: 'XDLY 0515-1030' }],
+      ['no space after DLY', { ...PVD, text: 'DLY0515-1030' }],
+      ['a three-digit time', { ...PVD, startTime: '2026-11-03T00:00:00Z', text: 'DLY 000-1030' }],
+      ['an hour past 23', { ...PVD, text: 'DLY 2415-1030' }],
+      ['a minute past 59', { ...PVD, text: 'DLY 0560-1030' }],
+      [
+        'a start equal to its end',
+        {
+          endTime: '2026-11-04T05:15:00Z',
+          startTime: '2026-11-03T05:15:00Z',
+          text: 'DLY 0515-0515',
+        },
+      ],
+      ['a startTime off the window start', { ...PVD, startTime: '2026-11-03T05:00:00Z' }],
+      ['an endTime off the window end', { ...PVD, endTime: '2026-11-04T10:00:00Z' }],
+      ['no startTime', { endTime: PVD.endTime, text: PVD.text }],
+      ['no endTime', { startTime: PVD.startTime, text: PVD.text }],
+      ['a startTime without an offset', { ...PVD, startTime: '2026-11-03T05:15:00' }],
+      ['an endTime before its startTime', { ...PVD, endTime: '2026-11-02T10:30:00Z' }],
+    ])('leaves a closure with %s unscheduled', (_label, closure) => {
+      const { row } = parseOneAirport({ airportClosure: closure });
+
+      expect(row.closure).toEqual(closure);
+    });
+
+    it.each([
+      ['repeated openers', (n: number) => 'DLY '.repeat(n / 4)],
+      ['an opener before a long blank run', (n: number) => `DLY${' '.repeat(n)}x`],
+      ['repeated openers with times', (n: number) => 'DLY DLY 0515-'.repeat(n / 13)],
+      [
+        'repeated schedules failing at the end',
+        (n: number) => `${'DLY 0515-1030 '.repeat(n / 14)}x`,
+      ],
+      ['a schedule before a long blank run', (n: number) => `DLY 0515-1030${' '.repeat(n)}x`],
+      ['openers split by breaks', (n: number) => 'DLY\r\n'.repeat(n / 5)],
+      ['one long line ending in a break', (n: number) => `${'§1 x'.repeat(n / 4)}\ny`],
+      ['breaks throughout', (n: number) => '  \r\n'.repeat(n / 4)],
+    ])('reads the schedule of %s in linear CPU time across a 64-fold span', (_label, build) => {
+      const { report } = recorder();
+      const sizes = [5_000, 10_000, 20_000, 40_000, 80_000, 160_000, 320_000];
+      const perCallMicros: number[] = [];
+      for (const size of sizes) {
+        const body = [{ airportClosure: { ...PVD, text: build(size) }, airportId: 'PVD' }];
+        const batch = 320_000 / size;
+        let fastest = Infinity;
+        for (let round = 0; round < 5; round++) {
+          const started = threadCpuUsage();
+          for (let call = 0; call < batch; call++) parseAirportEvents(body, report);
+          const elapsed = threadCpuUsage(started);
+          fastest = Math.min(fastest, (elapsed.user + elapsed.system) / batch);
+        }
+        expect(fastest).toBeLessThan(size * 0.5);
+        perCallMicros.push(fastest);
+      }
+      expect((perCallMicros.at(-1) as number) / (perCallMicros[0] as number)).toBeLessThan(256);
     });
   });
 
@@ -1066,6 +1210,89 @@ describe('parsePlannedEvent', () => {
   });
 });
 
+describe('parseTerminalPlannedEvent', () => {
+  it('adds the named airports to the planned-item parse', () => {
+    expect(
+      parseTerminalPlannedEvent('AFTER 1600\t-SEA/BFI GROUND STOP/DELAY PROGRAM POSSIBLE', ''),
+    ).toEqual({
+      airports: ['SEA', 'BFI'],
+      likelihood: 'possible',
+      text: 'AFTER 1600 SEA/BFI GROUND STOP/DELAY PROGRAM POSSIBLE',
+      timeQualifier: 'after',
+      timeUtc: '1600',
+    });
+  });
+
+  it.each([
+    ['AFTER 1200\t-IAH/HOU GROUND STOP POSSIBLE', ['IAH', 'HOU']],
+    ['UNTIL 2300\t-MIA/FLL/DJT GROUND STOP POSSIBLE', ['MIA', 'FLL', 'DJT']],
+    ['UNTIL 0500\t-MEM GROUND STOP PROBABLE', ['MEM']],
+    ['AFTER 2100 \t-LAS GROUND STOPS POSSIBLE', ['LAS']],
+    ['AFTER 1600\t-EWR/TEB/PHL GROUND DELAY PROGRAM POSSIBLE', ['EWR', 'TEB', 'PHL']],
+    ['ATL GROUND STOP/GROUND DELAY PROGRAM', ['ATL']],
+    ['AFTER 1500\t-PBI/SEA GROUND STOP POSSIBLE', ['SEA']],
+  ])('reads %j as %j', (event, airports) => {
+    expect(parseTerminalPlannedEvent(event, undefined).airports).toEqual(airports);
+  });
+
+  it.each([
+    ['a metro area', 'AFTER 1600\t-NEW YORK METROS GROUND STOP POSSIBLE'],
+    ['an ARTCC', 'AFTER 1600\t-ZNY GROUND STOP POSSIBLE'],
+    ['an identifier the directory lacks', 'AFTER 1500\t-PBI GROUND STOP/DELAY PROGRAM POSSIBLE'],
+    ['a group with a 4-character part', 'AFTER 1500\t-SEA/KBFI GROUND STOP POSSIBLE'],
+    ['an en-route phrase', 'AFTER 1700\t-ORD/MDW ARRIVAL ROUTES POSSIBLE'],
+    ['a word that only starts with GROUND', 'AFTER 1500\t-SFO GROUNDSTOP POSSIBLE'],
+    ['lowercase text', 'after 1600\t-sfo ground stop possible'],
+    ['no word after the identifier', 'AFTER 1600\t-SFO'],
+    ['nothing after the time', 'AFTER 1600\t-'],
+    [
+      'a between window, its end time before the identifier',
+      'BETWEEN 1100 AND 1300\t-DEN GROUND STOP POSSIBLE',
+    ],
+  ])('names no airport for %s', (_label, event) => {
+    expect(parseTerminalPlannedEvent(event, undefined)).not.toHaveProperty('airports');
+  });
+
+  it('reads the leading identifier when the time comes from the time field', () => {
+    expect(parseTerminalPlannedEvent('SFO GROUND STOP POSSIBLE', '1500')).toEqual({
+      airports: ['SFO'],
+      likelihood: 'possible',
+      text: 'SFO GROUND STOP POSSIBLE',
+      timeUtc: '1500',
+    });
+  });
+
+  it.each([
+    ['a long slash run', (n: number) => `AFTER 1600\t-${'SEA/'.repeat(n / 4)}BFI GROUND STOP`],
+    [
+      'a slash run failing at its end',
+      (n: number) => `AFTER 1600\t-${'SEA/'.repeat(n / 4)}X GROUND`,
+    ],
+    ['repeated qualifiers', (n: number) => `${'AFTER 1600 '.repeat(n / 11)}SFO GROUND STOP`],
+    ['a word repeating GROUND', (n: number) => `AFTER 1600\t-SFO ${'GROUND'.repeat(n / 6)}`],
+    ['repeated tab-dash openers', (n: number) => `${'\t-'.repeat(n / 2)}SFO GROUND STOP`],
+    ['one long line ending in a break', (n: number) => `${'§1 x'.repeat(n / 4)}\ny`],
+    ['breaks throughout', (n: number) => '  \r\n'.repeat(n / 4)],
+  ])('parses %s in linear CPU time across a 64-fold span', (_label, build) => {
+    const sizes = [5_000, 10_000, 20_000, 40_000, 80_000, 160_000, 320_000];
+    const perCallMicros: number[] = [];
+    for (const size of sizes) {
+      const event = build(size);
+      const batch = 320_000 / size;
+      let fastest = Infinity;
+      for (let round = 0; round < 5; round++) {
+        const started = threadCpuUsage();
+        for (let call = 0; call < batch; call++) parseTerminalPlannedEvent(event, undefined);
+        const elapsed = threadCpuUsage(started);
+        fastest = Math.min(fastest, (elapsed.user + elapsed.system) / batch);
+      }
+      expect(fastest).toBeLessThan(size * 0.5);
+      perCallMicros.push(fastest);
+    }
+    expect((perCallMicros.at(-1) as number) / (perCallMicros[0] as number)).toBeLessThan(256);
+  });
+});
+
 describe('parseOperationsPlan', () => {
   it('keeps usable plan siblings and distinguishes malformed from absent/null sections', () => {
     const parsed = parseOperationsPlan(
@@ -1094,6 +1321,30 @@ describe('parseOperationsPlan', () => {
     ]);
     expect(plan.enRoutePlanned).toHaveLength(2);
     expect(plan.terminalPlanned[0]).toMatchObject({ timeQualifier: 'after', timeUtc: '1100' });
+  });
+
+  it('names the airports of each terminal item', () => {
+    const plan = parseOperationsPlan(feedFixture('operations-plan'), recorder().report);
+    expect(plan.terminalPlanned.map((item) => item.airports)).toEqual([
+      ['DCA'],
+      ['BOS'],
+      ['MIA', 'FLL'],
+    ]);
+  });
+
+  it('reads no airports from an en-route item, even one worded as a ground stop', () => {
+    const plan = parseOperationsPlan(
+      { enRoutePlanned: [{ event: 'AFTER 1500\t-DEN GROUND STOP POSSIBLE', time: '' }] },
+      recorder().report,
+    );
+    expect(plan.enRoutePlanned).toEqual([
+      {
+        likelihood: 'possible',
+        text: 'AFTER 1500 DEN GROUND STOP POSSIBLE',
+        timeQualifier: 'after',
+        timeUtc: '1500',
+      },
+    ]);
   });
 
   it('accepts an object carrying only a link, with empty lists', () => {

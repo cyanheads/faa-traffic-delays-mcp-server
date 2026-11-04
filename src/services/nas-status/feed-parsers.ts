@@ -9,12 +9,13 @@
 import { serializationError } from '@cyanheads/mcp-ts-core/errors';
 import { isRecord } from '@cyanheads/mcp-ts-core/utils';
 import { parseAdvisoryLink } from '@/services/advisory/advisory-ref.js';
+import { resolveAirportCode } from '@/services/airport-directory/airport-directory.js';
 import type {
   AirportEvents,
   AirspaceFlowProgram,
   Closure,
-  ClosureNotam,
   ConstrainedAreaType,
+  DailyWindow,
   DelayBand,
   DelayProfile,
   FeedRows,
@@ -26,6 +27,7 @@ import type {
   PlannedItem,
   ProbabilityOfExtension,
   RunwayConfiguration,
+  TerminalPlannedItem,
   TimeQualifier,
   Trend,
 } from './types.js';
@@ -413,20 +415,40 @@ function parseDelayBand(f: Fields): DelayBand {
   };
 }
 
-function parseClosure(f: Fields): Closure {
-  const text = f.string('text');
-  const startTime = f.string('startTime');
-  const endTime = f.string('endTime');
-  const updatedAt = f.string('updatedAt');
-  return {
-    ...(text && { text }),
-    ...(startTime && { startTime }),
-    ...(endTime && { endTime }),
-    ...(updatedAt && { updatedAt }),
-  };
+/**
+ * `DLY 0515-1030` closing a closure's text. Linear: an attempt at each `DLY` walks only the blank
+ * run after it or after its times, and neither a digit nor the end of the text can match inside one.
+ */
+const DAILY_WINDOW = /\bDLY\s+(\d{4})-(\d{4})\s*$/;
+
+const isClockTime = (hhmm: string): boolean =>
+  Number(hhmm.slice(0, 2)) <= 23 && Number(hhmm.slice(2)) <= 59;
+
+/** Epoch milliseconds → their time of day, `HHMM` UTC. */
+const clockTime = (ms: number): string => new Date(ms).toISOString().slice(11, 16).replace(':', '');
+
+/**
+ * The daily window a closure's text ends with, kept only when both times are real and differ and
+ * `startTime` and `endTime` fall on the window's start and end, as the FAA sets them. Anything
+ * else, a schedule this grammar does not read included, leaves the closure unscheduled.
+ */
+function parseDailyWindow(
+  text: string | undefined,
+  startTime: string | undefined,
+  endTime: string | undefined,
+): DailyWindow | undefined {
+  const match = text === undefined ? null : DAILY_WINDOW.exec(text);
+  const start = match?.[1];
+  const end = match?.[2];
+  const from = instant(startTime);
+  const until = instant(endTime);
+  if (!start || !end || from === undefined || until === undefined || from >= until) return;
+  if (!isClockTime(start) || !isClockTime(end) || start === end) return;
+  return clockTime(from) === start && clockTime(until) === end ? { end, start } : undefined;
 }
 
-function parseClosureNotam(f: Fields): ClosureNotam {
+/** An `airportClosure` or `freeForm` object; the feed sends both as the same NOTAM record. */
+function parseClosure(f: Fields): Closure {
   const notamText = f.string('simpleText');
   const text = f.string('text');
   const notamNumber = f.number('notamNumber');
@@ -434,6 +456,7 @@ function parseClosureNotam(f: Fields): ClosureNotam {
   const startTime = f.string('startTime');
   const endTime = f.string('endTime');
   const updatedAt = f.string('updatedAt');
+  const dailyWindowUtc = parseDailyWindow(text, startTime, endTime);
   return {
     ...(notamText && { notamText }),
     ...(text && { text }),
@@ -441,6 +464,7 @@ function parseClosureNotam(f: Fields): ClosureNotam {
     ...(issuedAt && { issuedAt }),
     ...(startTime && { startTime }),
     ...(endTime && { endTime }),
+    ...(dailyWindowUtc && { dailyWindowUtc }),
     ...(updatedAt && { updatedAt }),
   };
 }
@@ -500,7 +524,7 @@ export function parseAirportEvents(body: unknown, report: ParseReporter): FeedRo
       ...(arrivalDelay && { arrivalDelay: parseDelayBand(arrivalDelay) }),
       ...(departureDelay && { departureDelay: parseDelayBand(departureDelay) }),
       ...(closure && { closure: parseClosure(closure) }),
-      ...(freeForm && { closureNotam: parseClosureNotam(freeForm) }),
+      ...(freeForm && { closureNotam: parseClosure(freeForm) }),
       ...(deicing && { deicing: deicingStartedAt ? { startedAt: deicingStartedAt } : {} }),
       ...(config && { runwayConfiguration: parseRunwayConfiguration(config) }),
     };
@@ -622,10 +646,36 @@ export function parsePlannedEvent(event: string, time: string | undefined): Plan
   };
 }
 
-function parsePlannedList(
+/** One part of a terminal item's identifier group: a 3-character code (`SEA` of `SEA/BFI`). */
+const AIRPORT_PART = /^[A-Z0-9]{3}$/;
+const GROUND_WORD = /^GROUND\b/;
+
+/**
+ * A terminal planned item plus the airports it names: the word right after the qualifier and its
+ * time, when `GROUND` follows it, split on `/` (`AFTER 1600 SEA/BFI GROUND STOP …` → SEA, BFI).
+ * Every part must be a 3-character code and only parts the NASR directory lists are kept, so a
+ * metro area (`NEW YORK METROS GROUND STOP`) or an ARTCC (`ZNY GROUND STOP`) names none.
+ */
+export function parseTerminalPlannedEvent(
+  event: string,
+  time: string | undefined,
+): TerminalPlannedItem {
+  const item = parsePlannedEvent(event, time);
+  // A parsed qualifier and its HHMM are the text's first two words.
+  const skip = item.timeQualifier ? 2 : 0;
+  const [group = '', next = ''] = item.text.split(/\s+/, skip + 2).slice(skip);
+  const parts = GROUND_WORD.test(next) ? group.split('/') : [];
+  const airports = parts.every((part) => AIRPORT_PART.test(part))
+    ? parts.filter((part) => resolveAirportCode(part))
+    : [];
+  return airports.length > 0 ? { ...item, airports } : item;
+}
+
+function parsePlannedList<T extends PlannedItem>(
   f: Fields,
   key: 'terminalPlanned' | 'enRoutePlanned',
-): FeedRows<PlannedItem> {
+  parseItem: (event: string, time: string | undefined) => T,
+): FeedRows<T> {
   const value = f.raw(key);
   if (value === undefined) return { rows: [], skippedRows: 0 };
   if (!Array.isArray(value)) {
@@ -633,12 +683,12 @@ function parsePlannedList(
     f.unreadable(key);
     return { rows: [], skippedRows: 0 };
   }
-  const rows: PlannedItem[] = [];
+  const rows: T[] = [];
   let skippedRows = 0;
   for (const item of value) {
     const row = isRecord(item) ? f.sub(`${key}[]`, item) : undefined;
     const event = row?.string('event');
-    if (row && event) rows.push(parsePlannedEvent(event, row.string('time')));
+    if (row && event) rows.push(parseItem(event, row.string('time')));
     else skippedRows++;
   }
   if (value.length > 0 && rows.length === 0) {
@@ -667,8 +717,8 @@ export function parseOperationsPlan(
   const unreadableSections = new Set<string>();
   const f = new Fields(body, 'operations-plan', report, unreadableSections);
   const advisory = parseAdvisoryLink(f.string('link'));
-  const terminal = parsePlannedList(f, 'terminalPlanned');
-  const enRoute = parsePlannedList(f, 'enRoutePlanned');
+  const terminal = parsePlannedList(f, 'terminalPlanned', parseTerminalPlannedEvent);
+  const enRoute = parsePlannedList(f, 'enRoutePlanned', parsePlannedEvent);
   return {
     enRoutePlanned: enRoute.rows,
     skippedRows: terminal.skippedRows + enRoute.skippedRows,

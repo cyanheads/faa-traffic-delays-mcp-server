@@ -1,6 +1,7 @@
 /**
  * @fileoverview Output schemas and vocabularies shared by more than one faa_delays tool: the
- * advisory reference, the per-15-minute delay profile, and the event-type enum.
+ * advisory reference, the per-15-minute delay profile, the operations plan's planned item, and the
+ * event-type enum.
  * @module mcp-server/tools/schemas
  */
 
@@ -56,4 +57,41 @@ export const DelayProfileSchema = z
 /** `12, 14, 20 … (15-min intervals from <start>)` — the delay profile as one line. */
 export function renderDelayProfile(profile: z.infer<typeof DelayProfileSchema>): string {
   return `${profile.averageDelayMinutes.join(', ')} min (${profile.intervalMinutes}-min intervals from ${inline(profile.startTime)})`;
+}
+
+export const PlannedItemSchema = z
+  .object({
+    text: z
+      .string()
+      .describe(
+        'The planned item as the FAA wrote it, tabs flattened and the leading dash removed (FAA-authored).',
+      ),
+    timeQualifier: z
+      .enum(['after', 'until', 'by', 'between'])
+      .optional()
+      .describe(
+        'How the planned time bounds the item, parsed from the start of the text; for between, timeUtc is the start of the window and its end stays in text.',
+      ),
+    timeUtc: z
+      .string()
+      .optional()
+      .describe(
+        "Planned time as HHMM UTC, with no date. Its day comes from the plan's event window (the EVENT TIME line of the plan advisory, read with faa_delays_get_advisory), which can start on the UTC day after the advisory date.",
+      ),
+    likelihood: z
+      .enum(['possible', 'probable', 'expected'])
+      .optional()
+      .describe(
+        "The FAA's stated likelihood: possible (<30 %), probable (30–60 %), or expected (most likely). Absent when the text states none.",
+      ),
+  })
+  .describe('One planned program or initiative.');
+
+/** `after 1100 UTC · possible` — the parsed time and likelihood of one planned item. */
+export function plannedMeta(item: z.infer<typeof PlannedItemSchema>): string {
+  const time = item.timeUtc
+    ? `${item.timeQualifier ? `${item.timeQualifier} ` : ''}${inline(item.timeUtc)} UTC`
+    : undefined;
+  const parts = [time, item.likelihood].filter(Boolean);
+  return parts.length > 0 ? parts.join(' · ') : 'no time or likelihood stated';
 }

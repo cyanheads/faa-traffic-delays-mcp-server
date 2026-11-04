@@ -9,54 +9,27 @@
 import { tool, z } from '@cyanheads/mcp-ts-core';
 import { JsonRpcErrorCode } from '@cyanheads/mcp-ts-core/errors';
 import { getNasStatusService } from '@/services/nas-status/nas-status-service.js';
-import { advisoryLine, blockquote, inline } from '../format-helpers.js';
+import { advisoryLine, blockquote } from '../format-helpers.js';
 import { skippedRowsNotice, unreadableSectionsNotice } from '../notices.js';
-import { AdvisoryRefSchema } from '../schemas.js';
+import { AdvisoryRefSchema, PlannedItemSchema, plannedMeta } from '../schemas.js';
 
-const PlannedItemSchema = z
-  .object({
-    text: z
-      .string()
-      .describe(
-        'The planned item as the FAA wrote it, tabs flattened and the leading dash removed (FAA-authored).',
-      ),
-    timeQualifier: z
-      .enum(['after', 'until', 'by', 'between'])
-      .optional()
-      .describe(
-        'How the planned time bounds the item, parsed from the start of the text; for between, timeUtc is the start of the window and its end stays in text.',
-      ),
-    timeUtc: z
-      .string()
-      .optional()
-      .describe(
-        "Planned time as HHMM UTC, with no date. Its day comes from the plan's event window (the EVENT TIME line of the plan advisory, read with faa_delays_get_advisory), which can start on the UTC day after the advisory date.",
-      ),
-    likelihood: z
-      .enum(['possible', 'probable', 'expected'])
-      .optional()
-      .describe(
-        "The FAA's stated likelihood: possible (<30 %), probable (30–60 %), or expected (most likely). Absent when the text states none.",
-      ),
-  })
-  .describe('One planned program or initiative.');
+const TerminalPlannedItemSchema = PlannedItemSchema.extend({
+  airports: z
+    .array(z.string().describe('FAA 3-character airport identifier.'))
+    .optional()
+    .describe(
+      'Airports this item names, in text order: the identifier group before GROUND (SEA/BFI gives SEA and BFI), each a code in the bundled FAA NASR directory, as faa_delays_get_airport_status accepts it. Absent when the item names none the directory lists, such as a metro area or an ARTCC.',
+    ),
+}).describe('One planned terminal program.');
 
-type PlannedItem = z.infer<typeof PlannedItemSchema>;
+type TerminalPlannedItem = z.infer<typeof TerminalPlannedItemSchema>;
 
-/** `after 1100 UTC · possible` — the parsed time and likelihood of one planned item. */
-function plannedMeta(item: PlannedItem): string {
-  const time = item.timeUtc
-    ? `${item.timeQualifier ? `${item.timeQualifier} ` : ''}${inline(item.timeUtc)} UTC`
-    : undefined;
-  const parts = [time, item.likelihood].filter(Boolean);
-  return parts.length > 0 ? parts.join(' · ') : 'no time or likelihood stated';
-}
-
-function renderPlanned(heading: string, items: PlannedItem[]): string[] {
+function renderPlanned(heading: string, items: TerminalPlannedItem[]): string[] {
   const lines = ['', `## ${heading} (${items.length})`];
   if (items.length === 0) return [...lines, '', 'None listed.'];
   items.forEach((item, index) => {
-    lines.push('', `${index + 1}. ${plannedMeta(item)}`, blockquote(item.text));
+    const airports = item.airports ? ` · airports: ${item.airports.join(', ')}` : '';
+    lines.push('', `${index + 1}. ${plannedMeta(item)}${airports}`, blockquote(item.text));
   });
   return lines;
 }
@@ -75,7 +48,7 @@ export const getOperationsPlan = tool('faa_delays_get_operations_plan', {
       ),
     advisory: AdvisoryRefSchema.optional(),
     terminalPlanned: z
-      .array(PlannedItemSchema)
+      .array(TerminalPlannedItemSchema)
       .describe(
         'Terminal programs the FAA expects later today: possible ground stops and delay programs by airport, in plan order.',
       ),

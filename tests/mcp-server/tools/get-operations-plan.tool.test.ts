@@ -40,6 +40,7 @@ interface Structured {
   fetchedAt: string;
   notice?: string;
   terminalPlanned: {
+    airports?: string[];
     likelihood?: string;
     text: string;
     timeQualifier?: string;
@@ -75,18 +76,21 @@ describe('plan', () => {
 
     expect(data.terminalPlanned).toEqual([
       {
+        airports: ['DCA'],
         likelihood: 'possible',
         text: 'AFTER 1100 DCA GROUND STOP/DELAY PROGRAM POSSIBLE',
         timeQualifier: 'after',
         timeUtc: '1100',
       },
       {
+        airports: ['BOS'],
         likelihood: 'expected',
         text: 'AFTER 1600 BOS GROUND STOP/DELAY PROGRAM EXPECTED',
         timeQualifier: 'after',
         timeUtc: '1600',
       },
       {
+        airports: ['MIA', 'FLL'],
         likelihood: 'probable',
         text: 'AFTER 1800 MIA/FLL GROUND STOP PROBABLE',
         timeQualifier: 'after',
@@ -101,6 +105,67 @@ describe('plan', () => {
       url: 'https://www.fly.faa.gov/adv/adv_otherdis?advn=82&adv_date=09292026',
     });
     expect(data.fetchedAt).toBe('2026-09-30T02:00:00.000Z');
+  });
+
+  it('names the airports of each terminal item, leaving the field out when none resolve', async () => {
+    services.dispose();
+    setup({
+      'operations-plan': {
+        enRoutePlanned: [],
+        link: 'https://x.test/?advn=3&adv_date=11042026',
+        terminalPlanned: [
+          { event: 'AFTER 1600\t-SEA/BFI GROUND STOP/DELAY PROGRAM POSSIBLE', time: '' },
+          { event: 'AFTER 1600\t-NEW YORK METROS GROUND STOP POSSIBLE', time: '' },
+          { event: 'AFTER 1700\t-ZNY GROUND STOP' },
+        ],
+      },
+    });
+
+    const result = await run();
+    const items = structured(result).terminalPlanned;
+
+    expect(result.isError).toBeFalsy();
+    expect(items[0]?.airports).toEqual(['SEA', 'BFI']);
+    expect(items[1]).not.toHaveProperty('airports');
+    expect(items[2]).toEqual({
+      text: 'AFTER 1700 ZNY GROUND STOP',
+      timeQualifier: 'after',
+      timeUtc: '1700',
+    });
+    const lines = contentText(result).split('\n');
+    expect(lines).toContain('1. after 1600 UTC · possible · airports: SEA, BFI');
+    expect(lines).toContain('2. after 1600 UTC · possible');
+    expect(lines).toContain('3. after 1700 UTC');
+  });
+
+  it('keeps en-route items to text, time, and likelihood', async () => {
+    services.dispose();
+    setup({
+      'operations-plan': {
+        enRoutePlanned: [{ event: 'AFTER 1500\t-DEN GROUND STOP POSSIBLE', time: '' }],
+        link: 'https://x.test/?advn=3&adv_date=11042026',
+        terminalPlanned: [],
+      },
+    });
+
+    const result = await run();
+
+    expect(structured(result).enRoutePlanned).toEqual([
+      {
+        likelihood: 'possible',
+        text: 'AFTER 1500 DEN GROUND STOP POSSIBLE',
+        timeQualifier: 'after',
+        timeUtc: '1500',
+      },
+    ]);
+    expect(contentText(result).split('\n')).toContain('1. after 1500 UTC · possible');
+  });
+
+  it('declares airports on terminal items only', () => {
+    const { enRoutePlanned, terminalPlanned } = getOperationsPlan.output.shape;
+
+    expect(terminalPlanned.element.shape.airports.description).toContain('NASR');
+    expect(enRoutePlanned.element.shape).not.toHaveProperty('airports');
   });
 
   it('carries the announcements list', async () => {
@@ -331,9 +396,10 @@ describe('format', () => {
       '**Plan advisory:** ADVZY 82 · 2026-09-29 · https://www.fly.faa.gov/adv/adv_otherdis?advn=82&adv_date=09292026',
     );
     expect(text).toContain('## Terminal planned (3)');
-    expect(text).toContain('1. after 1100 UTC · possible');
+    expect(text).toContain('1. after 1100 UTC · possible · airports: DCA');
     expect(text).toContain('> AFTER 1600 BOS GROUND STOP/DELAY PROGRAM EXPECTED');
-    expect(text).toContain('2. after 1600 UTC · expected');
+    expect(text).toContain('2. after 1600 UTC · expected · airports: BOS');
+    expect(text).toContain('3. after 1800 UTC · probable · airports: MIA, FLL');
     expect(text).toContain('## En-route planned (2)');
     expect(text).toContain('## ATCSCC announcements (1)');
     expect(text).toContain('> NEXT PLANNING WEBINAR 1115Z');

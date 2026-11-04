@@ -142,11 +142,16 @@
     "groundStop": null,
     "groundDelay": null,
     "airportClosure": {
+      "id": "0b6f3c2e-7d41-4f8a-9c55-1e2d3f4a5b6c",
       "airportId": "JFK",
+      "createdAt": "2026-09-29T19:30:00Z",
+      "updatedAt": "2026-09-29T19:30:00Z",
       "startTime": "2026-09-29T20:00:00Z",
       "endTime": "2026-09-30T04:00:00Z",
-      "updatedAt": "2026-09-29T19:30:00Z",
-      "text": "CLOSED EXC EMERGENCY AND MILITARY"
+      "simpleText": "!JFK 09/412 JFK AD AP CLSD EXC EMERGENCY AND MILITARY 2609292000-2609300400",
+      "text": "CLOSED EXC EMERGENCY AND MILITARY",
+      "notamNumber": 412,
+      "issuedDate": "2026-09-29T19:25:00Z"
     },
     "freeForm": null,
     "arrivalDelay": null,

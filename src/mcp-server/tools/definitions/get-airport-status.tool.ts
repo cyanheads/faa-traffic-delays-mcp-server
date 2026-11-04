@@ -1,8 +1,9 @@
 /**
  * @fileoverview faa_delays_get_airport_status — current FAA traffic management status for up to 25 US
- * airports: headline status, every active event with full detail, and the runway configuration
- * with arrival rate. Codes are validated against the bundled NASR directory before any upstream
- * request.
+ * airports: headline status, every active event with full detail, the runway configuration with
+ * arrival rate, and the operations plan's planned programs naming each airport. Codes are
+ * validated against the bundled NASR directory before any upstream request; the pacing and plan
+ * legs degrade rather than failing the call.
  * @module mcp-server/tools/definitions/get-airport-status
  */
 
@@ -14,7 +15,8 @@ import {
   resolveAirportCode,
 } from '@/services/airport-directory/airport-directory.js';
 import { getNasStatusService } from '@/services/nas-status/nas-status-service.js';
-import type { AirportEvents } from '@/services/nas-status/types.js';
+import type { AirportEvents, Closure, OperationsPlan } from '@/services/nas-status/types.js';
+import { DailyWindowFields, dailyWindowState, dailyWindowSuffix } from '../closure-window.js';
 import {
   advisoryLine,
   blockquote,
@@ -23,8 +25,19 @@ import {
   inline,
   span,
 } from '../format-helpers.js';
-import { skippedRowsNotice, staleDelayNotice, unreadableSectionsNotice } from '../notices.js';
-import { AdvisoryRefSchema, DelayProfileSchema, renderDelayProfile } from '../schemas.js';
+import {
+  closureWindowNotice,
+  skippedRowsNotice,
+  staleDelayNotice,
+  unreadableSectionsNotice,
+} from '../notices.js';
+import {
+  AdvisoryRefSchema,
+  DelayProfileSchema,
+  PlannedItemSchema,
+  plannedMeta,
+  renderDelayProfile,
+} from '../schemas.js';
 
 const STATUSES = [
   'closed',
@@ -40,13 +53,12 @@ const MAX_AIRPORTS = 25;
 const MAX_SUBMITTED_AIRPORTS = 100;
 
 /**
- * Splits a comma- or whitespace-separated string into codes; other values pass through. A list is
- * cut to one past MAX_SUBMITTED_AIRPORTS, so an oversized one fails the size check with at most that many
- * code issues rather than one per code sent.
+ * Splits a comma- or whitespace-separated string into codes; other values pass through. Zod checks
+ * the array's `.max()` before its elements, so an oversized list fails as one `too_big` issue
+ * without any code being validated.
  */
 function splitList(value: unknown): unknown {
-  const list = typeof value === 'string' ? value.split(/[\s,]+/).filter(Boolean) : value;
-  return Array.isArray(list) ? list.slice(0, MAX_SUBMITTED_AIRPORTS + 1) : list;
+  return typeof value === 'string' ? value.split(/[\s,]+/).filter(Boolean) : value;
 }
 
 const AirportCode = z
@@ -82,6 +94,29 @@ const DelayBandSchema = z.object({
     .describe('When the FAA last updated this delay (UTC ISO); an entry can outlive the delay.'),
 });
 
+/** `closure` and `closureNotam`: the feed sends both as the same NOTAM record. */
+const ClosureSchema = z.object({
+  notamText: z.string().optional().describe('Full NOTAM text (FAA-authored).'),
+  text: z
+    .string()
+    .optional()
+    .describe(
+      'The NOTAM wording without its header and effective period: the restriction or the closure exceptions (FAA-authored).',
+    ),
+  notamNumber: z.number().optional().describe('NOTAM number.'),
+  issuedAt: z.string().optional().describe('NOTAM issue time (UTC ISO).'),
+  startTime: z.string().optional().describe('Start (UTC ISO).'),
+  endTime: z.string().optional().describe('End (UTC ISO).'),
+  updatedAt: z.string().optional().describe('Last FAA update (UTC ISO).'),
+  ...DailyWindowFields,
+});
+
+const PlannedProgramSchema = PlannedItemSchema.extend({
+  advisory: AdvisoryRefSchema.optional(),
+}).describe(
+  'One terminal item of the current operations plan that names this airport, with the advisory reference of the plan.',
+);
+
 const RowSchema = z
   .object({
     airportId: z.string().describe('Normalized 3-character FAA identifier.'),
@@ -107,7 +142,7 @@ const RowSchema = z
     status: z
       .enum(STATUSES)
       .describe(
-        'Headline status, first match wins: closed (airport closure) → ground_stop → ground_delay_program → delays (arrival or departure delay) → restrictions_only (listed with only a closure NOTAM, deicing, or runway configuration) → no_active_events (absent from the feed: no FAA program, which does not guarantee on-time flights).',
+        'Headline status, first match wins: closed (an airport closure in effect; one outside its daily window, closure.inEffect false, is skipped) → ground_stop → ground_delay_program → delays (arrival or departure delay) → restrictions_only (listed with only a closure NOTAM, deicing, runway configuration, or an airport closure outside its daily window) → no_active_events (absent from the feed: no FAA program, which does not guarantee on-time flights).',
       ),
     listedInFeed: z
       .boolean()
@@ -237,43 +272,69 @@ const RowSchema = z
     departureDelay: DelayBandSchema.optional().describe(
       'Active departure delay (taxi or gate holds).',
     ),
-    closure: z
-      .object({
-        text: z.string().optional().describe('Closure detail and exceptions (FAA-authored text).'),
-        startTime: z.string().optional().describe('Start (UTC ISO).'),
-        endTime: z.string().optional().describe('End (UTC ISO).'),
-        updatedAt: z.string().optional().describe('Last FAA update (UTC ISO).'),
-      })
-      .optional()
-      .describe('Airport closed to all operations; text lists exceptions.'),
-    closureNotam: z
-      .object({
-        notamText: z.string().optional().describe('Full NOTAM text (FAA-authored).'),
-        text: z.string().optional().describe('The restriction wording (FAA-authored).'),
-        notamNumber: z.number().optional().describe('NOTAM number.'),
-        issuedAt: z.string().optional().describe('NOTAM issue time (UTC ISO).'),
-        startTime: z.string().optional().describe('Start (UTC ISO).'),
-        endTime: z.string().optional().describe('End (UTC ISO).'),
-        updatedAt: z.string().optional().describe('Last FAA update (UTC ISO).'),
-      })
-      .optional()
-      .describe(
-        'NOTAM-worded closure or restriction, often narrow (for example closed to transient GA).',
-      ),
+    closure: ClosureSchema.optional().describe(
+      'Airport closed to all operations, with its NOTAM; text lists the exceptions. A closure scheduled daily is closed only inside dailyWindowUtc, and inEffect says whether it is at fetchedAt.',
+    ),
+    closureNotam: ClosureSchema.optional().describe(
+      'NOTAM-worded closure or restriction, often narrow (for example closed to transient GA).',
+    ),
     deicing: z
       .object({
         startedAt: z.string().optional().describe('When deicing began (UTC ISO).'),
       })
       .optional()
       .describe('A formal deicing program is in effect.'),
+    plannedPrograms: z
+      .array(PlannedProgramSchema)
+      .optional()
+      .describe(
+        "The current operations plan's terminal ground-stop and delay-program items that name this airport, each identical item once, with times as the plan states them (see timeUtc; an item past its time is not filtered out). [] when the plan names the airport nowhere, which does not mean no trouble is expected: en-route items, constraints, and runway closures stay in faa_delays_get_operations_plan and the plan advisory. Absent when the operations plan could not be read. Never changes status.",
+      ),
   })
   .describe('Status of one requested airport.');
 
 type Row = z.infer<typeof RowSchema>;
 
-function deriveStatus(events: AirportEvents | undefined): Row['status'] {
+type ClosureRow = z.infer<typeof ClosureSchema>;
+
+type PlannedProgram = z.infer<typeof PlannedProgramSchema>;
+
+/** The parser's name for the plan's terminal list when it could not be read. */
+const TERMINAL_PLANNED_SECTION = 'operations-plan.terminalPlanned';
+
+/**
+ * The plan's terminal items under each airport they name, an identical item once per airport;
+ * undefined when the terminal list could not be read, so no row reads as named nowhere.
+ */
+function plannedByAirport(plan: OperationsPlan): Map<string, PlannedProgram[]> | undefined {
+  if (plan.unreadableSections?.includes(TERMINAL_PLANNED_SECTION)) return;
+  const byAirport = new Map<string, PlannedProgram[]>();
+  for (const { airports = [], ...item } of plan.terminalPlanned) {
+    for (const airportId of airports) {
+      const programs = byAirport.get(airportId) ?? [];
+      if (programs.some((seen) => seen.text === item.text && seen.timeUtc === item.timeUtc)) {
+        continue;
+      }
+      programs.push(plan.advisory ? { ...item, advisory: plan.advisory } : item);
+      byAirport.set(airportId, programs);
+    }
+  }
+  return byAirport;
+}
+
+/** The closure with `inEffect` at `fetchedAt` when its NOTAM schedules a daily window. */
+function withWindowState(closure: Closure, fetchedAt: string): ClosureRow {
+  const state = dailyWindowState(closure, fetchedAt);
+  return state ? { ...closure, inEffect: state.inEffect } : closure;
+}
+
+/** A closure outside its daily window does not close the airport, so the precedence moves on. */
+function deriveStatus(
+  events: AirportEvents | undefined,
+  closure: ClosureRow | undefined,
+): Row['status'] {
   if (!events) return 'no_active_events';
-  if (events.closure) return 'closed';
+  if (closure && closure.inEffect !== false) return 'closed';
   if (events.groundStop) return 'ground_stop';
   if (events.groundDelayProgram) return 'ground_delay_program';
   if (events.arrivalDelay || events.departureDelay) return 'delays';
@@ -285,9 +346,13 @@ function buildRow(
   requestedAs: string | undefined,
   events: AirportEvents | undefined,
   pacing: Map<string, { timezone?: string; reportedTimezone?: string }> | undefined,
+  plannedPrograms: PlannedProgram[] | undefined,
+  fetchedAt: string,
 ): Row {
   const pacingEntry = pacing?.get(airport.faaId);
   const located = events ?? airport;
+  const closure = events?.closure && withWindowState(events.closure, fetchedAt);
+  const closureNotam = events?.closureNotam && withWindowState(events.closureNotam, fetchedAt);
   return {
     airportId: airport.faaId,
     ...(requestedAs && { requestedAs }),
@@ -295,7 +360,7 @@ function buildRow(
     ...(airport.city && { city: airport.city }),
     ...(airport.state && { state: airport.state }),
     ...(airport.artcc && { artcc: airport.artcc }),
-    status: deriveStatus(events),
+    status: deriveStatus(events, closure),
     listedInFeed: events !== undefined,
     ...(located.latitude !== undefined && { latitude: located.latitude }),
     ...(located.longitude !== undefined && { longitude: located.longitude }),
@@ -307,9 +372,10 @@ function buildRow(
     ...(events?.groundDelayProgram && { groundDelayProgram: events.groundDelayProgram }),
     ...(events?.arrivalDelay && { arrivalDelay: events.arrivalDelay }),
     ...(events?.departureDelay && { departureDelay: events.departureDelay }),
-    ...(events?.closure && { closure: events.closure }),
-    ...(events?.closureNotam && { closureNotam: events.closureNotam }),
+    ...(closure && { closure }),
+    ...(closureNotam && { closureNotam }),
     ...(events?.deicing && { deicing: events.deicing }),
+    ...(plannedPrograms && { plannedPrograms }),
   };
 }
 
@@ -332,10 +398,47 @@ function renderDelayBand(label: string, band: z.infer<typeof DelayBandSchema>): 
   return lines;
 }
 
+/**
+ * `- Detail: text` for one line of FAA text; a multi-line text keeps its line breaks as a quote
+ * nested under the label, so a CommonMark reader gets the lines `structuredContent` carries.
+ */
+function labeledText(label: string, text: string): string[] {
+  if (!/[\r\n]/.test(text)) return [`- ${label}: ${inline(text)}`];
+  return [
+    `- ${label}:`,
+    ...blockquote(text)
+      .split('\n')
+      .map((line) => `  ${line}`),
+  ];
+}
+
+/** A closure or closure NOTAM: its window, issue and update times, wording, and quoted NOTAM. */
+function renderClosure(heading: string, textLabel: string, closure: ClosureRow): string[] {
+  const lines = [
+    `**${heading}:** ${span(closure.startTime, closure.endTime)}${dailyWindowSuffix(closure)}`,
+  ];
+  if (closure.issuedAt) lines.push(`- Issued: ${inline(closure.issuedAt)}`);
+  if (closure.updatedAt) lines.push(`- Updated: ${inline(closure.updatedAt)}`);
+  if (closure.text) lines.push(...labeledText(textLabel, closure.text));
+  if (closure.notamText) lines.push(blockquote(closure.notamText));
+  return lines;
+}
+
+/** The plan items naming one airport, each with its time, likelihood, and advisory line. */
+function renderPlannedPrograms(programs: PlannedProgram[]): string[] {
+  if (programs.length === 0) return ['**Planned programs:** none named in the operations plan'];
+  const lines = [`**Planned programs (${programs.length}):**`];
+  programs.forEach((program, index) => {
+    const advisory = program.advisory ? ` · ${advisoryLine(program.advisory)}` : '';
+    lines.push('', `${index + 1}. ${plannedMeta(program)}${advisory}`, blockquote(program.text));
+  });
+  return lines;
+}
+
 export const getAirportStatus = tool('faa_delays_get_airport_status', {
   title: 'Get FAA Airport Status',
   description:
-    "Get the current FAA traffic management status for one or more US airports: a headline status, every active event (ground stop, Ground Delay Program with its delay profile, arrival or departure delay, closure, deicing) with reason and times, and the runway configuration and airport arrival rate. Every row carries the airport's ARTCC, and its coordinates come from the feed when the airport is listed (absent when the feed omits them) and from the NASR directory otherwise; both place a departure airport against a program's includedFacilities and departureScopeNm. Airports are FAA 3-character identifiers (SEA, ORD, JFK) or their ICAO codes (KSEA, PHNL); a code that names no US airport is rejected. The FAA feed lists only airports with an active event, so a known airport absent from it returns status no_active_events, and runway configuration is available only for listed airports.",
+    "Get the current FAA traffic management status for one or more US airports: a headline status, every active event (ground stop, Ground Delay Program with its delay profile, arrival or departure delay, closure, deicing) with reason and times, and the runway configuration and airport arrival rate. Each row also carries plannedPrograms, the current operations plan's terminal ground-stop and delay-program items that name the airport, with the plan's times as written. Every row carries the airport's ARTCC, and its coordinates come from the feed when the airport is listed (absent when the feed omits them) and from the NASR directory otherwise; both place a departure airport against a program's includedFacilities and departureScopeNm. Airports are FAA 3-character identifiers (SEA, ORD, JFK) or their ICAO codes (KSEA, PHNL); a code that names no US airport is rejected. The FAA feed lists only airports with an active event, so a known airport absent from it returns status no_active_events, and runway configuration is available only for listed airports.",
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
   input: z.object({
     airports: z
@@ -459,12 +562,14 @@ export const getAirportStatus = tool('faa_delays_get_airport_status', {
     }
 
     const nas = getNasStatusService();
-    const [eventsResult, pacingResult] = await Promise.allSettled([
+    const [eventsResult, pacingResult, planResult] = await Promise.allSettled([
       nas.getAirportEvents(ctx),
       nas.getPacingAirports(ctx),
+      nas.getOperationsPlan(ctx),
     ]);
     if (eventsResult.status === 'rejected') throw eventsResult.reason;
     if (pacingResult.status === 'rejected' && ctx.signal.aborted) throw pacingResult.reason;
+    if (planResult.status === 'rejected' && ctx.signal.aborted) throw planResult.reason;
 
     const feed = eventsResult.value;
     const eventsById = new Map(feed.rows.map((row) => [row.airportId, row]));
@@ -472,23 +577,33 @@ export const getAirportStatus = tool('faa_delays_get_airport_status', {
       pacingResult.status === 'fulfilled'
         ? new Map(pacingResult.value.rows.map((row) => [row.airportId, row]))
         : undefined;
+    const plan = planResult.status === 'fulfilled' ? planResult.value : undefined;
+    const planned = plan && plannedByAirport(plan);
     const omittedAirports = requested.slice(MAX_AIRPORTS).map(({ airport }) => airport.faaId);
     const airports = requested
       .slice(0, MAX_AIRPORTS)
       .map(({ airport, requestedAs }) =>
-        buildRow(airport, requestedAs, eventsById.get(airport.faaId), pacing),
+        buildRow(
+          airport,
+          requestedAs,
+          eventsById.get(airport.faaId),
+          pacing,
+          planned && (planned.get(airport.faaId) ?? []),
+          feed.fetchedAt,
+        ),
       );
 
-    const notices = unreadableSectionsNotice(feed.unreadableSections);
+    const notices = unreadableSectionsNotice([
+      ...(feed.unreadableSections ?? []),
+      ...(plan && !planned ? [TERMINAL_PLANNED_SECTION] : []),
+    ]);
     ctx.enrich({ cap: MAX_AIRPORTS, processedCount: airports.length, omittedAirports });
     if (omittedAirports.length > 0)
       notices.push(
         'Call faa_delays_get_airport_status again with omittedAirports as airports to process the remainder.',
       );
     if (airports.every((row) => row.status === 'no_active_events')) {
-      notices.push(
-        'None of the processed airports has an active FAA traffic management event. faa_delays_get_operations_plan lists programs the FAA expects later today.',
-      );
+      notices.push('None of the processed airports has an active FAA traffic management event.');
     }
     for (const row of airports) {
       for (const [kind, band] of [
@@ -497,6 +612,14 @@ export const getAirportStatus = tool('faa_delays_get_airport_status', {
       ] as const) {
         const stale = staleDelayNotice(row.airportId, kind, band?.updatedAt, feed.fetchedAt);
         if (stale) notices.push(stale);
+      }
+      for (const [kind, closure] of [
+        ['airport closure', row.closure],
+        ['closure NOTAM', row.closureNotam],
+      ] as const) {
+        const outside =
+          closure && closureWindowNotice(row.airportId, kind, closure, feed.fetchedAt);
+        if (outside) notices.push(outside);
       }
     }
     if (pacingResult.status === 'rejected') {
@@ -510,8 +633,21 @@ export const getAirportStatus = tool('faa_delays_get_airport_status', {
         'Pacing-airport flags and time zones are omitted because that FAA list could not be fetched.',
       );
     }
+    if (planResult.status === 'rejected') {
+      ctx.log.warning('Operations-plan leg failed; omitting plannedPrograms', {
+        error:
+          planResult.reason instanceof Error
+            ? planResult.reason.message
+            : String(planResult.reason),
+      });
+      notices.push(
+        'plannedPrograms is omitted because the FAA operations plan could not be read; faa_delays_get_operations_plan returns the reason and when to retry.',
+      );
+    }
     const skipped =
-      feed.skippedRows + (pacingResult.status === 'fulfilled' ? pacingResult.value.skippedRows : 0);
+      feed.skippedRows +
+      (pacingResult.status === 'fulfilled' ? pacingResult.value.skippedRows : 0) +
+      (plan?.skippedRows ?? 0);
     if (skipped > 0) notices.push(skippedRowsNotice(skipped));
     if (notices.length > 0) ctx.enrich.notice(notices.join(' '));
 
@@ -611,21 +747,16 @@ export const getAirportStatus = tool('faa_delays_get_airport_status', {
 
       const closure = row.closure;
       if (closure) {
-        lines.push('', `**Airport closed:** ${span(closure.startTime, closure.endTime)}`);
-        if (closure.updatedAt) lines.push(`- Updated: ${inline(closure.updatedAt)}`);
-        if (closure.text) lines.push(blockquote(closure.text));
+        const number = closure.notamNumber !== undefined ? ` (NOTAM ${closure.notamNumber})` : '';
+        // Outside its daily window the closure does not close the airport, so the heading names it.
+        const heading = closure.inEffect === false ? 'Airport closure' : 'Airport closed';
+        lines.push('', ...renderClosure(`${heading}${number}`, 'Detail', closure));
       }
 
       const notam = row.closureNotam;
       if (notam) {
-        lines.push(
-          '',
-          `**Closure NOTAM${notam.notamNumber !== undefined ? ` ${notam.notamNumber}` : ''}:** ${span(notam.startTime, notam.endTime)}`,
-        );
-        if (notam.issuedAt) lines.push(`- Issued: ${inline(notam.issuedAt)}`);
-        if (notam.updatedAt) lines.push(`- Updated: ${inline(notam.updatedAt)}`);
-        if (notam.text) lines.push(`- Restriction: ${inline(notam.text)}`);
-        if (notam.notamText) lines.push(blockquote(notam.notamText));
+        const number = notam.notamNumber !== undefined ? ` ${notam.notamNumber}` : '';
+        lines.push('', ...renderClosure(`Closure NOTAM${number}`, 'Restriction', notam));
       }
 
       if (row.deicing)
@@ -633,6 +764,8 @@ export const getAirportStatus = tool('faa_delays_get_airport_status', {
           '',
           `**Deicing:** in effect since ${row.deicing.startedAt ? inline(row.deicing.startedAt) : 'unknown'}`,
         );
+
+      if (row.plannedPrograms) lines.push('', ...renderPlannedPrograms(row.plannedPrograms));
     }
     return [{ type: 'text', text: lines.join('\n') }];
   },
