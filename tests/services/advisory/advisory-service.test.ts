@@ -21,6 +21,8 @@ import {
 import { advisoryUrl, createClock, htmlResponse, readFixture } from '../../helpers/faa-fakes.js';
 
 const URL_UNDER_TEST = 'https://www.fly.faa.gov/adv/adv_otherdis?advn=3&adv_date=09302026';
+/** The UTC date `URL_UNDER_TEST` names, which anchors a page's effective period and signature. */
+const ADVISORY_DATE = '2026-09-30';
 
 const INDEX = 'https://www.fly.faa.gov/adv/adv_list?whichAdvisories=ATCSCC';
 const INDEX_URL = `${INDEX}&advisoryCategory=All&date=2026-10-01`;
@@ -102,13 +104,19 @@ describe('decodeEntities', () => {
 
 describe('parseAdvisoryPage', () => {
   it('reads a GDP advisory: title parts, effective time, signature, and text', () => {
-    const result = parseAdvisoryPage(readFixture('advisory-gdp.page'), URL_UNDER_TEST);
+    const result = parseAdvisoryPage(
+      readFixture('advisory-gdp.page'),
+      URL_UNDER_TEST,
+      ADVISORY_DATE,
+    );
 
     expect(result).toMatchObject({
       controlElement: 'SEA/ZSE',
+      effectiveEnd: '2026-09-30T06:59:00Z',
+      effectiveStart: '2026-09-30T00:16:00Z',
       effectiveTime: '300016-300659',
       found: true,
-      sentAt: '26/09/30 00:17',
+      sentAt: '2026-09-30T00:17:00Z',
       subject: 'CDM GROUND DELAY PROGRAM',
       title: 'ATCSCC ADVZY 003 SEA/ZSE 09/30/2026 CDM GROUND DELAY PROGRAM',
     });
@@ -118,11 +126,15 @@ describe('parseAdvisoryPage', () => {
   });
 
   it('reads every field of a labelled-cell page exactly', () => {
-    expect(parseAdvisoryPage(readFixture('advisory-gdp.page'), URL_UNDER_TEST)).toEqual({
+    expect(
+      parseAdvisoryPage(readFixture('advisory-gdp.page'), URL_UNDER_TEST, ADVISORY_DATE),
+    ).toEqual({
       controlElement: 'SEA/ZSE',
+      effectiveEnd: '2026-09-30T06:59:00Z',
+      effectiveStart: '2026-09-30T00:16:00Z',
       effectiveTime: '300016-300659',
       found: true,
-      sentAt: '26/09/30 00:17',
+      sentAt: '2026-09-30T00:17:00Z',
       subject: 'CDM GROUND DELAY PROGRAM',
       text: GDP_TEXT,
       title: 'ATCSCC ADVZY 003 SEA/ZSE 09/30/2026 CDM GROUND DELAY PROGRAM',
@@ -130,18 +142,28 @@ describe('parseAdvisoryPage', () => {
   });
 
   it('trims the literal trailing &nbsp; the FAA appends to the text block', () => {
-    const result = parseAdvisoryPage(readFixture('advisory-gdp.page'), URL_UNDER_TEST);
+    const result = parseAdvisoryPage(
+      readFixture('advisory-gdp.page'),
+      URL_UNDER_TEST,
+      ADVISORY_DATE,
+    );
     expect(result.text?.endsWith('POSTURE.')).toBe(true);
   });
 
   it('reads an operations plan: effective time and signature from its trailing lines', () => {
-    const result = parseAdvisoryPage(readFixture('advisory-ops-plan.page'), URL_UNDER_TEST);
+    const result = parseAdvisoryPage(
+      readFixture('advisory-ops-plan.page'),
+      URL_UNDER_TEST,
+      '2026-09-29',
+    );
 
     expect(result).toMatchObject({
       controlElement: 'DCC',
+      effectiveEnd: '2026-09-30T11:59:00Z',
+      effectiveStart: '2026-09-29T23:53:00Z',
       effectiveTime: '292353-301159',
       found: true,
-      sentAt: '26/09/29 23:53',
+      sentAt: '2026-09-29T23:53:00Z',
       subject: 'OPERATIONS PLAN',
       title: 'ATCSCC ADVZY 082 DCC 09/29/2026 OPERATIONS PLAN',
     });
@@ -154,22 +176,30 @@ describe('parseAdvisoryPage', () => {
 
     it('reads a required reroute (ROUTE RQD)', () => {
       expect(
-        parseAdvisoryPage(readFixture('advisory-route-rqd.page'), URL_UNDER_TEST),
+        parseAdvisoryPage(readFixture('advisory-route-rqd.page'), URL_UNDER_TEST, '2026-10-01'),
       ).toMatchObject({
         controlElement: 'DCC',
+        effectiveEnd: '2026-10-02T00:00:00Z',
+        effectiveStart: '2026-10-01T22:27:00Z',
         effectiveTime: '012227-020000',
-        sentAt: '26/10/01 22:27',
+        sentAt: '2026-10-01T22:27:00Z',
         subject: 'ROUTE RQD /FL',
         title: 'ATCSCC ADVZY 152 DCC 10/01/2026 ROUTE RQD /FL',
       });
     });
 
     it('skips the blank line between the effective time and the signature', () => {
-      const result = parseAdvisoryPage(readFixture('advisory-ops-plan-2004.page'), URL_UNDER_TEST);
+      const result = parseAdvisoryPage(
+        readFixture('advisory-ops-plan-2004.page'),
+        URL_UNDER_TEST,
+        '2004-06-15',
+      );
 
       expect(result).toMatchObject({
+        effectiveEnd: '2004-06-16T05:59:00Z',
+        effectiveStart: '2004-06-15T23:46:00Z',
         effectiveTime: '152346-160559',
-        sentAt: '04/06/15 23:44',
+        sentAt: '2004-06-15T23:44:00Z',
         title: 'ATCSCC ADVZY 155 DCC 06/15/2004 OPERATIONS PLAN',
       });
       expect(result.text?.endsWith('152346-160559\n\n04/06/15 23:44   FSA.//lxstn08a')).toBe(true);
@@ -180,23 +210,23 @@ describe('parseAdvisoryPage', () => {
         'a signature without an operator ID',
         'BODY\n012131-012359\n26/10/01 21:31',
         '012131-012359',
-        '26/10/01 21:31',
+        '2026-10-01T21:31:00Z',
       ],
       ['an effective time as the last line', 'BODY\n012131-012359', '012131-012359', undefined],
       [
         'a signature with no effective time',
         'BODY\n26/10/01 21:31  OP.x',
         undefined,
-        '26/10/01 21:31',
+        '2026-10-01T21:31:00Z',
       ],
       [
         'CRLF line ends and blank lines between and after',
         'BODY\r\n012131-012359\r\n \r\n26/10/01 21:31  OP\r\n\r\n',
         '012131-012359',
-        '26/10/01 21:31',
+        '2026-10-01T21:31:00Z',
       ],
     ])('reads %s', (_label, text, effectiveTime, sentAt) => {
-      const result = parseAdvisoryPage(page(OPS_TITLE, text), URL_UNDER_TEST);
+      const result = parseAdvisoryPage(page(OPS_TITLE, text), URL_UNDER_TEST, '2026-10-01');
       expect(result.effectiveTime).toBe(effectiveTime);
       expect(result.sentAt).toBe(sentAt);
     });
@@ -208,9 +238,10 @@ describe('parseAdvisoryPage', () => {
       ['a signature not on the last line', 'BODY\n26/10/01 21:31  OP\nEND'],
       ['a signature run into its operator ID', 'BODY\n26/10/01 21:31OP'],
     ])('leaves both times absent for %s', (_label, text) => {
-      const result = parseAdvisoryPage(page(OPS_TITLE, text), URL_UNDER_TEST);
-      expect(result).not.toHaveProperty('effectiveTime');
-      expect(result).not.toHaveProperty('sentAt');
+      const result = parseAdvisoryPage(page(OPS_TITLE, text), URL_UNDER_TEST, '2026-10-01');
+      for (const key of ['effectiveTime', 'effectiveStart', 'effectiveEnd', 'sentAt']) {
+        expect(result).not.toHaveProperty(key);
+      }
     });
 
     it('never lets a trailing line override a labelled cell', () => {
@@ -219,9 +250,14 @@ describe('parseAdvisoryPage', () => {
       const result = parseAdvisoryPage(
         page(OPS_TITLE, 'BODY\n012131-012359\n26/10/01 21:31  OP', cells),
         URL_UNDER_TEST,
+        '2026-10-01',
       );
 
-      expect(result).toMatchObject({ effectiveTime: '300016-300659', sentAt: '26/09/30 00:17' });
+      expect(result).toMatchObject({
+        effectiveStart: '2026-09-30T00:16:00Z',
+        effectiveTime: '300016-300659',
+        sentAt: '2026-09-30T00:17:00Z',
+      });
     });
 
     it('fills only the field whose cell is missing', () => {
@@ -229,9 +265,137 @@ describe('parseAdvisoryPage', () => {
       const result = parseAdvisoryPage(
         page(OPS_TITLE, 'BODY\n012131-012359\n26/10/01 21:31  OP', cells),
         URL_UNDER_TEST,
+        '2026-10-01',
       );
 
-      expect(result).toMatchObject({ effectiveTime: '300016-300659', sentAt: '26/10/01 21:31' });
+      expect(result).toMatchObject({
+        effectiveTime: '300016-300659',
+        sentAt: '2026-10-01T21:31:00Z',
+      });
+    });
+
+    it('keeps a signature cell that names no real minute out of the result, without reading the trailing line', () => {
+      const cells =
+        '<TR><TD class=nam>EFFECTIVE TIME:</TD><TD class=val>300016-300659</TD></TR><TR><TD class=nam>SIGNATURE:</TD><TD class=val>26/02/30 12:00&nbsp;</TD></TR>';
+      const result = parseAdvisoryPage(
+        page(OPS_TITLE, 'BODY\n012131-012359\n26/10/01 21:31  OP', cells),
+        URL_UNDER_TEST,
+        '2026-10-01',
+      );
+
+      expect(result.effectiveTime).toBe('300016-300659');
+      expect(result).not.toHaveProperty('sentAt');
+    });
+  });
+
+  describe('effective period and signature as ISO 8601 UTC, anchored on the advisory date', () => {
+    /** A labelled-cell page (GDP, ground stop) carrying `effective` and `signature` in their cells. */
+    const cellPage = (effective: string, signature = '26/11/02 23:58'): string =>
+      page(
+        'ATCSCC ADVZY 117 MIA/ZMA 11/02/2026 CDM GROUND DELAY PROGRAM',
+        'CTL ELEMENT: MIA',
+        `<TR><TD class=nam>EFFECTIVE TIME:</TD><TD class=val>${effective}</TD></TR><TR><TD class=nam>SIGNATURE:</TD><TD class=val>${signature}&nbsp;</TD></TR>`,
+      );
+    const read = (date: string, effective: string, signature?: string) =>
+      parseAdvisoryPage(cellPage(effective, signature), URL_UNDER_TEST, date);
+
+    it('returns ISO start, end, and signature beside the printed effective time', () => {
+      expect(read('2026-11-02', '022356-030459')).toMatchObject({
+        effectiveEnd: '2026-11-03T04:59:00Z',
+        effectiveStart: '2026-11-02T23:56:00Z',
+        effectiveTime: '022356-030459',
+        sentAt: '2026-11-02T23:58:00Z',
+      });
+    });
+
+    it.each([
+      // A window inside the advisory date.
+      ['2026-07-17', '171506-171659', '2026-07-17T15:06:00Z', '2026-07-17T16:59:00Z'],
+      // A window into the next day.
+      ['2026-11-02', '022356-030459', '2026-11-02T23:56:00Z', '2026-11-03T04:59:00Z'],
+      // A re-sent reroute whose window opened the previous day, in the previous month.
+      ['2025-08-01', '311815-010130', '2025-07-31T18:15:00Z', '2025-08-01T01:30:00Z'],
+      // A window from the 31st into the 1st.
+      ['2025-07-31', '311846-010300', '2025-07-31T18:46:00Z', '2025-08-01T03:00:00Z'],
+      // A start on the day after the advisory date, across a month end.
+      ['2025-07-31', '010000-011100', '2025-08-01T00:00:00Z', '2025-08-01T11:00:00Z'],
+      // A start on the day after the advisory date, mid-month.
+      ['2026-07-17', '180000-180200', '2026-07-18T00:00:00Z', '2026-07-18T02:00:00Z'],
+      // A start in the previous year.
+      ['2026-01-01', '312330-010300', '2025-12-31T23:30:00Z', '2026-01-01T03:00:00Z'],
+      // An end in the next year.
+      ['2025-12-31', '312340-010300', '2025-12-31T23:40:00Z', '2026-01-01T03:00:00Z'],
+      // February into March.
+      ['2026-02-28', '282200-010400', '2026-02-28T22:00:00Z', '2026-03-01T04:00:00Z'],
+      // A leap day in the previous month.
+      ['2028-03-01', '292300-010100', '2028-02-29T23:00:00Z', '2028-03-01T01:00:00Z'],
+      // A zero-length placeholder (volcanic activity bulletins print midnight to midnight).
+      ['2025-07-31', '310000-310000', '2025-07-31T00:00:00Z', '2025-07-31T00:00:00Z'],
+      // An end earlier in the day than its start, in the next month: the longest span the form holds.
+      ['2026-03-05', '051800-051700', '2026-03-05T18:00:00Z', '2026-04-05T17:00:00Z'],
+    ])('on %s resolves %s to %s – %s', (date, effective, effectiveStart, effectiveEnd) => {
+      expect(read(date, effective)).toMatchObject({
+        effectiveEnd,
+        effectiveStart,
+        effectiveTime: effective,
+      });
+    });
+
+    it.each([
+      ['minute 60 in the start', '022360-030459'],
+      ['hour 24 in the start', '022400-030459'],
+      ['minute 60 in the end', '022356-030460'],
+      ['hour 24 in the end', '022356-032400'],
+      ['day 00', '002356-030459'],
+      ['day 32', '322356-030459'],
+      ['an end day no month has', '022356-320459'],
+      ['until further notice', 'UFN'],
+      ['a single time', '022356'],
+      ['four-digit times', '2356-0459'],
+      ['a trailing space-separated note', '022356-030459 UTC'],
+    ])('keeps effectiveTime but omits the start and end for %s', (_label, effective) => {
+      const result = read('2026-11-02', effective);
+
+      expect(result.effectiveTime).toBe(effective);
+      expect(result).not.toHaveProperty('effectiveStart');
+      expect(result).not.toHaveProperty('effectiveEnd');
+      expect(result.sentAt).toBe('2026-11-02T23:58:00Z');
+    });
+
+    it.each([
+      // The next date with day 31 after March 31 is May 31.
+      ['2026-03-31', '311800-311700'],
+      // February 2026 has no 29th, so the next one after January 30 is March 29.
+      ['2026-01-30', '301200-291200'],
+    ])(
+      'on %s omits the start and end of %s, whose end falls past the next month',
+      (date, effective) => {
+        const result = read(date, effective);
+
+        expect(result.effectiveTime).toBe(effective);
+        expect(result).not.toHaveProperty('effectiveStart');
+        expect(result).not.toHaveProperty('effectiveEnd');
+      },
+    );
+
+    it.each([
+      ['2026-11-02', '26/11/02 23:58', '2026-11-02T23:58:00Z'],
+      ['2004-06-15', '04/06/15 23:44', '2004-06-15T23:44:00Z'],
+      // The century nearest the advisory date.
+      ['2000-01-01', '99/12/31 23:59', '1999-12-31T23:59:00Z'],
+      // No real minute: February 30, hour 24, minute 60, month 13.
+      ['2026-02-28', '26/02/30 12:00', undefined],
+      ['2026-11-02', '26/11/02 24:00', undefined],
+      ['2026-11-02', '26/11/02 23:60', undefined],
+      ['2026-11-02', '26/13/02 23:58', undefined],
+      // Another form.
+      ['2026-11-02', '2026-11-02 23:58', undefined],
+    ])('on %s reads the signature %j as sentAt %j', (date, signature, sentAt) => {
+      const result = read(date, '022356-030459', signature);
+
+      if (sentAt === undefined) expect(result).not.toHaveProperty('sentAt');
+      else expect(result.sentAt).toBe(sentAt);
+      expect(result.effectiveTime).toBe('022356-030459');
     });
   });
 
@@ -243,6 +407,7 @@ describe('parseAdvisoryPage', () => {
           'TEXT',
         ),
         URL_UNDER_TEST,
+        ADVISORY_DATE,
       );
 
       expect(result).toMatchObject({
@@ -257,6 +422,7 @@ describe('parseAdvisoryPage', () => {
         parseAdvisoryPage(
           page('ATCSCC ADVZY 5 DCC 10/01/2026 MEETING 10/02/2026 RECAP', 'T'),
           URL_UNDER_TEST,
+          ADVISORY_DATE,
         ),
       ).toMatchObject({ controlElement: 'DCC', subject: 'MEETING 10/02/2026 RECAP' });
     });
@@ -269,7 +435,7 @@ describe('parseAdvisoryPage', () => {
       ],
       ['DCC', 'ATCSCC ADVZY 082 DCC 09/29/2026 OPERATIONS PLAN', 'OPERATIONS PLAN'],
     ])('reads the single-token element %s as before', (element, title, subject) => {
-      expect(parseAdvisoryPage(page(title, 'T'), URL_UNDER_TEST)).toMatchObject({
+      expect(parseAdvisoryPage(page(title, 'T'), URL_UNDER_TEST, ADVISORY_DATE)).toMatchObject({
         controlElement: element,
         subject,
       });
@@ -281,7 +447,7 @@ describe('parseAdvisoryPage', () => {
       ['no subject after the date', 'ATCSCC ADVZY 127 EWR AND SATS/ZNY 10/01/2026'],
       ['no advisory number', 'ATCSCC ADVZY EWR AND SATS/ZNY 10/01/2026 ARRIVAL DELAYS'],
     ])('leaves control element and subject absent for a title with %s', (_label, title) => {
-      const result = parseAdvisoryPage(page(title, 'T'), URL_UNDER_TEST);
+      const result = parseAdvisoryPage(page(title, 'T'), URL_UNDER_TEST, ADVISORY_DATE);
       expect(result).not.toHaveProperty('controlElement');
       expect(result).not.toHaveProperty('subject');
     });
@@ -291,6 +457,7 @@ describe('parseAdvisoryPage', () => {
     const result = parseAdvisoryPage(
       page('ATCSCC&nbsp;ADVZY&nbsp;001&nbsp;DCC&nbsp;09/30/2026&nbsp;NOTE', 'A &amp; B &lt;C&gt;'),
       URL_UNDER_TEST,
+      ADVISORY_DATE,
     );
     expect(result.text).toBe('A & B <C>');
   });
@@ -299,13 +466,16 @@ describe('parseAdvisoryPage', () => {
     const result = parseAdvisoryPage(
       page('NAV CANADA&nbsp;ADVISORY&nbsp;12', 'TEXT BODY'),
       URL_UNDER_TEST,
+      ADVISORY_DATE,
     );
 
     expect(result).toEqual({ found: true, text: 'TEXT BODY', title: 'NAV CANADA ADVISORY 12' });
   });
 
   it('reads a text block without a title', () => {
-    expect(parseAdvisoryPage(page(undefined, 'ORPHAN TEXT'), URL_UNDER_TEST)).toEqual({
+    expect(
+      parseAdvisoryPage(page(undefined, 'ORPHAN TEXT'), URL_UNDER_TEST, ADVISORY_DATE),
+    ).toEqual({
       found: true,
       text: 'ORPHAN TEXT',
     });
@@ -315,6 +485,7 @@ describe('parseAdvisoryPage', () => {
     const result = parseAdvisoryPage(
       page('ATCSCC ADVZY 001 DCC 09/30/2026 NOTE', '  &nbsp; \n'),
       URL_UNDER_TEST,
+      ADVISORY_DATE,
     );
     expect(result.found).toBe(true);
     expect(result).not.toHaveProperty('text');
@@ -323,7 +494,7 @@ describe('parseAdvisoryPage', () => {
   it('matches PRE and header tags case-insensitively and with attributes', () => {
     const html =
       "<th CLASS='header' align=center>ATCSCC ADVZY 005 ZNY/ZNY 09/30/2026 FCA</th><pre id=x>lower</pre>";
-    expect(parseAdvisoryPage(html, URL_UNDER_TEST)).toMatchObject({
+    expect(parseAdvisoryPage(html, URL_UNDER_TEST, ADVISORY_DATE)).toMatchObject({
       found: true,
       subject: 'FCA',
       text: 'lower',
@@ -331,14 +502,20 @@ describe('parseAdvisoryPage', () => {
   });
 
   it('reads the miss page as found: false with nothing else', () => {
-    expect(parseAdvisoryPage(readFixture('advisory-miss.page'), URL_UNDER_TEST)).toEqual({
+    expect(
+      parseAdvisoryPage(readFixture('advisory-miss.page'), URL_UNDER_TEST, ADVISORY_DATE),
+    ).toEqual({
       found: false,
     });
   });
 
   it('raises advisory_contract_changed, carrying the url, when a title has no text block', () => {
     try {
-      parseAdvisoryPage(page('ATCSCC ADVZY 003 SEA/ZSE 09/30/2026 GDP', undefined), URL_UNDER_TEST);
+      parseAdvisoryPage(
+        page('ATCSCC ADVZY 003 SEA/ZSE 09/30/2026 GDP', undefined),
+        URL_UNDER_TEST,
+        ADVISORY_DATE,
+      );
     } catch (error) {
       expect(error).toBeInstanceOf(McpError);
       expect((error as McpError).code).toBe(JsonRpcErrorCode.SerializationError);
@@ -356,7 +533,7 @@ describe('parseAdvisoryPage', () => {
     'raises advisory_service_unavailable for %s',
     (_label, fixture) => {
       try {
-        parseAdvisoryPage(readFixture(fixture), URL_UNDER_TEST);
+        parseAdvisoryPage(readFixture(fixture), URL_UNDER_TEST, ADVISORY_DATE);
       } catch (error) {
         expect((error as McpError).code).toBe(JsonRpcErrorCode.ServiceUnavailable);
         expect((error as McpError).data).toMatchObject({
@@ -370,7 +547,9 @@ describe('parseAdvisoryPage', () => {
   );
 
   it('raises advisory_service_unavailable for an empty page', () => {
-    expect(() => parseAdvisoryPage('', URL_UNDER_TEST)).toThrow(/neither an advisory/);
+    expect(() => parseAdvisoryPage('', URL_UNDER_TEST, ADVISORY_DATE)).toThrow(
+      /neither an advisory/,
+    );
   });
 
   describe('time on hostile markup', () => {
@@ -399,7 +578,9 @@ describe('parseAdvisoryPage', () => {
       ['header cells with no closing tag', `${'<TH class=header>'.repeat(20_000)}<PRE>T</PRE>`],
     ])('reads a page of %s in linear time', (_label, html) => {
       expect(
-        elapsedMs(() => expect(parseAdvisoryPage(html, URL_UNDER_TEST).found).toBe(true)),
+        elapsedMs(() =>
+          expect(parseAdvisoryPage(html, URL_UNDER_TEST, ADVISORY_DATE).found).toBe(true),
+        ),
       ).toBeLessThan(250);
     });
 
@@ -409,7 +590,9 @@ describe('parseAdvisoryPage', () => {
     ])('rejects a page of %s in linear time', (_label, html) => {
       expect(
         elapsedMs(() =>
-          expect(() => parseAdvisoryPage(html, URL_UNDER_TEST)).toThrow(/neither an advisory/),
+          expect(() => parseAdvisoryPage(html, URL_UNDER_TEST, ADVISORY_DATE)).toThrow(
+            /neither an advisory/,
+          ),
         ),
       ).toBeLessThan(250);
     });
@@ -943,7 +1126,7 @@ describe('parse time grows linearly with input size', () => {
   it('applies the title rule to a title with no date', () => {
     const outcome = expectLinear(
       (size) => page(`ATCSCC&nbsp;ADVZY&nbsp;001&nbsp;${fill('X 01/01/2', size)}`, 'TEXT'),
-      (html) => parseAdvisoryPage(html, URL_UNDER_TEST),
+      (html) => parseAdvisoryPage(html, URL_UNDER_TEST, ADVISORY_DATE),
     );
     expect(outcome).toMatchObject({ found: true, text: 'TEXT' });
     expect(outcome).not.toHaveProperty('controlElement');
@@ -957,9 +1140,14 @@ describe('parse time grows linearly with input size', () => {
           'ATCSCC ADVZY 144 DCC 10/01/2026 OPERATIONS PLAN',
           `${fill('012131-012359\n \n', size)}26/10/01 21:31  DCCOPS.lxstn35`,
         ),
-      (html) => parseAdvisoryPage(html, URL_UNDER_TEST),
+      (html) => parseAdvisoryPage(html, URL_UNDER_TEST, '2026-10-01'),
     );
-    expect(outcome).toMatchObject({ effectiveTime: '012131-012359', sentAt: '26/10/01 21:31' });
+    expect(outcome).toMatchObject({
+      effectiveEnd: '2026-10-01T23:59:00Z',
+      effectiveStart: '2026-10-01T21:31:00Z',
+      effectiveTime: '012131-012359',
+      sentAt: '2026-10-01T21:31:00Z',
+    });
   });
 });
 
@@ -1091,6 +1279,25 @@ describe('AdvisoryService', () => {
     expect(a.subject).toBe('CDM GROUND DELAY PROGRAM');
     expect(b.subject).toBe('OPERATIONS PLAN');
     expect(harness.calls).toHaveLength(2);
+  });
+
+  it('resolves each cached page against its own date, so one number on two dates never shares an anchor', async () => {
+    const august = advisoryUrl(3, '08152026');
+    const { harness } = makeService({
+      [URL_UNDER_TEST]: () => htmlResponse(readFixture('advisory-gdp.page')),
+      [august]: () => htmlResponse(readFixture('advisory-gdp.page')),
+    });
+    const ctx = createMockContext();
+
+    const september = await service.getAdvisory(3, '2026-09-30', ctx);
+    const mid = await service.getAdvisory(3, '2026-08-15', ctx);
+    const again = await service.getAdvisory(3, '2026-09-30', ctx);
+
+    // Day 30 nearest 2026-09-30 is that date; nearest 2026-08-15 it is 2026-08-30.
+    expect(september.effectiveStart).toBe('2026-09-30T00:16:00Z');
+    expect(mid.effectiveStart).toBe('2026-08-30T00:16:00Z');
+    expect(again).toEqual(september);
+    expect(harness.calls.map((call) => call.request.url)).toEqual([URL_UNDER_TEST, august]);
   });
 
   it('shares one fetch between concurrent callers of the same advisory', async () => {

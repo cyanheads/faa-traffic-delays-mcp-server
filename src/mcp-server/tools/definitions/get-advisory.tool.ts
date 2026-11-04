@@ -74,11 +74,27 @@ export const getAdvisory = tool('faa_delays_get_advisory', {
     effectiveTime: z
       .string()
       .optional()
-      .describe('Effective period as the FAA prints it, DDHHMM-DDHHMM in UTC.'),
+      .describe(
+        'Effective period as the FAA prints it, DDHHMM-DDHHMM in UTC (day of month, hour, minute); effectiveStart and effectiveEnd give it as ISO 8601.',
+      ),
+    effectiveStart: z
+      .string()
+      .optional()
+      .describe(
+        'Start of the effective period, ISO 8601 UTC: the date nearest the advisory date with the printed start day of month (previous, same, or next month). Absent when effectiveTime is absent or names no real time.',
+      ),
+    effectiveEnd: z
+      .string()
+      .optional()
+      .describe(
+        'End of the effective period, ISO 8601 UTC: the first date at or after effectiveStart with the printed end day of month, in its month or the next. Present with effectiveStart.',
+      ),
     sentAt: z
       .string()
       .optional()
-      .describe('When the advisory was signed, as the FAA prints it: YY/MM/DD HH:MM in UTC.'),
+      .describe(
+        'When the advisory was signed, ISO 8601 UTC, as faa_delays_list_advisories gives its send time. Absent when the page prints no signature or it names no real minute.',
+      ),
     text: z
       .string()
       .optional()
@@ -207,6 +223,8 @@ export const getAdvisory = tool('faa_delays_get_advisory', {
       ...(page.controlElement && { controlElement: page.controlElement }),
       ...(page.subject && { subject: page.subject }),
       ...(page.effectiveTime && { effectiveTime: page.effectiveTime }),
+      ...(page.effectiveStart && { effectiveStart: page.effectiveStart }),
+      ...(page.effectiveEnd && { effectiveEnd: page.effectiveEnd }),
       ...(page.sentAt && { sentAt: page.sentAt }),
       ...(text && { text }),
     };
@@ -223,9 +241,13 @@ export const getAdvisory = tool('faa_delays_get_advisory', {
       result.subject && `**Subject:** ${inline(result.subject)}`,
     ].filter(Boolean);
     if (parsed.length > 0) lines.push(parsed.join(' · '));
+    const period =
+      result.effectiveStart && result.effectiveEnd
+        ? ` (${result.effectiveStart} to ${result.effectiveEnd})`
+        : '';
     const times = [
-      result.effectiveTime && `**Effective:** ${inline(result.effectiveTime)}`,
-      result.sentAt && `**Sent:** ${inline(result.sentAt)}`,
+      result.effectiveTime && `**Effective:** ${inline(result.effectiveTime)}${period}`,
+      result.sentAt && `**Sent:** ${result.sentAt}`,
     ].filter(Boolean);
     if (times.length > 0) lines.push(times.join(' · '));
     if (result.text) lines.push('', fenced(result.text));

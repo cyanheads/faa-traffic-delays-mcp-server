@@ -1,0 +1,3483 @@
+
+
+
+
+	
+		<html>
+<head>
+<meta name="description" content="FAA - Advisories Database">
+<meta name="abstract"
+	content="This is the official site to view FAA - Advisories">
+<meta name="keywords" content="Advisories">
+<meta name="author" content="FAA ATCSCC">
+<meta name="copyright" content="FAA ATCSCC">
+<meta http-equiv="Content-Language" content="EN-US">
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+
+<title>Database Results</title>
+
+	<!-- 	<meta http-equiv="refresh" content="300"> -->
+	<script>
+		setTimeout(function() {
+			var selectedForm = document.forms["AdvisoryForm"];
+			if (typeof (selectedForm) != 'undefined' && selectedForm != null) {
+				Object.getPrototypeOf(selectedForm).submit;
+			} else {
+				window.location = window.location;
+			}
+		}, 300000);
+	</script>
+
+
+<LINK rel=stylesheet type="text/css"
+	href="/adv/styles/faa_styles.css">
+<LINK rel=stylesheet type="text/css"
+	href="/adv/styles/advisories.css">
+
+<META NAME="Generator"
+	CONTENT="NetObjects Authoring Server 3.0 for Windows">
+
+</HEAD>
+<BODY>
+	<div align="center">
+
+		
+
+
+<link href="/adv/styles/master.css" rel="stylesheet"
+	type="text/css" media="screen,projection">
+<!--[if lte IE 6]>
+        <link href="/faaTemplatePublic/styles/ie6minus.css" rel="stylesheet" type="text/css" media="screen,projection">
+    <![endif]-->
+<!--[if IE 6]>
+        <link href="/faaTemplatePublic/styles/ie6.css" rel="stylesheet" type="text/css" media="screen,projection">
+    <![endif]-->
+<!--[if IE 7]>
+        <link href="/faaTemplatePublic/styles/ie7.css" rel="stylesheet" type="text/css" media="screen,projection">
+    <![endif]-->
+<link href="/adv/styles/print.css"
+	rel="stylesheet" type="text/css" media="print">
+
+<div id="head">
+	<div class="fluid">
+		<div class="fluid">
+			<a href="http://www.faa.gov/" title="FAA Homepage"><img
+				src="/adv/images/head_logo_left.gif"
+				alt="Federal Aviation Administration" height="71" width="185" /></a>
+			<div id="headlink">
+				<a href="http://www.faa.gov">FAA Home</a>
+			</div>
+			<!-- headlink -->
+		</div>
+		<!-- fluid -->
+	</div>
+	<!-- fluid -->
+</div>
+<!-- head -->
+
+
+		<!-- Start of content area -->
+<table width="780" cellpadding="0" cellspacing="0" border="0"
+	summary="This table is for layout">
+	<tr bgcolor="#FFFFFF">
+		<td align="left" valign="top" width="20" height="20" class="bodyText"
+			rowspan="2">
+			<img src="/adv/images/clear.gif"
+				width="20" height="20" border="0" alt="">
+		</td>
+
+		<td align="left" valign="top" width="100%" class="bodyText">
+			<h1>
+				Air Traffic Control System Command Center
+
+			</h1>
+
+			<table width="100%" cellpadding="5" cellspacing="0"
+				summary="This table is for layout">
+				<tr bgcolor="#EFEFEF">
+
+					<td align="left" valign="middle" class="bodyText">
+						<a href="https://nasstatus.faa.gov/" class="bodyTextLinkBold">ATCSCC
+							Home</a> | <a href="http://www.fly.faa.gov/fly/Products/products" class="bodyTextLinkBold">Products</a>
+						| <a href="http://www.fly.faa.gov/fly/What_s_New/what_s_new" class="bodyTextLinkBold">What's
+							New</a> | <a href="http://www.fly.faa.gov/fly/Sitemap/sitemap" class="bodyTextLinkBold">Site
+							Map</a> | <a href="http://www.fly.faa.gov/fly/FAQ/faq" class="bodyTextLinkBold">ATCSCC
+							FAQ</a> | <a href="http://www.fly.faa.gov/fly/Diversion/diversion" class="bodyTextLinkBold">Diversion
+							Forums</a> | <a href="http://www.fly.faa.gov/fly/flyfaa/plaintext.html"
+							class="bodyTextLinkBold">Text-Only Version</a>
+					</td>
+				</tr>
+			</table>
+
+			
+			
+
+			<table width="100%" cellpadding="0" cellspacing="0" border="0"
+				summary="This table is for layout">
+				<tr>
+					<td width="100%" height="12">
+						<img src="/adv/images/clear.gif"
+							width="100%" height="12" border="0" alt="">
+					</td>
+				</tr>
+				<tr>
+					<!-- <td width="100%"><hr size="1" color="9C9A9C"></td> -->
+					<td width="100%" height="1" bgcolor="#9C9A9C">
+						<img src="/adv/images/clear.gif"
+							width="100%" height="1" border="0" alt="">
+					</td>
+				</tr>
+				<tr>
+					<td width="100%" height="12">
+						<img src="/adv/images/clear.gif"
+							width="100%" height="12" border="0" alt="">
+					</td>
+				</tr>
+			</table>
+			<a name="content"></a>
+			<div class="mainArea">
+
+
+		<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0 style="width:100%">
+			<TR VALIGN="top" ALIGN="left">
+				<TD>
+
+					<!-- End of Header table -->
+	
+	
+
+
+<TABLE border="1" cellpadding="3" cellspacing="0">
+ 
+ 
+    
+
+		
+			<tr valign="top">
+				<th class=caption colspan='5'>ATCSCC ADVISORIES FOR 2025-07-14</th>
+			</tr>
+			<tr valign="top">
+				<th class=header>NUMBER</th>
+				<th class=header>CONTROL<BR>ELEMENT
+				</th>
+				<th class=header>DATE</th>
+				<th class=header>BRIEF TITLE</th>
+				<th class=header>SEND TIME</th>
+			</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=276">276</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 23:59</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=275">275</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>OPERATIONS PLAN</td>
+					<td>07/14/25 23:53</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=274">274</a>
+					</td>
+					<td>LGA/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 23:48</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=273">273</a>
+					</td>
+					<td>DCC/ZDC</td>
+					<td>07/14/25</td>
+					<td>ZDC SWAP_FYI</td>
+					<td>07/14/25 23:43</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=272">272</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>07/14/25 23:38</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=271">271</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;271&nbsp;DCC&nbsp;07/14/25&nbsp;FCA RQD<BR>NAME: FCA271_SYNTH<BR>CONSTRAINED AREA: ZOB<BR>VALID: ETA 142332 TO 150200</td>
+					<td>07/14/25 23:32</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=270">270</a>
+					</td>
+					<td>JFK/ZNY</td>
+					<td>07/14/25</td>
+					<td>JFK AIRPORT ARRIVAL DELAYS</td>
+					<td>07/14/25 23:27</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=269">269</a>
+					</td>
+					<td>DEN/ZDV</td>
+					<td>07/14/25</td>
+					<td>CDM GS CNX</td>
+					<td>07/14/25 23:22</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=268">268</a>
+					</td>
+					<td>ATL/ZTL</td>
+					<td>07/14/25</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>07/14/25 23:17</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=267">267</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;267&nbsp;DCC&nbsp;07/14/25&nbsp;ROUTE RQD /FL<BR>NAME: SYNTH_ROUTE_267<BR>CONSTRAINED AREA: ZNY<BR>VALID: ETD 142311 TO 150300</td>
+					<td>07/14/25 23:11</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=266">266</a>
+					</td>
+					<td>EWR/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>07/14/25 23:06</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=265">265</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 23:01</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=264">264</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>OPERATIONS PLAN</td>
+					<td>07/14/25 22:56</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=263">263</a>
+					</td>
+					<td>LGA/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 22:50</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=262">262</a>
+					</td>
+					<td>DCC/ZDC</td>
+					<td>07/14/25</td>
+					<td>ZDC SWAP_FYI</td>
+					<td>07/14/25 22:45</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=261">261</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>07/14/25 22:40</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=260">260</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;260&nbsp;DCC&nbsp;07/14/25&nbsp;FCA RQD<BR>NAME: FCA260_SYNTH<BR>CONSTRAINED AREA: ZOB<BR>VALID: ETA 142235 TO 150200</td>
+					<td>07/14/25 22:35</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=259">259</a>
+					</td>
+					<td>JFK/ZNY</td>
+					<td>07/14/25</td>
+					<td>JFK AIRPORT ARRIVAL DELAYS</td>
+					<td>07/14/25 22:30</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=258">258</a>
+					</td>
+					<td>DEN/ZDV</td>
+					<td>07/14/25</td>
+					<td>CDM GS CNX</td>
+					<td>07/14/25 22:24</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=257">257</a>
+					</td>
+					<td>ATL/ZTL</td>
+					<td>07/14/25</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>07/14/25 22:19</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=256">256</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;256&nbsp;DCC&nbsp;07/14/25&nbsp;ROUTE RQD /FL<BR>NAME: SYNTH_ROUTE_256<BR>CONSTRAINED AREA: ZNY<BR>VALID: ETD 142214 TO 150300</td>
+					<td>07/14/25 22:14</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=255">255</a>
+					</td>
+					<td>EWR/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>07/14/25 22:09</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=254">254</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 22:03</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=253">253</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>OPERATIONS PLAN</td>
+					<td>07/14/25 21:58</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=252">252</a>
+					</td>
+					<td>LGA/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 21:53</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=251">251</a>
+					</td>
+					<td>DCC/ZDC</td>
+					<td>07/14/25</td>
+					<td>ZDC SWAP_FYI</td>
+					<td>07/14/25 21:48</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=250">250</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>07/14/25 21:42</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=249">249</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;249&nbsp;DCC&nbsp;07/14/25&nbsp;FCA RQD<BR>NAME: FCA249_SYNTH<BR>CONSTRAINED AREA: ZOB<BR>VALID: ETA 142137 TO 150200</td>
+					<td>07/14/25 21:37</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=248">248</a>
+					</td>
+					<td>JFK/ZNY</td>
+					<td>07/14/25</td>
+					<td>JFK AIRPORT ARRIVAL DELAYS</td>
+					<td>07/14/25 21:32</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=247">247</a>
+					</td>
+					<td>DEN/ZDV</td>
+					<td>07/14/25</td>
+					<td>CDM GS CNX</td>
+					<td>07/14/25 21:27</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=246">246</a>
+					</td>
+					<td>ATL/ZTL</td>
+					<td>07/14/25</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>07/14/25 21:22</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=245">245</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;245&nbsp;DCC&nbsp;07/14/25&nbsp;ROUTE RQD /FL<BR>NAME: SYNTH_ROUTE_245<BR>CONSTRAINED AREA: ZNY<BR>VALID: ETD 142116 TO 150300</td>
+					<td>07/14/25 21:16</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=244">244</a>
+					</td>
+					<td>EWR/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>07/14/25 21:11</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=243">243</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 21:06</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=242">242</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>OPERATIONS PLAN</td>
+					<td>07/14/25 21:01</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=241">241</a>
+					</td>
+					<td>LGA/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 20:55</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=240">240</a>
+					</td>
+					<td>DCC/ZDC</td>
+					<td>07/14/25</td>
+					<td>ZDC SWAP_FYI</td>
+					<td>07/14/25 20:50</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=239">239</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>07/14/25 20:45</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=238">238</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;238&nbsp;DCC&nbsp;07/14/25&nbsp;FCA RQD<BR>NAME: FCA238_SYNTH<BR>CONSTRAINED AREA: ZOB<BR>VALID: ETA 142040 TO 150200</td>
+					<td>07/14/25 20:40</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=237">237</a>
+					</td>
+					<td>JFK/ZNY</td>
+					<td>07/14/25</td>
+					<td>JFK AIRPORT ARRIVAL DELAYS</td>
+					<td>07/14/25 20:34</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=236">236</a>
+					</td>
+					<td>DEN/ZDV</td>
+					<td>07/14/25</td>
+					<td>CDM GS CNX</td>
+					<td>07/14/25 20:29</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=235">235</a>
+					</td>
+					<td>ATL/ZTL</td>
+					<td>07/14/25</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>07/14/25 20:24</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=234">234</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;234&nbsp;DCC&nbsp;07/14/25&nbsp;ROUTE RQD /FL<BR>NAME: SYNTH_ROUTE_234<BR>CONSTRAINED AREA: ZNY<BR>VALID: ETD 142019 TO 150300</td>
+					<td>07/14/25 20:19</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=233">233</a>
+					</td>
+					<td>EWR/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>07/14/25 20:13</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=232">232</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 20:08</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=231">231</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>OPERATIONS PLAN</td>
+					<td>07/14/25 20:03</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=230">230</a>
+					</td>
+					<td>LGA/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 19:58</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=229">229</a>
+					</td>
+					<td>DCC/ZDC</td>
+					<td>07/14/25</td>
+					<td>ZDC SWAP_FYI</td>
+					<td>07/14/25 19:53</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=228">228</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>07/14/25 19:47</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=227">227</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;227&nbsp;DCC&nbsp;07/14/25&nbsp;FCA RQD<BR>NAME: FCA227_SYNTH<BR>CONSTRAINED AREA: ZOB<BR>VALID: ETA 141942 TO 150200</td>
+					<td>07/14/25 19:42</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=226">226</a>
+					</td>
+					<td>JFK/ZNY</td>
+					<td>07/14/25</td>
+					<td>JFK AIRPORT ARRIVAL DELAYS</td>
+					<td>07/14/25 19:37</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=225">225</a>
+					</td>
+					<td>DEN/ZDV</td>
+					<td>07/14/25</td>
+					<td>CDM GS CNX</td>
+					<td>07/14/25 19:32</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=224">224</a>
+					</td>
+					<td>ATL/ZTL</td>
+					<td>07/14/25</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>07/14/25 19:26</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=223">223</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;223&nbsp;DCC&nbsp;07/14/25&nbsp;ROUTE RQD /FL<BR>NAME: SYNTH_ROUTE_223<BR>CONSTRAINED AREA: ZNY<BR>VALID: ETD 141921 TO 150300</td>
+					<td>07/14/25 19:21</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=222">222</a>
+					</td>
+					<td>EWR/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>07/14/25 19:16</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=221">221</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 19:11</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=220">220</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>OPERATIONS PLAN</td>
+					<td>07/14/25 19:05</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=219">219</a>
+					</td>
+					<td>LGA/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 19:00</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=218">218</a>
+					</td>
+					<td>DCC/ZDC</td>
+					<td>07/14/25</td>
+					<td>ZDC SWAP_FYI</td>
+					<td>07/14/25 18:55</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=217">217</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>07/14/25 18:50</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=216">216</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;216&nbsp;DCC&nbsp;07/14/25&nbsp;FCA RQD<BR>NAME: FCA216_SYNTH<BR>CONSTRAINED AREA: ZOB<BR>VALID: ETA 141845 TO 150200</td>
+					<td>07/14/25 18:45</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=215">215</a>
+					</td>
+					<td>JFK/ZNY</td>
+					<td>07/14/25</td>
+					<td>JFK AIRPORT ARRIVAL DELAYS</td>
+					<td>07/14/25 18:39</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=214">214</a>
+					</td>
+					<td>DEN/ZDV</td>
+					<td>07/14/25</td>
+					<td>CDM GS CNX</td>
+					<td>07/14/25 18:34</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=213">213</a>
+					</td>
+					<td>ATL/ZTL</td>
+					<td>07/14/25</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>07/14/25 18:29</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=212">212</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;212&nbsp;DCC&nbsp;07/14/25&nbsp;ROUTE RQD /FL<BR>NAME: SYNTH_ROUTE_212<BR>CONSTRAINED AREA: ZNY<BR>VALID: ETD 141824 TO 150300</td>
+					<td>07/14/25 18:24</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=211">211</a>
+					</td>
+					<td>EWR/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>07/14/25 18:18</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=210">210</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 18:13</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=209">209</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>OPERATIONS PLAN</td>
+					<td>07/14/25 18:08</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=208">208</a>
+					</td>
+					<td>LGA/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 18:03</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=207">207</a>
+					</td>
+					<td>DCC/ZDC</td>
+					<td>07/14/25</td>
+					<td>ZDC SWAP_FYI</td>
+					<td>07/14/25 17:57</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=206">206</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>07/14/25 17:52</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=205">205</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;205&nbsp;DCC&nbsp;07/14/25&nbsp;FCA RQD<BR>NAME: FCA205_SYNTH<BR>CONSTRAINED AREA: ZOB<BR>VALID: ETA 141747 TO 150200</td>
+					<td>07/14/25 17:47</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=204">204</a>
+					</td>
+					<td>JFK/ZNY</td>
+					<td>07/14/25</td>
+					<td>JFK AIRPORT ARRIVAL DELAYS</td>
+					<td>07/14/25 17:42</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=203">203</a>
+					</td>
+					<td>DEN/ZDV</td>
+					<td>07/14/25</td>
+					<td>CDM GS CNX</td>
+					<td>07/14/25 17:37</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=202">202</a>
+					</td>
+					<td>ATL/ZTL</td>
+					<td>07/14/25</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>07/14/25 17:31</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=201">201</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;201&nbsp;DCC&nbsp;07/14/25&nbsp;ROUTE RQD /FL<BR>NAME: SYNTH_ROUTE_201<BR>CONSTRAINED AREA: ZNY<BR>VALID: ETD 141726 TO 150300</td>
+					<td>07/14/25 17:26</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=200">200</a>
+					</td>
+					<td>EWR/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>07/14/25 17:21</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=199">199</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 17:16</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=198">198</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>OPERATIONS PLAN</td>
+					<td>07/14/25 17:10</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=197">197</a>
+					</td>
+					<td>LGA/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 17:05</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=196">196</a>
+					</td>
+					<td>DCC/ZDC</td>
+					<td>07/14/25</td>
+					<td>ZDC SWAP_FYI</td>
+					<td>07/14/25 17:00</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=195">195</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>07/14/25 16:55</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=194">194</a>
+					</td>
+					<td></td>
+					<td>07/14/25</td>
+					<td>CDM COMPRESSION</td>
+					<td>07/14/25 16:49</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=193">193</a>
+					</td>
+					<td>JFK/ZNY</td>
+					<td>07/14/25</td>
+					<td>JFK AIRPORT ARRIVAL DELAYS</td>
+					<td>07/14/25 16:44</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=192">192</a>
+					</td>
+					<td>DEN/ZDV</td>
+					<td>07/14/25</td>
+					<td>CDM GS CNX</td>
+					<td>07/14/25 16:39</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=191">191</a>
+					</td>
+					<td>ATL/ZTL</td>
+					<td>07/14/25</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>07/14/25 16:34</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=190">190</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;190&nbsp;DCC&nbsp;07/14/25&nbsp;ROUTE RQD /FL<BR>NAME: SYNTH_ROUTE_190<BR>CONSTRAINED AREA: ZNY<BR>VALID: ETD 141628 TO 150300</td>
+					<td>07/14/25 16:28</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=189">189</a>
+					</td>
+					<td>EWR/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>07/14/25 16:23</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=188">188</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 16:18</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=187">187</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>OPERATIONS PLAN</td>
+					<td>07/14/25 16:13</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=186">186</a>
+					</td>
+					<td>LGA/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 16:08</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=185">185</a>
+					</td>
+					<td>DCC/ZDC</td>
+					<td>07/14/25</td>
+					<td>ZDC SWAP_FYI</td>
+					<td>07/14/25 16:02</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=184">184</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>07/14/25 15:57</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=183">183</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;183&nbsp;DCC&nbsp;07/14/25&nbsp;FCA RQD<BR>NAME: FCA183_SYNTH<BR>CONSTRAINED AREA: ZOB<BR>VALID: ETA 141552 TO 150200</td>
+					<td>07/14/25 15:52</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=182">182</a>
+					</td>
+					<td>JFK/ZNY</td>
+					<td>07/14/25</td>
+					<td>JFK AIRPORT ARRIVAL DELAYS</td>
+					<td>07/14/25 15:47</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=181">181</a>
+					</td>
+					<td>DEN/ZDV</td>
+					<td>07/14/25</td>
+					<td>CDM GS CNX</td>
+					<td>07/14/25 15:41</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=180">180</a>
+					</td>
+					<td>ATL/ZTL</td>
+					<td>07/14/25</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>07/14/25 15:36</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=179">179</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;179&nbsp;DCC&nbsp;07/14/25&nbsp;ROUTE RQD /FL<BR>NAME: SYNTH_ROUTE_179<BR>CONSTRAINED AREA: ZNY<BR>VALID: ETD 141531 TO 150300</td>
+					<td>07/14/25 15:31</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=178">178</a>
+					</td>
+					<td>EWR/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>07/14/25 15:26</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=177">177</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 15:20</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=176">176</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>OPERATIONS PLAN</td>
+					<td>07/14/25 15:15</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=175">175</a>
+					</td>
+					<td>LGA/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 15:10</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=174">174</a>
+					</td>
+					<td>DCC/ZDC</td>
+					<td>07/14/25</td>
+					<td>ZDC SWAP_FYI</td>
+					<td>07/14/25 15:05</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=173">173</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>07/14/25 15:00</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=172">172</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;172&nbsp;DCC&nbsp;07/14/25&nbsp;FCA RQD<BR>NAME: FCA172_SYNTH<BR>CONSTRAINED AREA: ZOB<BR>VALID: ETA 141454 TO 150200</td>
+					<td>07/14/25 14:54</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=171">171</a>
+					</td>
+					<td>JFK/ZNY</td>
+					<td>07/14/25</td>
+					<td>JFK AIRPORT ARRIVAL DELAYS</td>
+					<td>07/14/25 14:49</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=170">170</a>
+					</td>
+					<td>DEN/ZDV</td>
+					<td>07/14/25</td>
+					<td>CDM GS CNX</td>
+					<td>07/14/25 14:44</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=169">169</a>
+					</td>
+					<td>ATL/ZTL</td>
+					<td>07/14/25</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>07/14/25 14:39</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=168">168</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;168&nbsp;DCC&nbsp;07/14/25&nbsp;ROUTE RQD /FL<BR>NAME: SYNTH_ROUTE_168<BR>CONSTRAINED AREA: ZNY<BR>VALID: ETD 141433 TO 150300</td>
+					<td>07/14/25 14:33</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=167">167</a>
+					</td>
+					<td>EWR/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>07/14/25 14:28</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=166">166</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 14:23</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=165">165</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>OPERATIONS PLAN</td>
+					<td>07/14/25 14:18</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=164">164</a>
+					</td>
+					<td>LGA/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 14:12</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=163">163</a>
+					</td>
+					<td>DCC/ZDC</td>
+					<td>07/14/25</td>
+					<td>ZDC SWAP_FYI</td>
+					<td>07/14/25 14:07</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=162">162</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>07/14/25 14:02</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=161">161</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;161&nbsp;DCC&nbsp;07/14/25&nbsp;FCA RQD<BR>NAME: FCA161_SYNTH<BR>CONSTRAINED AREA: ZOB<BR>VALID: ETA 141357 TO 150200</td>
+					<td>07/14/25 13:57</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=160">160</a>
+					</td>
+					<td>JFK/ZNY</td>
+					<td>07/14/25</td>
+					<td>JFK AIRPORT ARRIVAL DELAYS</td>
+					<td>07/14/25 13:52</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=159">159</a>
+					</td>
+					<td>DEN/ZDV</td>
+					<td>07/14/25</td>
+					<td>CDM GS CNX</td>
+					<td>07/14/25 13:46</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=158">158</a>
+					</td>
+					<td>ATL/ZTL</td>
+					<td>07/14/25</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>07/14/25 13:41</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=157">157</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;157&nbsp;DCC&nbsp;07/14/25&nbsp;ROUTE RQD /FL<BR>NAME: SYNTH_ROUTE_157<BR>CONSTRAINED AREA: ZNY<BR>VALID: ETD 141336 TO 150300</td>
+					<td>07/14/25 13:36</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=156">156</a>
+					</td>
+					<td>EWR/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>07/14/25 13:31</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=155">155</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 13:25</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=154">154</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>OPERATIONS PLAN</td>
+					<td>07/14/25 13:20</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=153">153</a>
+					</td>
+					<td>LGA/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 13:15</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=152">152</a>
+					</td>
+					<td>DCC/ZDC</td>
+					<td>07/14/25</td>
+					<td>ZDC SWAP_FYI</td>
+					<td>07/14/25 13:10</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=151">151</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>07/14/25 13:04</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=150">150</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;150&nbsp;DCC&nbsp;07/14/25&nbsp;FCA RQD<BR>NAME: FCA150_SYNTH<BR>CONSTRAINED AREA: ZOB<BR>VALID: ETA 141259 TO 150200</td>
+					<td>07/14/25 12:59</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=149">149</a>
+					</td>
+					<td>JFK/ZNY</td>
+					<td>07/14/25</td>
+					<td>JFK AIRPORT ARRIVAL DELAYS</td>
+					<td>07/14/25 12:54</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=148">148</a>
+					</td>
+					<td>DEN/ZDV</td>
+					<td>07/14/25</td>
+					<td>CDM GS CNX</td>
+					<td>07/14/25 12:49</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=147">147</a>
+					</td>
+					<td>ATL/ZTL</td>
+					<td>07/14/25</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>07/14/25 12:43</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=146">146</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;146&nbsp;DCC&nbsp;07/14/25&nbsp;ROUTE RQD /FL<BR>NAME: SYNTH_ROUTE_146<BR>CONSTRAINED AREA: ZNY<BR>VALID: ETD 141238 TO 150300</td>
+					<td>07/14/25 12:38</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=145">145</a>
+					</td>
+					<td>EWR/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>07/14/25 12:33</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=144">144</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 12:28</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=143">143</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>OPERATIONS PLAN</td>
+					<td>07/14/25 12:23</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=142">142</a>
+					</td>
+					<td>LGA/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 12:17</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=141">141</a>
+					</td>
+					<td>DCC/ZDC</td>
+					<td>07/14/25</td>
+					<td>ZDC SWAP_FYI</td>
+					<td>07/14/25 12:12</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=140">140</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>07/14/25 12:07</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=139">139</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;139&nbsp;DCC&nbsp;07/14/25&nbsp;FCA RQD<BR>NAME: FCA139_SYNTH<BR>CONSTRAINED AREA: ZOB<BR>VALID: ETA 141202 TO 150200</td>
+					<td>07/14/25 12:02</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=138">138</a>
+					</td>
+					<td>JFK/ZNY</td>
+					<td>07/14/25</td>
+					<td>JFK AIRPORT ARRIVAL DELAYS</td>
+					<td>07/14/25 11:56</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=137">137</a>
+					</td>
+					<td>DEN/ZDV</td>
+					<td>07/14/25</td>
+					<td>CDM GS CNX</td>
+					<td>07/14/25 11:51</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=136">136</a>
+					</td>
+					<td>ATL/ZTL</td>
+					<td>07/14/25</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>07/14/25 11:46</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=135">135</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;135&nbsp;DCC&nbsp;07/14/25&nbsp;ROUTE RQD /FL<BR>NAME: SYNTH_ROUTE_135<BR>CONSTRAINED AREA: ZNY<BR>VALID: ETD 141141 TO 150300</td>
+					<td>07/14/25 11:41</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=134">134</a>
+					</td>
+					<td>EWR/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>07/14/25 11:35</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=133">133</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 11:30</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=132">132</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>OPERATIONS PLAN</td>
+					<td>07/14/25 11:25</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=131">131</a>
+					</td>
+					<td>LGA/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 11:20</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=130">130</a>
+					</td>
+					<td>DCC/ZDC</td>
+					<td>07/14/25</td>
+					<td>ZDC SWAP_FYI</td>
+					<td>07/14/25 11:15</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=129">129</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>07/14/25 11:09</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=128">128</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;128&nbsp;DCC&nbsp;07/14/25&nbsp;FCA RQD<BR>NAME: FCA128_SYNTH<BR>CONSTRAINED AREA: ZOB<BR>VALID: ETA 141104 TO 150200</td>
+					<td>07/14/25 11:04</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=127">127</a>
+					</td>
+					<td>JFK/ZNY</td>
+					<td>07/14/25</td>
+					<td>JFK AIRPORT ARRIVAL DELAYS</td>
+					<td>07/14/25 10:59</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=126">126</a>
+					</td>
+					<td>DEN/ZDV</td>
+					<td>07/14/25</td>
+					<td>CDM GS CNX</td>
+					<td>07/14/25 10:54</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=125">125</a>
+					</td>
+					<td>ATL/ZTL</td>
+					<td>07/14/25</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>07/14/25 10:48</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=124">124</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;124&nbsp;DCC&nbsp;07/14/25&nbsp;ROUTE RQD /FL<BR>NAME: SYNTH_ROUTE_124<BR>CONSTRAINED AREA: ZNY<BR>VALID: ETD 141043 TO 150300</td>
+					<td>07/14/25 10:43</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=123">123</a>
+					</td>
+					<td>EWR/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>07/14/25 10:38</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=122">122</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 10:33</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=121">121</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>OPERATIONS PLAN</td>
+					<td>07/14/25 10:27</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=120">120</a>
+					</td>
+					<td>LGA/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 10:22</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=119">119</a>
+					</td>
+					<td>DCC/ZDC</td>
+					<td>07/14/25</td>
+					<td>ZDC SWAP_FYI</td>
+					<td>07/14/25 10:17</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=118">118</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>07/14/25 10:12</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=117">117</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;117&nbsp;DCC&nbsp;07/14/25&nbsp;FCA RQD<BR>NAME: FCA117_SYNTH<BR>CONSTRAINED AREA: ZOB<BR>VALID: ETA 141006 TO 150200</td>
+					<td>07/14/25 10:06</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=116">116</a>
+					</td>
+					<td>JFK/ZNY</td>
+					<td>07/14/25</td>
+					<td>JFK AIRPORT ARRIVAL DELAYS</td>
+					<td>07/14/25 10:01</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=115">115</a>
+					</td>
+					<td>DEN/ZDV</td>
+					<td>07/14/25</td>
+					<td>CDM GS CNX</td>
+					<td>07/14/25 09:56</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=114">114</a>
+					</td>
+					<td>ATL/ZTL</td>
+					<td>07/14/25</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>07/14/25 09:51</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=113">113</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;113&nbsp;DCC&nbsp;07/14/25&nbsp;ROUTE RQD /FL<BR>NAME: SYNTH_ROUTE_113<BR>CONSTRAINED AREA: ZNY<BR>VALID: ETD 140946 TO 150300</td>
+					<td>07/14/25 09:46</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=112">112</a>
+					</td>
+					<td>EWR/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>07/14/25 09:40</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=111">111</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 09:35</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=110">110</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>OPERATIONS PLAN</td>
+					<td>07/14/25 09:30</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=109">109</a>
+					</td>
+					<td>LGA/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 09:25</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=108">108</a>
+					</td>
+					<td>DCC/ZDC</td>
+					<td>07/14/25</td>
+					<td>ZDC SWAP_FYI</td>
+					<td>07/14/25 09:19</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=107">107</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>07/14/25 09:14</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=106">106</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;106&nbsp;DCC&nbsp;07/14/25&nbsp;FCA RQD<BR>NAME: FCA106_SYNTH<BR>CONSTRAINED AREA: ZOB<BR>VALID: ETA 140909 TO 150200</td>
+					<td>07/14/25 09:09</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=105">105</a>
+					</td>
+					<td>JFK/ZNY</td>
+					<td>07/14/25</td>
+					<td>JFK AIRPORT ARRIVAL DELAYS</td>
+					<td>07/14/25 09:04</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=104">104</a>
+					</td>
+					<td>DEN/ZDV</td>
+					<td>07/14/25</td>
+					<td>CDM GS CNX</td>
+					<td>07/14/25 08:58</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=103">103</a>
+					</td>
+					<td>ATL/ZTL</td>
+					<td>07/14/25</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>07/14/25 08:53</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=102">102</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;102&nbsp;DCC&nbsp;07/14/25&nbsp;ROUTE RQD /FL<BR>NAME: SYNTH_ROUTE_102<BR>CONSTRAINED AREA: ZNY<BR>VALID: ETD 140848 TO 150300</td>
+					<td>07/14/25 08:48</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=101">101</a>
+					</td>
+					<td>EWR/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>07/14/25 08:43</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=100">100</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 08:38</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=99">099</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>OPERATIONS PLAN</td>
+					<td>07/14/25 08:32</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=98">098</a>
+					</td>
+					<td>LGA/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 08:27</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=97">097</a>
+					</td>
+					<td></td>
+					<td>07/14/25</td>
+					<td>CDM COMPRESSION</td>
+					<td>07/14/25 08:22</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=96">096</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>07/14/25 08:17</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=95">095</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;095&nbsp;DCC&nbsp;07/14/25&nbsp;FCA RQD<BR>NAME: FCA095_SYNTH<BR>CONSTRAINED AREA: ZOB<BR>VALID: ETA 140811 TO 150200</td>
+					<td>07/14/25 08:11</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=94">094</a>
+					</td>
+					<td>JFK/ZNY</td>
+					<td>07/14/25</td>
+					<td>JFK AIRPORT ARRIVAL DELAYS</td>
+					<td>07/14/25 08:06</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=93">093</a>
+					</td>
+					<td>DEN/ZDV</td>
+					<td>07/14/25</td>
+					<td>CDM GS CNX</td>
+					<td>07/14/25 08:01</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=92">092</a>
+					</td>
+					<td>ATL/ZTL</td>
+					<td>07/14/25</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>07/14/25 07:56</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=91">091</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;091&nbsp;DCC&nbsp;07/14/25&nbsp;ROUTE RQD /FL<BR>NAME: SYNTH_ROUTE_091<BR>CONSTRAINED AREA: ZNY<BR>VALID: ETD 140750 TO 150300</td>
+					<td>07/14/25 07:50</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=90">090</a>
+					</td>
+					<td>EWR/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>07/14/25 07:45</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=89">089</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 07:40</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=88">088</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>OPERATIONS PLAN</td>
+					<td>07/14/25 07:35</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=87">087</a>
+					</td>
+					<td>LGA/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 07:30</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=86">086</a>
+					</td>
+					<td>DCC/ZDC</td>
+					<td>07/14/25</td>
+					<td>ZDC SWAP_FYI</td>
+					<td>07/14/25 07:24</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=85">085</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>07/14/25 07:19</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=84">084</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;084&nbsp;DCC&nbsp;07/14/25&nbsp;FCA RQD<BR>NAME: FCA084_SYNTH<BR>CONSTRAINED AREA: ZOB<BR>VALID: ETA 140714 TO 150200</td>
+					<td>07/14/25 07:14</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=83">083</a>
+					</td>
+					<td>JFK/ZNY</td>
+					<td>07/14/25</td>
+					<td>JFK AIRPORT ARRIVAL DELAYS</td>
+					<td>07/14/25 07:09</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=82">082</a>
+					</td>
+					<td>DEN/ZDV</td>
+					<td>07/14/25</td>
+					<td>CDM GS CNX</td>
+					<td>07/14/25 07:03</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=81">081</a>
+					</td>
+					<td>ATL/ZTL</td>
+					<td>07/14/25</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>07/14/25 06:58</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=80">080</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;080&nbsp;DCC&nbsp;07/14/25&nbsp;ROUTE RQD /FL<BR>NAME: SYNTH_ROUTE_080<BR>CONSTRAINED AREA: ZNY<BR>VALID: ETD 140653 TO 150300</td>
+					<td>07/14/25 06:53</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=79">079</a>
+					</td>
+					<td>EWR/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>07/14/25 06:48</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=78">078</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 06:42</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=77">077</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>OPERATIONS PLAN</td>
+					<td>07/14/25 06:37</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=76">076</a>
+					</td>
+					<td>LGA/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 06:32</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=75">075</a>
+					</td>
+					<td>DCC/ZDC</td>
+					<td>07/14/25</td>
+					<td>ZDC SWAP_FYI</td>
+					<td>07/14/25 06:27</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=74">074</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>07/14/25 06:21</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=73">073</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;073&nbsp;DCC&nbsp;07/14/25&nbsp;FCA RQD<BR>NAME: FCA073_SYNTH<BR>CONSTRAINED AREA: ZOB<BR>VALID: ETA 140616 TO 150200</td>
+					<td>07/14/25 06:16</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=72">072</a>
+					</td>
+					<td>JFK/ZNY</td>
+					<td>07/14/25</td>
+					<td>JFK AIRPORT ARRIVAL DELAYS</td>
+					<td>07/14/25 06:11</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=71">071</a>
+					</td>
+					<td>DEN/ZDV</td>
+					<td>07/14/25</td>
+					<td>CDM GS CNX</td>
+					<td>07/14/25 06:06</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=70">070</a>
+					</td>
+					<td>ATL/ZTL</td>
+					<td>07/14/25</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>07/14/25 06:01</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=69">069</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;069&nbsp;DCC&nbsp;07/14/25&nbsp;ROUTE RQD /FL<BR>NAME: SYNTH_ROUTE_069<BR>CONSTRAINED AREA: ZNY<BR>VALID: ETD 140555 TO 150300</td>
+					<td>07/14/25 05:55</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=68">068</a>
+					</td>
+					<td>EWR/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>07/14/25 05:50</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=67">067</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 05:45</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=66">066</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>OPERATIONS PLAN</td>
+					<td>07/14/25 05:40</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=65">065</a>
+					</td>
+					<td>LGA/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 05:34</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=64">064</a>
+					</td>
+					<td>DCC/ZDC</td>
+					<td>07/14/25</td>
+					<td>ZDC SWAP_FYI</td>
+					<td>07/14/25 05:29</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=63">063</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>07/14/25 05:24</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=62">062</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;062&nbsp;DCC&nbsp;07/14/25&nbsp;FCA RQD<BR>NAME: FCA062_SYNTH<BR>CONSTRAINED AREA: ZOB<BR>VALID: ETA 140519 TO 150200</td>
+					<td>07/14/25 05:19</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=61">061</a>
+					</td>
+					<td>JFK/ZNY</td>
+					<td>07/14/25</td>
+					<td>JFK AIRPORT ARRIVAL DELAYS</td>
+					<td>07/14/25 05:13</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=60">060</a>
+					</td>
+					<td>DEN/ZDV</td>
+					<td>07/14/25</td>
+					<td>CDM GS CNX</td>
+					<td>07/14/25 05:08</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=59">059</a>
+					</td>
+					<td>ATL/ZTL</td>
+					<td>07/14/25</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>07/14/25 05:03</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=58">058</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;058&nbsp;DCC&nbsp;07/14/25&nbsp;ROUTE RQD /FL<BR>NAME: SYNTH_ROUTE_058<BR>CONSTRAINED AREA: ZNY<BR>VALID: ETD 140458 TO 150300</td>
+					<td>07/14/25 04:58</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=57">057</a>
+					</td>
+					<td>EWR/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>07/14/25 04:53</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=56">056</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 04:47</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=55">055</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>OPERATIONS PLAN</td>
+					<td>07/14/25 04:42</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=54">054</a>
+					</td>
+					<td>LGA/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 04:37</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=53">053</a>
+					</td>
+					<td>DCC/ZDC</td>
+					<td>07/14/25</td>
+					<td>ZDC SWAP_FYI</td>
+					<td>07/14/25 04:32</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=52">052</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>07/14/25 04:26</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=51">051</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;051&nbsp;DCC&nbsp;07/14/25&nbsp;FCA RQD<BR>NAME: FCA051_SYNTH<BR>CONSTRAINED AREA: ZOB<BR>VALID: ETA 140421 TO 150200</td>
+					<td>07/14/25 04:21</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=50">050</a>
+					</td>
+					<td>JFK/ZNY</td>
+					<td>07/14/25</td>
+					<td>JFK AIRPORT ARRIVAL DELAYS</td>
+					<td>07/14/25 04:16</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=49">049</a>
+					</td>
+					<td>DEN/ZDV</td>
+					<td>07/14/25</td>
+					<td>CDM GS CNX</td>
+					<td>07/14/25 04:11</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=48">048</a>
+					</td>
+					<td>ATL/ZTL</td>
+					<td>07/14/25</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>07/14/25 04:05</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=47">047</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;047&nbsp;DCC&nbsp;07/14/25&nbsp;ROUTE RQD /FL<BR>NAME: SYNTH_ROUTE_047<BR>CONSTRAINED AREA: ZNY<BR>VALID: ETD 140400 TO 150300</td>
+					<td>07/14/25 04:00</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=46">046</a>
+					</td>
+					<td>EWR/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>07/14/25 03:55</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=45">045</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 03:50</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=44">044</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>OPERATIONS PLAN</td>
+					<td>07/14/25 03:45</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=43">043</a>
+					</td>
+					<td>LGA/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 03:39</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=42">042</a>
+					</td>
+					<td>DCC/ZDC</td>
+					<td>07/14/25</td>
+					<td>ZDC SWAP_FYI</td>
+					<td>07/14/25 03:34</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=41">041</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>07/14/25 03:29</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=40">040</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;040&nbsp;DCC&nbsp;07/14/25&nbsp;FCA RQD<BR>NAME: FCA040_SYNTH<BR>CONSTRAINED AREA: ZOB<BR>VALID: ETA 140324 TO 150200</td>
+					<td>07/14/25 03:24</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=39">039</a>
+					</td>
+					<td>JFK/ZNY</td>
+					<td>07/14/25</td>
+					<td>JFK AIRPORT ARRIVAL DELAYS</td>
+					<td>07/14/25 03:18</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=38">038</a>
+					</td>
+					<td>DEN/ZDV</td>
+					<td>07/14/25</td>
+					<td>CDM GS CNX</td>
+					<td>07/14/25 03:13</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=37">037</a>
+					</td>
+					<td>ATL/ZTL</td>
+					<td>07/14/25</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>07/14/25 03:08</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=36">036</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;036&nbsp;DCC&nbsp;07/14/25&nbsp;ROUTE RQD /FL<BR>NAME: SYNTH_ROUTE_036<BR>CONSTRAINED AREA: ZNY<BR>VALID: ETD 140303 TO 150300</td>
+					<td>07/14/25 03:03</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=35">035</a>
+					</td>
+					<td>EWR/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>07/14/25 02:57</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=34">034</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 02:52</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=33">033</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>OPERATIONS PLAN</td>
+					<td>07/14/25 02:47</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=32">032</a>
+					</td>
+					<td>LGA/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 02:42</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=31">031</a>
+					</td>
+					<td>DCC/ZDC</td>
+					<td>07/14/25</td>
+					<td>ZDC SWAP_FYI</td>
+					<td>07/14/25 02:36</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=30">030</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>07/14/25 02:31</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=29">029</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;029&nbsp;DCC&nbsp;07/14/25&nbsp;FCA RQD<BR>NAME: FCA029_SYNTH<BR>CONSTRAINED AREA: ZOB<BR>VALID: ETA 140226 TO 150200</td>
+					<td>07/14/25 02:26</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=28">028</a>
+					</td>
+					<td>JFK/ZNY</td>
+					<td>07/14/25</td>
+					<td>JFK AIRPORT ARRIVAL DELAYS</td>
+					<td>07/14/25 02:21</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=27">027</a>
+					</td>
+					<td>DEN/ZDV</td>
+					<td>07/14/25</td>
+					<td>CDM GS CNX</td>
+					<td>07/14/25 02:16</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=26">026</a>
+					</td>
+					<td>ATL/ZTL</td>
+					<td>07/14/25</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>07/14/25 02:10</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=25">025</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;025&nbsp;DCC&nbsp;07/14/25&nbsp;ROUTE RQD /FL<BR>NAME: SYNTH_ROUTE_025<BR>CONSTRAINED AREA: ZNY<BR>VALID: ETD 140205 TO 150300</td>
+					<td>07/14/25 02:05</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=24">024</a>
+					</td>
+					<td>EWR/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>07/14/25 02:00</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=23">023</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 01:55</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=22">022</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>OPERATIONS PLAN</td>
+					<td>07/14/25 01:49</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=21">021</a>
+					</td>
+					<td>LGA/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 01:44</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=20">020</a>
+					</td>
+					<td>DCC/ZDC</td>
+					<td>07/14/25</td>
+					<td>ZDC SWAP_FYI</td>
+					<td>07/14/25 01:39</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=19">019</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>07/14/25 01:34</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=18">018</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;018&nbsp;DCC&nbsp;07/14/25&nbsp;FCA RQD<BR>NAME: FCA018_SYNTH<BR>CONSTRAINED AREA: ZOB<BR>VALID: ETA 140128 TO 150200</td>
+					<td>07/14/25 01:28</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=17">017</a>
+					</td>
+					<td>JFK/ZNY</td>
+					<td>07/14/25</td>
+					<td>JFK AIRPORT ARRIVAL DELAYS</td>
+					<td>07/14/25 01:23</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=16">016</a>
+					</td>
+					<td>DEN/ZDV</td>
+					<td>07/14/25</td>
+					<td>CDM GS CNX</td>
+					<td>07/14/25 01:18</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=15">015</a>
+					</td>
+					<td>ATL/ZTL</td>
+					<td>07/14/25</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>07/14/25 01:13</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=14">014</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;014&nbsp;DCC&nbsp;07/14/25&nbsp;ROUTE RQD /FL<BR>NAME: SYNTH_ROUTE_014<BR>CONSTRAINED AREA: ZNY<BR>VALID: ETD 140108 TO 150300</td>
+					<td>07/14/25 01:08</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=13">013</a>
+					</td>
+					<td>EWR/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>07/14/25 01:02</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=12">012</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 00:57</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=11">011</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>OPERATIONS PLAN</td>
+					<td>07/14/25 00:52</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=10">010</a>
+					</td>
+					<td>LGA/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 00:47</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=9">009</a>
+					</td>
+					<td>DCC/ZDC</td>
+					<td>07/14/25</td>
+					<td>ZDC SWAP_FYI</td>
+					<td>07/14/25 00:41</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=8">008</a>
+					</td>
+					<td>BOS/ZBW</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM CNX</td>
+					<td>07/14/25 00:36</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=7">007</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;007&nbsp;DCC&nbsp;07/14/25&nbsp;FCA RQD<BR>NAME: FCA007_SYNTH<BR>CONSTRAINED AREA: ZOB<BR>VALID: ETA 140031 TO 150200</td>
+					<td>07/14/25 00:31</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=6">006</a>
+					</td>
+					<td>JFK/ZNY</td>
+					<td>07/14/25</td>
+					<td>JFK AIRPORT ARRIVAL DELAYS</td>
+					<td>07/14/25 00:26</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=5">005</a>
+					</td>
+					<td>DEN/ZDV</td>
+					<td>07/14/25</td>
+					<td>CDM GS CNX</td>
+					<td>07/14/25 00:20</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=4">004</a>
+					</td>
+					<td>ATL/ZTL</td>
+					<td>07/14/25</td>
+					<td>CDM PROPOSED GROUND DELAY PROGRAM</td>
+					<td>07/14/25 00:15</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=3">003</a>
+					</td>
+					<td>DCC</td>
+					<td>07/14/25</td>
+					<td>ATCSCC&nbsp;ADVZY&nbsp;003&nbsp;DCC&nbsp;07/14/25&nbsp;ROUTE RQD /FL<BR>NAME: SYNTH_ROUTE_003<BR>CONSTRAINED AREA: ZNY<BR>VALID: ETD 140010 TO 150300</td>
+					<td>07/14/25 00:10</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=2">002</a>
+					</td>
+					<td>EWR/ZNY</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND DELAY PROGRAM</td>
+					<td>07/14/25 00:05</td>
+				</tr>
+			
+				<tr>
+					<td>
+						<a
+							href="/adv/adv_otherdis?adv_date=07142025&advn=1">001</a>
+					</td>
+					<td>ORD/ZAU</td>
+					<td>07/14/25</td>
+					<td>CDM GROUND STOP</td>
+					<td>07/14/25 00:00</td>
+				</tr>
+			
+			
+			
+		
+
+	<BR>
+
+
+	</TABLE>
+	
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
+	<TR VALIGN="top" ALIGN="left">
+		<TD WIDTH=100 HEIGHT=6>
+			<IMG SRC="/adv/images/clearpixel.gif"
+				WIDTH=100 HEIGHT=1 BORDER=0 ALT="blank space">
+		</TD>
+
+	</TR>
+	<TR>
+		<TD>
+			<input type="button" value=" &lt; Back to Search Form "
+				onClick="window.location='/adv/advAdvisoryForm';">
+			&nbsp;&nbsp;
+			<input type="button" value=" &lt;&lt; Back to Most Recent Advisory "
+				onClick="window.location='/adv/advADB';">
+		</td>
+	</tr>
+</TABLE>
+<div style="display: none;">
+	<form:form ID="AdvisoryForm" name="AdvisoryForm"
+	ACTION="/adv/adv_list" METHOD="GET"
+	modelAttribute="advisoryForm">
+	<TABLE>
+		<TR VALIGN="top" ALIGN="left">
+			<TD>
+				<P ALIGN="CENTER">
+					<B>Select items from the Advisories Database</B>
+				</P>
+				<BR>
+				<P>You can choose to see ATCSCC Advisories, Canadian Advisories
+					or both. Choose which types of advisories you´d like to see and select a
+					day. Then press the "Show Selected Advisories" button.</P>
+				<BR>
+			</TD>
+		</TR>
+		<TR VALIGN="top" ALIGN="left">
+			<TD HEIGHT=7></TD>
+		</TR>
+		<TR VALIGN="top" ALIGN="left">
+			<TD>
+				<TABLE id="Table1">
+					<TR VALIGN="top" ALIGN="left">
+						<TD WIDTH=22>
+							<P ALIGN="CENTER">
+								<form:radiobutton id="WhichAdvisoriesATCSCCButton"
+									path="whichAdvisories" value="ATCSCC" />
+								&nbsp;
+						</TD>
+						<TD>
+							<P>ATCSCC Advisories only
+						</TD>
+						<TD WIDTH=22>
+							<P ALIGN="CENTER">
+								<form:radiobutton value="All" path="advisoryCategory"
+									onClick="checkAll(document.forms[0],true);" />
+								&nbsp;
+						</TD>
+						<TD>
+							<P>Show all advisories in sequential order
+						</TD>
+					</TR>
+					<TR VALIGN="top" ALIGN="left">
+						<TD WIDTH=22>
+							<P ALIGN="CENTER">
+								<form:radiobutton path="whichAdvisories" value="Canadian" />
+								&nbsp;
+						</TD>
+						<TD>
+							<P>Canadian Advisories only
+						</TD>
+						<TD WIDTH=22>
+							<P ALIGN="CENTER">
+								<form:radiobutton path="advisoryCategory" value="NotAll"
+									onClick="checkGdelay(document.forms[0]);" />
+								&nbsp;
+						</TD>
+						<TD>
+							<P>Show selected advisory types by category...
+						</TD>
+					</TR>
+					<TR VALIGN="top" ALIGN="left">
+						<TD WIDTH=22>
+							<P ALIGN="CENTER">
+								<form:radiobutton path="whichAdvisories" value="Both" />
+								&nbsp;
+						</TD>
+						<TD>
+							<P>ATCSCC and Canadian Advisories
+						</TD>
+						<TD WIDTH=22>&nbsp;</TD>
+						<TD>
+							<P>
+								Use the checkboxes below to specify your advisory category
+								selection (<b>the checkboxes apply only to ATCSCC advisories</b>).
+
+
+
+							
+						</TD>
+					</TR>
+					<TR VALIGN="top" ALIGN="left">
+						<TD WIDTH=22>&nbsp;</TD>
+						<TD>
+							<P ALIGN="CENTER">
+ 								<form:input type="date" path="date" min="1980-01-01" max=""/>	 
+						</TD>
+						<TD WIDTH=22>&nbsp;</TD>
+						<TD>
+							<P ALIGN="LEFT">
+								<form:checkbox path="airflow" />
+								<form:label path="airflow">Airspace Flow Programs</form:label>
+						</TD>
+					</TR>
+					<TR VALIGN="top" ALIGN="left">
+						<TD WIDTH=22>&nbsp;</TD>
+						<TD>&nbsp;</TD>
+						<TD WIDTH=22>&nbsp;</TD>
+						<TD>
+							<P ALIGN="LEFT">
+								<form:checkbox path="ctop" />
+								<form:label path="ctop">CTOP Programs</form:label>
+						</TD>
+					</TR>
+					<TR VALIGN="top" ALIGN="left">
+						<TD WIDTH=22>&nbsp;</TD>
+						<TD>&nbsp;</TD>
+						<TD WIDTH=22>&nbsp;</TD>
+						<TD>
+							<P ALIGN="LEFT">
+								<form:checkbox path="gStop" />
+								<form:label path="gStop">Ground Stops</form:label>
+						</TD>
+					</TR>
+					<TR VALIGN="top" ALIGN="left">
+						<TD WIDTH=22>&nbsp;</TD>
+						<TD>&nbsp;</TD>
+						<TD WIDTH=22>&nbsp;</TD>
+						<TD>
+							<P ALIGN="LEFT">
+								<form:checkbox path="gDelay" id="Gdelay" />
+								<form:label path="gDelay">Ground Delay Programs</form:label>
+						</TD>
+					</TR>
+					<TR VALIGN="top" ALIGN="left">
+						<TD WIDTH=22>&nbsp;</TD>
+						<TD>&nbsp;</TD>
+						<TD WIDTH=22>&nbsp;</TD>
+						<TD>
+							<P ALIGN="LEFT">
+								<form:checkbox path="route" />
+								<form:label path="route">Route advisories</form:label>
+						</TD>
+					</TR>
+					<TR VALIGN="top" ALIGN="left">
+						<TD WIDTH=22>&nbsp;</TD>
+						<TD>&nbsp;</TD>
+						<TD WIDTH=22>&nbsp;</TD>
+						<TD>
+							<P ALIGN="LEFT">
+								<form:checkbox path="other" />
+								<form:label path="other">Other kinds of advisories</form:label>
+						</TD>
+					</TR>
+					<TR>
+						<TD>
+							<BR>
+						</TD>
+					</TR>
+					<TR VALIGN="top" ALIGN="left">
+						<TD WIDTH=22>&nbsp;</TD>
+						<TD>
+							<P>
+							<DIV ALIGN=CENTER>
+								<INPUT TYPE="submit" value="Show Selected Advisories"
+									id="FormsSubmit">
+							</DIV>
+							&nbsp;
+						</TD>
+						<TD WIDTH=29>&nbsp;</TD>
+						<TD>
+							<input type="button" name="ShowAdvisory"
+								value="< Back to Most Recent Advisory" id="ShowAdvisory"
+								onClick="window.location='/adv/advADB';">
+						</TD>
+					</TR>
+				</TABLE>
+			</TD>
+		</TR>
+	</TABLE>
+</form:form>
+</div>
+<!-- Footer Link -->
+
+	
+		</TD>
+</TR>
+</TABLE>
+<!-- Footer -->
+
+</div>
+<!-- End of mainArea -->
+<!-- End Temp Code -->
+<td align="left" valign="top" width="20" height="12" class="bodyText">
+	<img src="/adv/images/clear.gif"
+		width="20" height="12" border="0" alt="">
+</td>
+</tr>
+</table>
+<!-- End of content area -->
+
+<link href="/adv/styles/master.css"
+	rel="stylesheet" type="text/css" media="screen,projection">
+<!--[if lte IE 6]>
+        <link href="/faaTemplatePublic/styles/ie6minus.css" rel="stylesheet" type="text/css" media="screen,projection">
+    <![endif]-->
+<!--[if IE 6]>
+        <link href="/faaTemplatePublic/styles/ie6.css" rel="stylesheet" type="text/css" media="screen,projection">
+    <![endif]-->
+<!--[if IE 7]>
+        <link href="/faaTemplatePublic/styles/ie7.css" rel="stylesheet" type="text/css" media="screen,projection">
+    <![endif]-->
+<link href="/adv/styles/print.css"
+	rel="stylesheet" type="text/css" media="print">
+
+<div id="footer">
+	<div class="fluid">
+		<div class="fluid">
+			<p class="quicklinks">
+				<a href="http://www.faa.gov">FAA.gov Home</a> | <a
+					href="http://www.faa.gov/privacy/">Privacy Policy</a> | <a
+					href="http://www.faa.gov/web_policies/">Web Policies &amp;
+					Notices</a> | <a href="http://www.faa.gov/contact/">Contact Us</a>
+				<!-- <a href="http://www.faa.gov/contact/">Contact Us</a> | -->
+				<!-- <a href="#">Help</a> -->
+			</p>
+
+			<!-- This following commented lines include file viewers and readers, which are required if you have any of these
+                content types in your application. However, you do not have to include all readers, only those applicable to the
+                files you are serving. So if you only have PDF documents, you can include the PDF viewer but leave the rest out.
+                This comment may be removed to reduce page weight. -->
+
+			<p class="readers">
+				<strong>Readers &amp; Viewers:</strong> <a
+					href="http://www.faa.gov/viewer_redirect.cfm?viewer=pdf&amp;server_name=www.faa.gov">PDF
+					Reader</a> | <a
+					href="http://www.faa.gov/viewer_redirect.cfm?viewer=doc&amp;server_name=www.faa.gov">MS
+					Word Viewer</a> | <a
+					href="http://www.faa.gov/viewer_redirect.cfm?viewer=ppt&amp;server_name=www.faa.gov">MS
+					PowerPoint Viewer</a> | <a
+					href="http://www.faa.gov/viewer_redirect.cfm?viewer=xls&amp;server_name=www.faa.gov">MS
+					Excel Viewer</a> |
+				<!-- <a href="http://www.faa.gov/viewer_redirect.cfm?viewer=vsd&amp;server_name=www.faa.gov">MS Visio</a> | -->
+				<a
+					href="http://www.faa.gov/viewer_redirect.cfm?viewer=zip&amp;server_name=www.faa.gov">WinZip</a>
+			</p>
+
+		</div>
+		<!-- fluid -->
+	</div>
+	<!-- fluid -->
+</div>
+<!-- footer -->
+
+</div>
+
+</div>
+</BODY>
+</HTML>
+
+	
+	

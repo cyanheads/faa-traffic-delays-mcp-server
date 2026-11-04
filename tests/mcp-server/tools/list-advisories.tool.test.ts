@@ -6,6 +6,7 @@
  * @module tests/mcp-server/tools/list-advisories.tool.test
  */
 
+import { z } from '@cyanheads/mcp-ts-core';
 import { JsonRpcErrorCode, rateLimited } from '@cyanheads/mcp-ts-core/errors';
 import { createFetchMock, runToolContract } from '@cyanheads/mcp-ts-core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -55,6 +56,7 @@ const FIXTURE_PAGES: Record<string, string> = {
   [AFP_URL]: 'advisory-index-2026-10-01-airspace-flow-program.page',
   [EVERY_BOX_URL]: 'advisory-index-2026-10-01-all-categories.page',
   [allUrl('2004-06-15')]: 'advisory-index-2004-06-15.page',
+  [allUrl('2025-07-14')]: 'advisory-index-2025-07-14.page',
   [allUrl('1999-06-15')]: 'advisory-index-none.page',
 };
 
@@ -235,7 +237,7 @@ describe('input', () => {
 
   it.each([
     ['limit 0', { limit: 0 }],
-    ['limit 201', { limit: 201 }],
+    ['a negative limit', { limit: -1 }],
     ['a fractional limit', { limit: 2.5 }],
     ['a negative offset', { offset: -1 }],
     ['a control_element over 64 characters', { control_element: 'X'.repeat(65) }],
@@ -243,14 +245,39 @@ describe('input', () => {
     expect(parse(input).success).toBe(false);
   });
 
+  it.each([201, 500, 999, 1000])('accepts limit %i, above 200', (limit) => {
+    expect(parse({ limit }).data).toEqual({ limit, offset: 0 });
+  });
+
   it.each([
     ['a malformed date', { date: '2026-13-01' }],
     ['an unknown category', { categories: ['reroute'] }],
-    ['limit 201', { limit: 201 }],
+    ['limit 0', { limit: 0 }],
+    ['a negative limit', { limit: -1 }],
+    ['a fractional limit', { limit: 2.5 }],
   ])('rejects %s on the wire as InvalidParams, before any request', async (_label, input) => {
     const result = await run(input);
     expect(errorOf(result).code).toBe(JsonRpcErrorCode.InvalidParams);
     expect(harness.calls).toHaveLength(0);
+  });
+
+  it('advertises limit with a floor of 1, no 200 ceiling, and 999 as the whole-date value', () => {
+    const schema = z.toJSONSchema(listAdvisories.input, { io: 'input' }) as {
+      properties: Record<string, Record<string, unknown>>;
+    };
+
+    expect(schema.properties.limit).toEqual({
+      default: 50,
+      description:
+        'Advisories per page (default 50). A UTC date lists at most 999 advisories, so 999 returns any date whole.',
+      maximum: Number.MAX_SAFE_INTEGER,
+      minimum: 1,
+      type: 'integer',
+    });
+    expect(schema.properties.offset).toMatchObject({
+      maximum: Number.MAX_SAFE_INTEGER,
+      minimum: 0,
+    });
   });
 
   describe('today', () => {
@@ -420,6 +447,82 @@ describe('the 2026-10-01 index', () => {
     await run({ date: '2026-10-01', control_element: 'DCC', limit: 200 });
 
     expect(fetchedUrls()).toEqual([ALL_URL]);
+  });
+});
+
+describe('a date past 200 advisories (the 276-row 2025-07-14 index)', () => {
+  const BUSY_URL = allUrl('2025-07-14');
+  const PAGE_KEYS = ['nextOffset', 'truncated', 'shown', 'cap', 'notice'];
+
+  it('pages 200 rows at limit 200 and names the 76 left', async () => {
+    const result = await run({ date: '2025-07-14', limit: 200 });
+    const data = structured(result);
+
+    expect(numbers(result)).toEqual(descending(276, 77));
+    expect(data).toMatchObject({
+      cap: 200,
+      nextOffset: 200,
+      shown: 200,
+      totalCount: 276,
+      truncated: true,
+    });
+    expect(data.notice).toBe(
+      '76 more advisories match; call faa_delays_list_advisories again with offset 200 for the next page.',
+    );
+    expect(contentText(result)).toContain('**Next offset:** 200');
+  });
+
+  it('serves limit 201 on the wire as a 201-row page', async () => {
+    const result = await run({ date: '2025-07-14', limit: 201 });
+
+    expect(result.isError).toBeFalsy();
+    expect(numbers(result)).toEqual(descending(276, 76));
+    expect(structured(result)).toMatchObject({ cap: 201, nextOffset: 201, totalCount: 276 });
+  });
+
+  it('ends the walk on the second limit-200 page', async () => {
+    const result = await run({ date: '2025-07-14', limit: 200, offset: 200 });
+
+    expect(numbers(result)).toEqual(descending(76, 1));
+    expect(structured(result).totalCount).toBe(276);
+    for (const key of PAGE_KEYS) expect(structured(result)).not.toHaveProperty(key);
+  });
+
+  it.each([999, 1000])(
+    'returns every row at limit %i, with no next page, on one read',
+    async (limit) => {
+      const result = await run({ date: '2025-07-14', limit });
+      const data = structured(result);
+
+      expect(result.isError).toBeFalsy();
+      expect(numbers(result)).toEqual(descending(276, 1));
+      expect(data.totalCount).toBe(276);
+      for (const key of PAGE_KEYS) expect(data).not.toHaveProperty(key);
+      const text = contentText(result);
+      expect(text).toContain(
+        '- **ADVZY 276** · ORD/ZAU · CDM GROUND STOP · sent 2025-07-14T23:59:00Z',
+      );
+      expect(text).toContain('- **ADVZY 1** · ');
+      expect(text).toContain('**276 total**');
+      expect(text).not.toContain('Next offset');
+      expect(fetchedUrls()).toEqual([BUSY_URL]);
+    },
+  );
+
+  it('keeps the rows that list no control element, past the first page', async () => {
+    const advisories = structured(await run({ date: '2025-07-14', limit: 999 })).advisories;
+
+    expect(
+      advisories.filter((advisory) => advisory.controlElement === undefined).map((a) => a.number),
+    ).toEqual([194, 97]);
+    expect(advisories.find((advisory) => advisory.number === 3)).toEqual({
+      controlElement: 'DCC',
+      date: '2025-07-14',
+      details: ['NAME: SYNTH_ROUTE_003', 'CONSTRAINED AREA: ZNY', 'VALID: ETD 140010 TO 150300'],
+      number: 3,
+      sentAt: '2025-07-14T00:10:00Z',
+      subject: 'ROUTE RQD /FL',
+    });
   });
 });
 

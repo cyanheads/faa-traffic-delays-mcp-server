@@ -2,10 +2,11 @@
  * @fileoverview ATCSCC advisories database client (`https://www.fly.faa.gov/adv/`): fetches one
  * advisory page by number and UTC date, or the index of the advisories issued on a UTC date,
  * through the paced, retried fetch boundary. An advisory page yields its title, text block,
- * effective time, and signature; an index page yields one row per advisory. Issued advisories, and
- * misses and indexes for a UTC date over for an hour, are cached for 6 h (none can change); other
- * misses and indexes for 60 s. At most 200 pages and 50 indexes are cached, each as a copy of its
- * parsed values that shares no memory with the page it was read from.
+ * effective period (as printed, and as ISO 8601 start and end), and signature time; an index page
+ * yields one row per advisory. Issued advisories, and misses and indexes for a UTC date over for an
+ * hour, are cached for 6 h (none can change); other misses and indexes for 60 s. At most 200 pages
+ * and 50 indexes are cached, each as a copy of its parsed values that shares no memory with the page
+ * it was read from.
  * @module services/advisory/advisory-service
  */
 
@@ -55,8 +56,14 @@ const PROFILE: UpstreamProfile = {
 /** What an advisory page yields. `found: false` is the database's own "NO Advisory." page. */
 export interface AdvisoryPage {
   controlElement?: string;
+  /** End of the effective period, ISO 8601 UTC; present with `effectiveStart`. */
+  effectiveEnd?: string;
+  /** Start of the effective period, ISO 8601 UTC; present with `effectiveEnd`. */
+  effectiveStart?: string;
+  /** Effective period as printed, `DDHHMM-DDHHMM` (UTC). */
   effectiveTime?: string;
   found: boolean;
+  /** Signature time, ISO 8601 UTC. */
   sentAt?: string;
   subject?: string;
   text?: string;
@@ -174,6 +181,91 @@ function splitTitle(title: string): { controlElement: string; subject: string } 
 
 const EFFECTIVE_LINE = /^\d{6}-\d{6}$/;
 const SIGNATURE_LINE = /^\d{2}\/\d{2}\/\d{2} \d{2}:\d{2}(?=\s|$)/;
+/** The index's SEND TIME, `MM/DD/YY HH:MM`. */
+const INDEX_SEND_TIME =
+  /^(?<month>\d{2})\/(?<day>\d{2})\/(?<yy>\d{2}) (?<hour>\d{2}):(?<minute>\d{2})$/;
+/** A page's SIGNATURE, `YY/MM/DD HH:MM`. */
+const SIGNATURE_TIME =
+  /^(?<yy>\d{2})\/(?<month>\d{2})\/(?<day>\d{2}) (?<hour>\d{2}):(?<minute>\d{2})$/;
+
+const pad = (value: number, width = 2): string => String(value).padStart(width, '0');
+
+/** `YYYY-MM-DDTHH:MM:00Z`; undefined unless the fields name a real UTC minute. */
+function utcMinute(
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute: number,
+): string | undefined {
+  const iso = `${pad(year, 4)}-${pad(month)}-${pad(day)}T${pad(hour)}:${pad(minute)}:00Z`;
+  const ms = Date.parse(iso);
+  return Number.isFinite(ms) && new Date(ms).toISOString() === iso.replace('Z', '.000Z')
+    ? iso
+    : undefined;
+}
+
+/** The month `months` after `year`-`month` (both 1-based), as `[year, month]`. */
+function addMonths(year: number, month: number, months: number): [number, number] {
+  const index = year * 12 + month - 1 + months;
+  return [Math.floor(index / 12), (index % 12) + 1];
+}
+
+/**
+ * A printed send time (UTC) as ISO 8601, in the century that puts it nearest the advisory's own
+ * date; undefined unless it names a real minute. `pattern` names the field order: the index's
+ * `INDEX_SEND_TIME` or a page's `SIGNATURE_TIME`.
+ */
+function sendTime(value: string, pattern: RegExp, advisoryDate: string): string | undefined {
+  const fields = pattern.exec(value)?.groups;
+  if (!fields) return;
+  const advisoryYear = Number(advisoryDate.slice(0, 4));
+  const year = advisoryYear + ((Number(fields.yy) - (advisoryYear % 100) + 150) % 100) - 50;
+  return utcMinute(
+    year,
+    Number(fields.month),
+    Number(fields.day),
+    Number(fields.hour),
+    Number(fields.minute),
+  );
+}
+
+/**
+ * The ISO 8601 start and end of a printed `DDHHMM-DDHHMM` effective period, which names days of
+ * month only. The start is the date with its day nearest the advisory's UTC date, in the month
+ * before, the same month, or the month after (the same month on a tie), so a re-sent reroute keeps
+ * the window it opened the day before, across a month end too. The end is the first date at or
+ * after the start with its day, in the start's month or the next: the form names no month, so a
+ * later one would be a guess. Neither is returned unless both name a real minute.
+ */
+function effectivePeriod(
+  effectiveTime: string,
+  advisoryDate: string,
+): { effectiveEnd: string; effectiveStart: string } | undefined {
+  if (!EFFECTIVE_LINE.test(effectiveTime)) return;
+  // Fixed-width fields: start day, hour, minute at 0, 2, 4; end day, hour, minute at 7, 9, 11.
+  const field = (at: number): number => Number(effectiveTime.slice(at, at + 2));
+  const anchorMs = Date.parse(advisoryDate);
+  const daysAway = (iso: string): number => Math.abs(Date.parse(iso.slice(0, 10)) - anchorMs);
+  const year = Number(advisoryDate.slice(0, 4));
+  const month = Number(advisoryDate.slice(5, 7));
+  let effectiveStart: string | undefined;
+  for (const offset of [0, -1, 1]) {
+    const candidate = utcMinute(...addMonths(year, month, offset), field(0), field(2), field(4));
+    if (candidate && (!effectiveStart || daysAway(candidate) < daysAway(effectiveStart))) {
+      effectiveStart = candidate;
+    }
+  }
+  if (!effectiveStart) return;
+  const startYear = Number(effectiveStart.slice(0, 4));
+  const startMonth = Number(effectiveStart.slice(5, 7));
+  for (const offset of [0, 1]) {
+    const [endYear, endMonth] = addMonths(startYear, startMonth, offset);
+    const effectiveEnd = utcMinute(endYear, endMonth, field(7), field(9), field(11));
+    if (effectiveEnd && effectiveEnd >= effectiveStart) return { effectiveEnd, effectiveStart };
+  }
+  return;
+}
 
 /**
  * The effective time and signature a raw-text advisory (an operations plan, a required reroute)
@@ -183,7 +275,7 @@ const SIGNATURE_LINE = /^\d{2}\/\d{2}\/\d{2} \d{2}:\d{2}(?=\s|$)/;
  */
 function trailingTimes(text: string): {
   effectiveTime: string | undefined;
-  sentAt: string | undefined;
+  signature: string | undefined;
 } {
   const lines = text
     .split(/\r\n|\r|\n/)
@@ -191,18 +283,20 @@ function trailingTimes(text: string): {
     .filter(Boolean);
   const last = lines.at(-1) ?? '';
   const effectiveTime = [lines.at(-2) ?? '', last].find((line) => EFFECTIVE_LINE.test(line));
-  const sentAt = SIGNATURE_LINE.exec(last)?.[0];
-  return { effectiveTime, sentAt };
+  const signature = SIGNATURE_LINE.exec(last)?.[0];
+  return { effectiveTime, signature };
 }
 
 /**
- * Reads one advisory page. No title and no text block with the database's "NO Advisory." marker
- * is a miss; a title without a text block means the layout changed; a page with none of the
- * three is not an advisory page at all (an error or maintenance page) and reads as unavailable.
- * The effective time and signature come from their labelled cells, or, for a field whose cell the
- * page lacks, from the last lines of the text.
+ * Reads one advisory page of the UTC date `date` (`YYYY-MM-DD`). No title and no text block with
+ * the database's "NO Advisory." marker is a miss; a title without a text block means the layout
+ * changed; a page with none of the three is not an advisory page at all (an error or maintenance
+ * page) and reads as unavailable. The effective time and signature come from their labelled cells,
+ * or, for a field whose cell the page lacks, from the last lines of the text. The effective time is
+ * kept as printed beside its ISO 8601 start and end, and the signature becomes ISO 8601; `date`
+ * anchors both.
  */
-export function parseAdvisoryPage(html: string, url: string): AdvisoryPage {
+export function parseAdvisoryPage(html: string, url: string, date: string): AdvisoryPage {
   const titleCell = element(html, HEADER_CELL, 'TH')?.content;
   const title = titleCell === undefined ? undefined : cellText(titleCell) || undefined;
   const pre = element(html, PRE_BLOCK, 'PRE');
@@ -223,17 +317,18 @@ export function parseAdvisoryPage(html: string, url: string): AdvisoryPage {
   const afterText = html.slice(pre.end);
   const titleParts = title ? splitTitle(title) : undefined;
   let effectiveTime = labelledValue(afterText, 'EFFECTIVE TIME');
-  let sentAt = labelledValue(afterText, 'SIGNATURE');
-  if (!effectiveTime || !sentAt) {
+  let signature = labelledValue(afterText, 'SIGNATURE');
+  if (!effectiveTime || !signature) {
     const trailing = trailingTimes(text);
     effectiveTime ??= trailing.effectiveTime;
-    sentAt ??= trailing.sentAt;
+    signature ??= trailing.signature;
   }
+  const sentAt = signature && sendTime(signature, SIGNATURE_TIME, date);
   return {
     found: true,
     ...(title && { title }),
     ...titleParts,
-    ...(effectiveTime && { effectiveTime }),
+    ...(effectiveTime && { effectiveTime, ...effectivePeriod(effectiveTime, date) }),
     ...(sentAt && { sentAt }),
     ...(text && { text }),
   };
@@ -245,24 +340,6 @@ const CELL = /<TD\b[^<>]*>/i;
 const LINE_BREAK = /<BR\s*\/?>/i;
 const HREF = /\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'<>]+))/i;
 const NO_MATCH = /NO\s+ADVISORIES\s+MATCH\s+YOUR\s+SELECTION/i;
-const SEND_TIME = /^(\d{2})\/(\d{2})\/(\d{2}) (\d{2}):(\d{2})$/;
-
-/**
- * A `MM/DD/YY HH:MM` send time (UTC) as ISO 8601, in the century that puts it nearest the
- * advisory's own date; undefined unless it names a real minute.
- */
-function sendTime(value: string, advisoryDate: string): string | undefined {
-  const match = SEND_TIME.exec(value);
-  if (!match) return;
-  const [, month, day, yy, hour, minute] = match;
-  const advisoryYear = Number(advisoryDate.slice(0, 4));
-  const year = advisoryYear + ((Number(yy) - (advisoryYear % 100) + 150) % 100) - 50;
-  const iso = `${String(year).padStart(4, '0')}-${month}-${day}T${hour}:${minute}:00Z`;
-  const ms = Date.parse(iso);
-  return Number.isFinite(ms) && new Date(ms).toISOString() === iso.replace('Z', '.000Z')
-    ? iso
-    : undefined;
-}
 
 /**
  * One index row from its cells: NUMBER (whose link's href carries the advisory number and date),
@@ -280,7 +357,7 @@ function indexRow([numberCell = '', elementCell = '', , titleCell = '', sendCell
   const controlElement = cellText(elementCell);
   const [first, ...details] = titleCell.split(LINE_BREAK).map(cellText).filter(Boolean);
   const subject = first && (splitTitle(first)?.subject ?? first);
-  const sentAt = sendTime(cellText(sendCell), ref.date);
+  const sentAt = sendTime(cellText(sendCell), INDEX_SEND_TIME, ref.date);
   return {
     number: ref.number,
     date: ref.date,
@@ -359,7 +436,7 @@ export class AdvisoryService implements Disposable {
           context: this.logContext('AdvisoryService.getAdvisory', ctx),
           errorData: { url },
           operation: PROFILE.service,
-          parse: (html) => parseAdvisoryPage(html, url),
+          parse: (html) => parseAdvisoryPage(html, url, date),
           url,
         });
         const ttlMs = page.found || this.isSettled(date) ? FINAL_TTL_MS : OPEN_TTL_MS;

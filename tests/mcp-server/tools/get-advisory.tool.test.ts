@@ -1,6 +1,6 @@
 /**
  * @fileoverview Tests for faa_delays_get_advisory: number and date normalization, the found and
- * miss outcomes, 50,000-character truncation with its optional enrichment, declared service
+ * miss outcomes (sentAt and the effective period as ISO 8601), 50,000-character truncation with its optional enrichment, declared service
  * errors, and format() fidelity and fencing.
  * @module tests/mcp-server/tools/get-advisory.tool.test
  */
@@ -38,11 +38,13 @@ const run = (input: Record<string, unknown>) => runToolContract(getAdvisory, inp
 const structured = (result: Awaited<ReturnType<typeof run>>) =>
   result.structuredContent as Record<string, unknown>;
 
+/** An advisory page: `title`, the `text` block, then any label/value `cells` rows. */
 const advisoryPage = (
   text: string,
   title = 'ATCSCC&nbsp;ADVZY&nbsp;003&nbsp;SEA/ZSE&nbsp;09/30/2026&nbsp;CDM GROUND DELAY PROGRAM',
+  cells = '',
 ) =>
-  `<html><body><TABLE><TR><TH class=header>${title}</TH></TR><TR><TD class=val><PRE>${text}</PRE></TD></TR></TABLE></body></html>`;
+  `<html><body><TABLE><TR><TH class=header>${title}</TH></TR><TR><TD class=val><PRE>${text}</PRE></TD></TR>${cells}</TABLE></body></html>`;
 
 beforeEach(() => {
   vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('unmocked fetch'));
@@ -182,9 +184,11 @@ describe('found advisory', () => {
       advisoryNumber: 3,
       controlElement: 'SEA/ZSE',
       date: '2026-09-30',
+      effectiveEnd: '2026-09-30T06:59:00Z',
+      effectiveStart: '2026-09-30T00:16:00Z',
       effectiveTime: '300016-300659',
       found: true,
-      sentAt: '26/09/30 00:17',
+      sentAt: '2026-09-30T00:17:00Z',
       subject: 'CDM GROUND DELAY PROGRAM',
       title: 'ATCSCC ADVZY 003 SEA/ZSE 09/30/2026 CDM GROUND DELAY PROGRAM',
       url: GDP_URL,
@@ -215,9 +219,68 @@ describe('found advisory', () => {
     const data = structured(await run({ advisory_number: 9, date: '2026-10-01' }));
 
     expect(data).toMatchObject({ found: true, text: 'BODY ONLY', title: 'NAV CANADA ADVISORY' });
-    for (const key of ['controlElement', 'subject', 'effectiveTime', 'sentAt']) {
+    for (const key of [
+      'controlElement',
+      'subject',
+      'effectiveTime',
+      'effectiveStart',
+      'effectiveEnd',
+      'sentAt',
+    ]) {
       expect(data).not.toHaveProperty(key);
     }
+  });
+
+  it('returns a GDP dated 2026-11-02 with its effective period and signature in ISO 8601, on both surfaces', async () => {
+    services.dispose();
+    setup({
+      [advisoryUrl(117, '11022026')]: () =>
+        htmlResponse(
+          advisoryPage(
+            'CTL ELEMENT: MIA',
+            'ATCSCC&nbsp;ADVZY&nbsp;117&nbsp;MIA/ZMA&nbsp;11/02/2026&nbsp;CDM GROUND DELAY PROGRAM',
+            '<TR><TD class=nam>EFFECTIVE TIME:</TD><TD class=val>022356-030459</TD></TR><TR><TD class=nam>SIGNATURE:</TD><TD class=val>26/11/02 23:58&nbsp;</TD></TR>',
+          ),
+        ),
+    });
+
+    const result = await run({ advisory_number: 117, date: '2026-11-02' });
+
+    expect(result.isError).toBeFalsy();
+    expect(structured(result)).toMatchObject({
+      effectiveEnd: '2026-11-03T04:59:00Z',
+      effectiveStart: '2026-11-02T23:56:00Z',
+      effectiveTime: '022356-030459',
+      sentAt: '2026-11-02T23:58:00Z',
+    });
+    expect(contentText(result)).toContain(
+      '**Effective:** 022356-030459 (2026-11-02T23:56:00Z to 2026-11-03T04:59:00Z) · **Sent:** 2026-11-02T23:58:00Z',
+    );
+  });
+
+  it('keeps an effective time it cannot resolve as printed, and leaves out a signature with no real minute', async () => {
+    services.dispose();
+    setup({
+      [advisoryUrl(117, '11022026')]: () =>
+        htmlResponse(
+          advisoryPage(
+            'CTL ELEMENT: MIA',
+            'ATCSCC&nbsp;ADVZY&nbsp;117&nbsp;MIA/ZMA&nbsp;11/02/2026&nbsp;CDM GROUND DELAY PROGRAM',
+            '<TR><TD class=nam>EFFECTIVE TIME:</TD><TD class=val>022400-030459</TD></TR><TR><TD class=nam>SIGNATURE:</TD><TD class=val>26/02/30 12:00&nbsp;</TD></TR>',
+          ),
+        ),
+    });
+
+    const result = await run({ advisory_number: 117, date: '2026-11-02' });
+    const data = structured(result);
+
+    expect(data.effectiveTime).toBe('022400-030459');
+    for (const key of ['effectiveStart', 'effectiveEnd', 'sentAt']) {
+      expect(data).not.toHaveProperty(key);
+    }
+    const text = contentText(result);
+    expect(text).toContain('**Subject:** CDM GROUND DELAY PROGRAM\n**Effective:** 022400-030459\n');
+    expect(text).not.toContain('**Sent:**');
   });
 
   it('returns a labelled-cell advisory exactly, on both surfaces', async () => {
@@ -229,7 +292,7 @@ describe('found advisory', () => {
       `**Found:** yes · **URL:** ${GDP_URL}`,
       '**Title:** ATCSCC ADVZY 003 SEA/ZSE 09/30/2026 CDM GROUND DELAY PROGRAM',
       '**Control element:** SEA/ZSE · **Subject:** CDM GROUND DELAY PROGRAM',
-      '**Effective:** 300016-300659 · **Sent:** 26/09/30 00:17',
+      '**Effective:** 300016-300659 (2026-09-30T00:16:00Z to 2026-09-30T06:59:00Z) · **Sent:** 2026-09-30T00:17:00Z',
     ].join('\n');
 
     expect(await run({ advisory_number: 3, date: '2026-09-30' })).toEqual({
@@ -238,9 +301,11 @@ describe('found advisory', () => {
         advisoryNumber: 3,
         controlElement: 'SEA/ZSE',
         date: '2026-09-30',
+        effectiveEnd: '2026-09-30T06:59:00Z',
+        effectiveStart: '2026-09-30T00:16:00Z',
         effectiveTime: '300016-300659',
         found: true,
-        sentAt: '26/09/30 00:17',
+        sentAt: '2026-09-30T00:17:00Z',
         subject: 'CDM GROUND DELAY PROGRAM',
         text,
         title: 'ATCSCC ADVZY 003 SEA/ZSE 09/30/2026 CDM GROUND DELAY PROGRAM',
@@ -259,12 +324,15 @@ describe('found advisory', () => {
     const result = await run({ advisory_number: 82, date: '2026-09-29' });
 
     expect(structured(result)).toMatchObject({
+      effectiveEnd: '2026-09-30T11:59:00Z',
+      effectiveStart: '2026-09-29T23:53:00Z',
       effectiveTime: '292353-301159',
-      sentAt: '26/09/29 23:53',
+      sentAt: '2026-09-29T23:53:00Z',
     });
     expect(contentText(result)).toContain(
-      '**Control element:** DCC · **Subject:** OPERATIONS PLAN\n**Effective:** 292353-301159 · **Sent:** 26/09/29 23:53\n',
+      '**Control element:** DCC · **Subject:** OPERATIONS PLAN\n**Effective:** 292353-301159 (2026-09-29T23:53:00Z to 2026-09-30T11:59:00Z) · **Sent:** 2026-09-29T23:53:00Z\n',
     );
+    expect(structured(result).text).toContain('26/09/29 23:53  DCCOPS.lxstn35');
   });
 
   it('reads a control element that holds spaces', async () => {
@@ -471,7 +539,9 @@ describe('format', () => {
       '**Title:** ATCSCC ADVZY 003 SEA/ZSE 09/30/2026 CDM GROUND DELAY PROGRAM',
     );
     expect(text).toContain('**Control element:** SEA/ZSE · **Subject:** CDM GROUND DELAY PROGRAM');
-    expect(text).toContain('**Effective:** 300016-300659 · **Sent:** 26/09/30 00:17');
+    expect(text).toContain(
+      `**Effective:** 300016-300659 (${structured(result).effectiveStart} to ${structured(result).effectiveEnd}) · **Sent:** ${structured(result).sentAt}`,
+    );
     expect(text).toContain('```text\nCTL ELEMENT: SEA');
     expect(text).toContain(structured(result).text as string);
   });

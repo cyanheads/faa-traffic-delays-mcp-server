@@ -160,7 +160,14 @@ export const listAdvisories = tool('faa_delays_list_advisories', {
       .describe(
         'Literal case-insensitive substring of subject or any details line, such as FCA005; combined with categories and control_element before paging. Omit to match every title.',
       ),
-    limit: z.number().int().min(1).max(200).default(50).describe('Advisories per page, 1–200.'),
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .default(50)
+      .describe(
+        'Advisories per page (default 50). A UTC date lists at most 999 advisories, so 999 returns any date whole.',
+      ),
     offset: z
       .number()
       .int()
