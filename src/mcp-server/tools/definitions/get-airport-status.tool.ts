@@ -16,7 +16,12 @@ import {
 } from '@/services/airport-directory/airport-directory.js';
 import { getNasStatusService } from '@/services/nas-status/nas-status-service.js';
 import type { AirportEvents, Closure, OperationsPlan } from '@/services/nas-status/types.js';
-import { DailyWindowFields, dailyWindowState, dailyWindowSuffix } from '../closure-window.js';
+import {
+  DailyWindowFields,
+  dailyWindowState,
+  dailyWindowSuffix,
+  hasFullClosureScope,
+} from '../closure-window.js';
 import {
   advisoryLine,
   blockquote,
@@ -142,7 +147,7 @@ const RowSchema = z
     status: z
       .enum(STATUSES)
       .describe(
-        'Headline status, first match wins: closed (an airport closure in effect; one outside its daily window, closure.inEffect false, is skipped) → ground_stop → ground_delay_program → delays (arrival or departure delay) → restrictions_only (listed with only a closure NOTAM, deicing, runway configuration, or an airport closure outside its daily window) → no_active_events (absent from the feed: no FAA program, which does not guarantee on-time flights).',
+        'Headline status, first match wins: closed (an airport closure or airport-wide closure NOTAM in effect; either is skipped when its inEffect is false) → ground_stop → ground_delay_program → delays (arrival or departure delay) → restrictions_only (other listed restrictions, deicing, runway configuration, or a closure outside its daily window) → no_active_events (absent from the feed: no FAA program, which does not guarantee on-time flights).',
       ),
     listedInFeed: z
       .boolean()
@@ -276,7 +281,7 @@ const RowSchema = z
       'Airport closed to all operations, with its NOTAM; text lists the exceptions. A closure scheduled daily is closed only inside dailyWindowUtc, and inEffect says whether it is at fetchedAt.',
     ),
     closureNotam: ClosureSchema.optional().describe(
-      'NOTAM-worded closure or restriction, often narrow (for example closed to transient GA).',
+      'FAA closure NOTAM, either an airport-wide closure or a narrower restriction (for example closed to transient GA). An airport-wide closure changes status to closed unless inEffect is false.',
     ),
     deicing: z
       .object({
@@ -332,9 +337,17 @@ function withWindowState(closure: Closure, fetchedAt: string): ClosureRow {
 function deriveStatus(
   events: AirportEvents | undefined,
   closure: ClosureRow | undefined,
+  closureNotam: ClosureRow | undefined,
 ): Row['status'] {
   if (!events) return 'no_active_events';
   if (closure && closure.inEffect !== false) return 'closed';
+  if (
+    closureNotam &&
+    closureNotam.inEffect !== false &&
+    hasFullClosureScope(events.airportId, closureNotam.notamText)
+  ) {
+    return 'closed';
+  }
   if (events.groundStop) return 'ground_stop';
   if (events.groundDelayProgram) return 'ground_delay_program';
   if (events.arrivalDelay || events.departureDelay) return 'delays';
@@ -360,7 +373,7 @@ function buildRow(
     ...(airport.city && { city: airport.city }),
     ...(airport.state && { state: airport.state }),
     ...(airport.artcc && { artcc: airport.artcc }),
-    status: deriveStatus(events, closure),
+    status: deriveStatus(events, closure, closureNotam),
     listedInFeed: events !== undefined,
     ...(located.latitude !== undefined && { latitude: located.latitude }),
     ...(located.longitude !== undefined && { longitude: located.longitude }),
@@ -479,6 +492,7 @@ export const getAirportStatus = tool('faa_delays_get_airport_status', {
       render: (codes: string[]) =>
         `**Omitted airports:** ${codes.length ? codes.join(', ') : 'none'}`,
     },
+    notice: { render: blockquote },
   },
   errors: [
     {
@@ -756,7 +770,10 @@ export const getAirportStatus = tool('faa_delays_get_airport_status', {
       const notam = row.closureNotam;
       if (notam) {
         const number = notam.notamNumber !== undefined ? ` ${notam.notamNumber}` : '';
-        lines.push('', ...renderClosure(`Closure NOTAM${number}`, 'Restriction', notam));
+        const label = hasFullClosureScope(row.airportId, notam.notamText)
+          ? 'Detail'
+          : 'Restriction';
+        lines.push('', ...renderClosure(`Closure NOTAM${number}`, label, notam));
       }
 
       if (row.deicing)

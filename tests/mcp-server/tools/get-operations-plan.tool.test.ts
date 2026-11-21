@@ -6,19 +6,31 @@
  */
 
 import { JsonRpcErrorCode, rateLimited } from '@cyanheads/mcp-ts-core/errors';
-import { createMockContext, runToolContract } from '@cyanheads/mcp-ts-core/testing';
+import {
+  createFetchMock,
+  createMockContext,
+  runToolContract,
+} from '@cyanheads/mcp-ts-core/testing';
+import MarkdownIt from 'markdown-it';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { getAdvisory } from '@/mcp-server/tools/definitions/get-advisory.tool.js';
 import { getOperationsPlan } from '@/mcp-server/tools/definitions/get-operations-plan.tool.js';
+import { getAdvisoryService } from '@/services/advisory/advisory-service.js';
 import { getNasStatusService } from '@/services/nas-status/nas-status-service.js';
 import {
+  advisoryUrl,
+  callsTo,
   contentText,
   createClock,
   errorOf,
   type FeedName,
   type FeedOverride,
-  feedHarness,
+  feedRoutes,
+  htmlResponse,
   installServices,
+  jsonResponse,
   type Responder,
+  readFixture,
   recoveryHint,
 } from '../../helpers/faa-fakes.js';
 import { FEED_FAILURES, withLadder } from '../../helpers/feed-failures.js';
@@ -27,8 +39,41 @@ type Overrides = Partial<Record<FeedName, FeedOverride | Responder>>;
 
 let services: { dispose: () => void };
 
-function setup(overrides: Overrides = {}): void {
-  services = installServices({ fetch: feedHarness(overrides).fetch, now: createClock().now });
+const historicalAdvisory = advisoryUrl(3, '11042026');
+const historicalPlan = {
+  link: historicalAdvisory,
+  terminalPlanned: [{ event: 'UNTIL 0500\t-MEM GROUND STOP PROBABLE' }],
+  enRoutePlanned: [],
+};
+const historicalItem = {
+  airports: ['MEM'],
+  likelihood: 'probable',
+  text: 'UNTIL 0500 MEM GROUND STOP PROBABLE',
+  timeQualifier: 'until',
+  timeUtc: '0500',
+};
+const signedAdvisory = () =>
+  htmlResponse(
+    '<PRE>UNTIL 0500 -MEM GROUND STOP PROBABLE\n040025-041000\n26/11/04 00:25  DCCOPS</PRE>',
+  );
+
+function setup(
+  overrides: Overrides = {},
+  respond: Responder = signedAdvisory,
+  clock = createClock(),
+) {
+  const fixture = readFixture('advisory-ops-plan.page');
+  const harness = createFetchMock([
+    ...feedRoutes(overrides),
+    { match: advisoryUrl(82, '09292026'), respond: () => htmlResponse(fixture) },
+    {
+      match: advisoryUrl(5, '09302026'),
+      respond: () => htmlResponse(fixture.replace('26/09/29 23:53', '26/09/30 23:53')),
+    },
+    { match: historicalAdvisory, respond },
+  ]);
+  services = installServices({ fetch: harness.fetch, now: clock.now });
+  return harness;
 }
 
 const run = () => runToolContract(getOperationsPlan, {});
@@ -39,6 +84,7 @@ interface Structured {
   enRoutePlanned: { likelihood?: string; text: string; timeQualifier?: string; timeUtc?: string }[];
   fetchedAt: string;
   notice?: string;
+  sentAt?: string;
   terminalPlanned: {
     airports?: string[];
     likelihood?: string;
@@ -50,6 +96,27 @@ interface Structured {
 const structured = (result: Awaited<ReturnType<typeof run>>) =>
   result.structuredContent as unknown as Structured;
 
+const commonmark = new MarkdownIt('commonmark');
+
+function quotedText(tokens: ReturnType<typeof commonmark.parse>, prefix: string): string {
+  const index = tokens.findIndex(
+    (token) => token.type === 'inline' && token.content.startsWith(prefix),
+  );
+  expect(tokens.slice(index - 2, index + 3).map((token) => token.type)).toEqual([
+    'blockquote_open',
+    'paragraph_open',
+    'inline',
+    'paragraph_close',
+    'blockquote_close',
+  ]);
+  return (tokens[index]?.children ?? [])
+    .map((child) => {
+      expect(['text', 'hardbreak']).toContain(child.type);
+      return child.type === 'hardbreak' ? '\n' : child.content;
+    })
+    .join('');
+}
+
 beforeEach(() => setup());
 afterEach(() => {
   services.dispose();
@@ -58,6 +125,29 @@ afterEach(() => {
 });
 
 describe('plan', () => {
+  it('rejects a non-object argument before starting FAA requests', async () => {
+    services.dispose();
+    const harness = setup();
+
+    const result = await runToolContract(getOperationsPlan, 'invalid' as never);
+
+    expect(errorOf(result).code).toBe(JsonRpcErrorCode.InvalidParams);
+    expect(harness.calls).toHaveLength(0);
+  });
+
+  it('keeps a published UNTIL item even after its stated UTC clock time', async () => {
+    services.dispose();
+    setup(
+      { 'operations-plan': historicalPlan },
+      signedAdvisory,
+      createClock('2026-11-04T08:54:00Z'),
+    );
+
+    const result = await run();
+
+    expect(structured(result).terminalPlanned).toEqual([historicalItem]);
+    expect(contentText(result)).toContain('1. until 0500 UTC · probable · airports: MEM');
+  });
   it('discloses malformed planned sections without calling them empty or complete', async () => {
     services.dispose();
     setup({
@@ -214,7 +304,7 @@ describe('plan', () => {
 
   it('notes a missing advisory link', async () => {
     services.dispose();
-    setup({
+    const harness = setup({
       'operations-plan': {
         enRoutePlanned: [],
         terminalPlanned: [{ event: 'AFTER 1100\t-DCA GS POSSIBLE' }],
@@ -224,8 +314,12 @@ describe('plan', () => {
     const result = await run();
 
     expect(structured(result).advisory).toBeUndefined();
+    expect(structured(result)).not.toHaveProperty('sentAt');
     expect(structured(result).notice).toBe('The feed carried no advisory link for this plan.');
     expect(contentText(result)).toContain('**Plan advisory:** none linked');
+    expect(
+      harness.calls.every(({ request }) => new URL(request.url).host === 'nasstatus.faa.gov'),
+    ).toBe(true);
   });
 
   it('counts skipped plan and announcement rows together', async () => {
@@ -281,6 +375,115 @@ describe('plan', () => {
   });
 });
 
+describe('plan advisory send time', () => {
+  it('returns the signature on both surfaces and reuses the full advisory cache', async () => {
+    services.dispose();
+    const harness = setup({ 'operations-plan': historicalPlan });
+
+    const result = await run();
+
+    expect(structured(result).sentAt).toBe('2026-11-04T00:25:00Z');
+    expect(structured(result).terminalPlanned).toEqual([historicalItem]);
+    expect(contentText(result)).toContain('sent 2026-11-04T00:25:00Z');
+    const advisory = await runToolContract(getAdvisory, {
+      advisory_number: 3,
+      date: '2026-11-04',
+    });
+    expect(advisory.structuredContent).toMatchObject({ sentAt: '2026-11-04T00:25:00Z' });
+    expect(callsTo(harness, historicalAdvisory)).toBe(1);
+  });
+
+  it.each([
+    ['a page miss', () => htmlResponse(readFixture('advisory-miss.page')), 'has no page'],
+    [
+      'an absent signature',
+      () => htmlResponse('<PRE>Plan text</PRE>'),
+      'has no readable signature',
+    ],
+    [
+      'an invalid signature',
+      () => htmlResponse('<PRE>Plan text\n26/11/04 24:25</PRE>'),
+      'has no readable signature',
+    ],
+    ['an unavailable service', () => new Response('down', { status: 503 }), 'could not be read'],
+    ['a changed path', () => new Response('gone', { status: 404 }), 'could not be read'],
+  ])('keeps the plan and announcements with %s', async (_label, respond, notice) => {
+    vi.useFakeTimers();
+    services.dispose();
+    setup({ 'operations-plan': historicalPlan }, respond);
+
+    const result = await withLadder(run);
+    const data = structured(result);
+
+    expect(result.isError).toBeFalsy();
+    expect(data).not.toHaveProperty('sentAt');
+    expect(data.advisory).toEqual({ number: 3, date: '2026-11-04', url: historicalAdvisory });
+    expect(data.terminalPlanned).toEqual([historicalItem]);
+    expect(data.announcements).toEqual([{ text: 'NEXT PLANNING WEBINAR 1115Z' }]);
+    expect(data.notice).toContain('Plan send time is unavailable');
+    expect(data.notice).toContain('ADVZY 3 (2026-11-04)');
+    expect(data.notice).toContain(notice);
+    expect(contentText(result)).toContain(notice);
+    if (notice === 'could not be read') {
+      expect(contentText(result)).toContain('faa_delays_get_advisory');
+    }
+  });
+
+  it('starts the advisory lookup while announcements are pending', async () => {
+    services.dispose();
+    vi.useFakeTimers();
+    const announcements = Promise.withResolvers<Response>();
+    const harness = setup({
+      'operations-plan': historicalPlan,
+      'miscellaneous-info': () => announcements.promise,
+    });
+    const pending = run();
+    await vi.advanceTimersByTimeAsync(0);
+    const advisoryCallsBeforeAnnouncements = callsTo(harness, historicalAdvisory);
+    announcements.resolve(jsonResponse([]));
+
+    const result = await pending;
+
+    expect(advisoryCallsBeforeAnnouncements).toBe(1);
+    expect(structured(result)).toMatchObject({ sentAt: '2026-11-04T00:25:00Z', announcements: [] });
+  });
+
+  it('propagates unexpected advisory errors', async () => {
+    vi.spyOn(getAdvisoryService(), 'getAdvisory').mockRejectedValue(
+      new TypeError('unexpected advisory error'),
+    );
+
+    expect(errorOf(await run()).code).toBe(JsonRpcErrorCode.InternalError);
+  });
+
+  it('propagates caller cancellation while waiting for the advisory read', async () => {
+    services.dispose();
+    const started = Promise.withResolvers<void>();
+    const page = Promise.withResolvers<Response>();
+    const harness = setup({ 'operations-plan': historicalPlan }, () => {
+      started.resolve();
+      return page.promise;
+    });
+    const controller = new AbortController();
+    const pending = runToolContract(
+      getOperationsPlan,
+      {},
+      { context: { signal: controller.signal } },
+    );
+    await started.promise;
+    controller.abort(new Error('client cancelled'));
+
+    const result = await pending;
+    page.resolve(signedAdvisory());
+    const later = await run();
+
+    expect(errorOf(result).code).toBe(JsonRpcErrorCode.RequestCancelled);
+    expect(contentText(result)).toContain('client cancelled');
+    expect(structured(later).sentAt).toBe('2026-11-04T00:25:00Z');
+    expect(callsTo(harness, historicalAdvisory)).toBe(1);
+  });
+});
+
 describe('announcements degrade path', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -298,6 +501,7 @@ describe('announcements degrade path', () => {
 
     expect(result.isError).toBeFalsy();
     expect(data).not.toHaveProperty('announcements');
+    expect(data.sentAt).toBe('2026-09-29T23:53:00Z');
     expect(data.terminalPlanned).toHaveLength(3);
     expect(data.notice).toBe(
       'ATCSCC announcements are omitted because that FAA list could not be read.',
@@ -305,7 +509,7 @@ describe('announcements degrade path', () => {
     expect(contentText(result)).toContain('Not available: that FAA list could not be read.');
   });
 
-  it('rethrows a failed announcements leg when the caller was cancelled', async () => {
+  it('rejects an already-cancelled caller even when the plan is cached', async () => {
     const controller = new AbortController();
     await getNasStatusService().getOperationsPlan(createMockContext());
     controller.abort(new Error('client cancelled'));
@@ -321,11 +525,14 @@ describe('announcements degrade path', () => {
 
   it('fails the call when the plan leg fails, even if announcements are fine', async () => {
     services.dispose();
-    setup({ 'operations-plan': () => new Response('gone', { status: 404 }) });
+    const harness = setup({ 'operations-plan': () => new Response('gone', { status: 404 }) });
 
     const result = await withLadder(() => run());
 
     expect(errorOf(result).data?.reason).toBe('feed_contract_changed');
+    expect(
+      harness.calls.every(({ request }) => new URL(request.url).host === 'nasstatus.faa.gov'),
+    ).toBe(true);
   });
 });
 
@@ -348,6 +555,7 @@ describe('declared feed errors', () => {
       expect(error.data?.reason).toBe(reason);
       const declared = getOperationsPlan.errors?.find((entry) => entry.reason === reason);
       expect(recoveryHint(error)).toBe(declared?.recovery);
+      expect(contentText(result)).toContain(recoveryHint(error));
       expect(declared?.recovery).toContain(
         reason === 'feed_contract_changed'
           ? 'faa_delays_get_advisory'
@@ -379,14 +587,14 @@ describe('declared feed errors', () => {
 
 describe('format', () => {
   it('renders announcement links literally and keeps structured text verbatim', async () => {
-    const text = 'USE <FIX> [route](u) *literal*\nFCA005:NO_AR_ATLANTIC\t\u202e';
+    const text =
+      'USE <FIX> [route](u) *literal*\n\n## Heading\n1. List\n---\nFCA005:NO_AR_ATLANTIC\t\u202e';
     services.dispose();
     setup({ 'miscellaneous-info': [{ event: text }] });
     const result = await run();
     expect(structured(result).announcements).toEqual([{ text }]);
-    expect(contentText(result)).toContain('> USE \\<FIX\\> \\[route\\](u) *literal*');
-    expect(contentText(result)).toContain('> FCA005:NO_AR_ATLANTIC ');
-    expect(contentText(result)).not.toContain('\u202e');
+    const tokens = commonmark.parse(contentText(result), {});
+    expect(quotedText(tokens, 'USE')).toBe(text.replace('\t\u202e', ' '));
   });
   it('carries the same data as structuredContent', async () => {
     const text = contentText(await run());
@@ -426,13 +634,10 @@ describe('format', () => {
       },
     });
 
-    const lines = contentText(await run()).split('\n');
+    const tokens = commonmark.parse(contentText(await run()), {});
 
-    expect(lines.filter((line) => line.startsWith('##') && line.includes('injection'))).toEqual([]);
-    expect(lines).toContain('> WEBINAR 1115Z');
-    expect(lines).toContain('> ## Injected');
-    expect(lines).toContain('> SECOND LINE');
-    expect(lines).toContain('> ## Plan injection POSSIBLE');
+    expect(quotedText(tokens, 'WEBINAR 1115Z')).toBe('WEBINAR 1115Z\n## Injected\nSECOND LINE');
+    expect(quotedText(tokens, 'AFTER 1100')).toBe('AFTER 1100 DCA GS\n## Plan injection POSSIBLE');
   });
 
   it('keeps the parsed time out of an inline slot when upstream time carries a newline', async () => {

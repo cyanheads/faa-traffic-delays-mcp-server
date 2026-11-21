@@ -13,7 +13,7 @@ import { ADVISORY_CATEGORIES, type AdvisoryCategory } from '@/services/advisory/
 import { getAdvisoryService } from '@/services/advisory/advisory-service.js';
 import { resolveAirportCode } from '@/services/airport-directory/airport-directory.js';
 import { AdvisoryDateSchema, normalizeDate } from '../advisory-date.js';
-import { inline } from '../format-helpers.js';
+import { blockquote, inline, normalizeInline } from '../format-helpers.js';
 
 const AdvisoryCategorySchema = z
   .enum(ADVISORY_CATEGORIES)
@@ -233,6 +233,7 @@ export const listAdvisories = tool('faa_delays_list_advisories', {
       ),
   },
   enrichmentTrailer: {
+    notice: { render: blockquote },
     appliedQuery: { render: (query: string) => `**Query:** ${inline(query)}` },
     // Rendered only when enriched, so never with an absent value.
     appliedCategories: {
@@ -329,11 +330,11 @@ export const listAdvisories = tool('faa_delays_list_advisories', {
       );
     } else if (input.query && matching.length === 0) {
       notices.push(
-        `No advisory${inCategories} issued on ${date} (UTC) matches query ${inline(input.query)}${element ? ` with control element ${inline(element)}` : ''}. Call faa_delays_list_advisories without query or broaden the filters.`,
+        `No advisory${inCategories} issued on ${date} (UTC) matches query ${normalizeInline(input.query)}${element ? ` with control element ${normalizeInline(element)}` : ''}. Call faa_delays_list_advisories without query or broaden the filters.`,
       );
     } else if (element && matching.length === 0) {
       notices.push(
-        `No advisory${inCategories} issued on ${date} (UTC) has control element ${inline(element)}, out of ${index.rows.length} read. Call faa_delays_list_advisories without control_element to list them.`,
+        `No advisory${inCategories} issued on ${date} (UTC) has control element ${normalizeInline(element)}, out of ${index.rows.length} read. Call faa_delays_list_advisories without control_element to list them.`,
       );
     } else if (offset >= matching.length) {
       notices.push(

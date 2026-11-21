@@ -1,38 +1,26 @@
 /**
- * @fileoverview Markdown rendering helpers for FAA-authored text in `format()`. Inline slots get
- * CR/LF/TAB flattened to one space, other control and bidi characters removed, and `[`, `]`, `<`,
- * `>` escaped to neutralize Markdown link/image syntax, angle-bracket autolinks, and HTML tags;
- * clients may still auto-link bare URLs. Table cells escape every `\` and
- * `|` as well. Free text renders as a `>` blockquote or a fenced block; a value the FAA did not
- * report is named or left out, never shown as a placeholder. `structuredContent` always keeps the
+ * @fileoverview Markdown rendering helpers for FAA-authored text in `format()`. Inline slots and
+ * table cells collapse CR/LF/TAB runs to one space. Quotes and fenced blocks preserve line
+ * boundaries. The helpers remove other control and bidi characters and encode normalized text
+ * for literal rendering. Clients may still auto-link bare URLs. `structuredContent` keeps the
  * verbatim value.
  * @module mcp-server/tools/format-helpers
  */
 
+import { escapeMarkdownInline } from '@cyanheads/mcp-ts-core/utils';
 import type { AdvisoryRef } from '@/services/advisory/advisory-ref.js';
 
-/** C0 and C1 controls, DEL, and the bidi embedding, override, and isolate controls. */
-const isControl = (code: number): boolean =>
-  code <= 0x1f ||
-  (code >= 0x7f && code <= 0x9f) ||
-  (code >= 0x202a && code <= 0x202e) ||
-  (code >= 0x2066 && code <= 0x2069);
+/** C0 except LF, DEL, C1, and the bidi embedding, override, and isolate controls. */
+const CONTROL_EXCEPT_LF = /(?!\n)[\p{Cc}\u202a-\u202e\u2066-\u2069]/gu;
 
 /** CR/LF/TAB runs → one space, then every remaining control or bidi character removed. */
-function flatten(value: string): string {
-  let kept = '';
-  for (const char of value.replace(/[\r\n\t]+/g, ' ')) {
-    if (!isControl(char.charCodeAt(0))) kept += char;
-  }
-  return kept;
+export function normalizeInline(value: string): string {
+  return value.replace(/[\r\n\t]+/g, ' ').replace(CONTROL_EXCEPT_LF, '');
 }
 
-/**
- * Text safe in a heading, label, or list item: flattened, with `[`, `]`, `<`, and `>` escaped and
- * a backslash run directly before one doubled, so the text cannot cancel the escape.
- */
+/** Flattens text for literal rendering in a heading, label, or list item. */
 export function inline(value: string): string {
-  return flatten(value).replace(/(?<!\\)(\\*)([[\]<>])/g, '$1$1\\$2');
+  return escapeMarkdownInline(normalizeInline(value));
 }
 
 /** `start → end` for an upstream time window, naming whichever bound the FAA did not report. */
@@ -63,28 +51,22 @@ export function delayBand(min: number | undefined, max: number | undefined): str
   return;
 }
 
-/** An inline value safe inside a Markdown table cell: every `\`, `|`, `[`, `]`, `<`, and `>` escaped. */
+/** An inline value in a Markdown table cell, with embedded pipes escaped. */
 export function cell(value: string | number | boolean | undefined): string {
   if (value === undefined) return '—';
-  return flatten(String(value)).replace(/[\\|[\]<>]/g, '\\$&');
+  return inline(String(value));
 }
 
 /** Normalizes line endings and tabs, removing controls without merging original lines. */
 function multiline(value: string): string {
-  let kept = '';
-  for (const char of value.replace(/\r\n|\r/g, '\n')) {
-    if (char === '\n') kept += char;
-    else if (char === '\t') kept += ' ';
-    else if (!isControl(char.charCodeAt(0))) kept += char;
-  }
-  return kept;
+  return value.replace(/\r\n?/g, '\n').replaceAll('\t', ' ').replace(CONTROL_EXCEPT_LF, '');
 }
 
-/** Quotes each line with bracket/angle escaping, preserving emphasis and code characters. */
+/** Encodes the whole value before quoting so its original line boundaries render as breaks. */
 export function blockquote(value: string): string {
-  return multiline(value)
+  return escapeMarkdownInline(multiline(value))
     .split('\n')
-    .map((line) => (line ? `> ${inline(line)}` : '>'))
+    .map((line) => (line ? `> ${line}` : '>'))
     .join('\n');
 }
 

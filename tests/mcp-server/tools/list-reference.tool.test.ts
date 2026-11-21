@@ -143,6 +143,20 @@ describe('static topics', () => {
     expect(contentText(result)).toMatch(/\*\*Key fields:\*\* reason, .*programStartTime/);
   });
 
+  it('explains the rank and identity of airport-wide closure NOTAMs on both surfaces', async () => {
+    const result = await run('event_types');
+    const closureNotam = structured(result).eventTypes.find(
+      (entry: { eventType: string }) => entry.eventType === 'closure_notam',
+    );
+
+    for (const text of [closureNotam.meaning, contentText(result)]) {
+      expect(text).toContain(
+        'sets the airport status to closed and ranks alongside airport_closure',
+      );
+      expect(text).toContain('event type remains closure_notam for filtering and counts');
+    }
+  });
+
   it('terms lists the glossary alphabetically with the vocabulary the tools use', async () => {
     const terms: { term: string }[] = structured(await run('terms')).terms;
     const names = terms.map((entry) => entry.term);

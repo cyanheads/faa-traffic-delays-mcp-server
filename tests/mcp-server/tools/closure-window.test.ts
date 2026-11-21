@@ -99,7 +99,7 @@ describe('closureWindowNotice', () => {
   it('flattens the airport identifier it interpolates', () => {
     expect(
       closureWindowNotice('P\nVD [x]', 'airport closure', PVD, '2026-11-03T12:23:00Z'),
-    ).toMatch(/^P VD \\\[x\\\] airport closure/);
+    ).toMatch(/^P VD \[x\] airport closure/);
   });
 });
 

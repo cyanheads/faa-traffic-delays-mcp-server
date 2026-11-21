@@ -109,7 +109,7 @@ const EVENT_TYPE_REFERENCE: {
     eventType: 'closure_notam',
     label: 'Closure NOTAM',
     meaning:
-      'A NOTAM-worded closure or restriction, often narrow (for example closed to non-scheduled transient general aviation). The FAA dashboard labels it an airport closure; it is kept separate here because it rarely closes the airport to all traffic.',
+      'A NOTAM-worded closure or restriction, often narrow (for example closed to non-scheduled transient general aviation). An airport-wide closure in effect sets the airport status to closed and ranks alongside airport_closure. Its event type remains closure_notam for filtering and counts.',
     keyFields: [
       'closureText (the NOTAM text)',
       'startTime',
@@ -377,7 +377,7 @@ export const listReference = tool('faa_delays_list_reference', {
           .describe('One event type.'),
       )
       .optional()
-      .describe('Present for topic event_types, in severity order.'),
+      .describe('Present for topic event_types, in default severity order.'),
     terms: z
       .array(
         z

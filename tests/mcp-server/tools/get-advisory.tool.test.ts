@@ -585,10 +585,10 @@ describe('format', () => {
     const text = contentText(result);
 
     expect(text).toContain(
-      '**Subject:** !\\[x\\](https://evil.example/p?q=1) \\<img src=x onerror=alert(1)\\> &#27;\\[2J &#x202E;GDP',
+      '**Subject:** !\\[x\\](https://evil.example/p?q=1) \\<img src=x onerror=alert(1)> \\&#27;\\[2J \\&#x202E;GDP',
     );
     expect(text).toContain('**Effective:** \\[here\\](https://evil.example)\\[31m');
-    expect(text).not.toMatch(/(?<!\\)[[\]<>]/);
+    expect(text).not.toMatch(/(?<!\\)[[\]<]/);
     expect(text).not.toMatch(/[\u{1B}\u{202E}]/u);
     expect(structured(result)).toMatchObject({
       effectiveTime: '[here](https://evil.example)\u{1B}[31m\u{202E}',

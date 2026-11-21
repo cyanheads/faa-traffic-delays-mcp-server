@@ -10,6 +10,7 @@
 import { z } from '@cyanheads/mcp-ts-core';
 import { JsonRpcErrorCode, rateLimited } from '@cyanheads/mcp-ts-core/errors';
 import { runToolContract } from '@cyanheads/mcp-ts-core/testing';
+import MarkdownIt from 'markdown-it';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { listActiveEvents } from '@/mcp-server/tools/definitions/list-active-events.tool.js';
 import { EVENT_TYPES } from '@/mcp-server/tools/schemas.js';
@@ -185,6 +186,78 @@ describe('event_types input', () => {
 });
 
 describe('results', () => {
+  it('ranks full freeForm closures above ground stops without changing row identity', async () => {
+    services.dispose();
+    const aseText =
+      '!ASE 11/064 ASE AD AP CLSD EXC LIFE FLT HEL AND SAR HEL 30MIN PPR 2611040600-2611041400';
+    const bareText = '!SNA 11/003 SNA AD AP CLSD 2611040600-2611041400';
+    setup(
+      {
+        'airport-events': [
+          { airportId: 'DEN', groundStop: { impactingCondition: 'thunderstorms' } },
+          {
+            airportId: 'ASE',
+            freeForm: { simpleText: aseText },
+            groundStop: { impactingCondition: 'snow' },
+          },
+          { airportId: 'SNA', freeForm: { simpleText: bareText } },
+          {
+            airportId: 'ALB',
+            freeForm: { text: '!ALB 11/001 ALB AD AP CLSD 2611040600-2611041400' },
+          },
+          ...['LAS', 'LAX', 'SAN'].map((id) => ({
+            airportId: id,
+            freeForm: {
+              simpleText: `!${id} 10/004 ${id} AD AP CLSD TO NON SKED TRANSIENT GA ACFT EXC PPR 2611040600-2611041400`,
+            },
+          })),
+        ],
+        'enroute-events': [],
+      },
+      '2026-11-04T08:28:00Z',
+    );
+
+    const result = await run();
+    expect(locations(result)).toEqual([
+      'closure_notam:ASE',
+      'closure_notam:SNA',
+      'ground_stop:ASE',
+      'ground_stop:DEN',
+      'closure_notam:ALB',
+      'closure_notam:LAS',
+      'closure_notam:LAX',
+      'closure_notam:SAN',
+    ]);
+    expect(structured(result).events[0]).toEqual({
+      closureText: aseText,
+      eventType: 'closure_notam',
+      location: 'ASE',
+    });
+    const rendered = contentText(result);
+    expect(rendered).toContain(`> ${aseText}`);
+    expect(rendered.indexOf('### closure_notam — SNA')).toBeLessThan(
+      rendered.indexOf('### ground_stop — ASE'),
+    );
+    expect(rendered).toContain('**By type:** ground_stop 2 · closure_notam 6');
+
+    const filtered = await run({ event_types: 'closure_notam' });
+    expect(locations(filtered)).toEqual([
+      'closure_notam:ASE',
+      'closure_notam:SNA',
+      'closure_notam:ALB',
+      'closure_notam:LAS',
+      'closure_notam:LAX',
+      'closure_notam:SAN',
+    ]);
+    expect(structured(filtered).countsByType).toMatchObject({
+      closure_notam: 6,
+      airport_closure: 0,
+      ground_stop: 2,
+    });
+    expect(contentText(filtered)).not.toContain('### ground_stop —');
+    expect(locations(await run({ event_types: 'airport_closure' }))).toEqual([]);
+  });
+
   it('lists every event sorted by severity, then magnitude, then location', async () => {
     const result = await run();
 
@@ -640,6 +713,40 @@ describe('daily closure window', () => {
 
     expect(locations(await run())).toEqual(['airport_closure:PVD', 'ground_stop:DEN']);
   });
+
+  it.each([
+    ['2026-11-03T12:23:00Z', false, ['ground_stop:DEN', 'closure_notam:PVD']],
+    ['2026-11-04T08:28:00Z', true, ['closure_notam:PVD', 'ground_stop:DEN']],
+  ])(
+    'uses a full freeForm closure window for national rank at %s',
+    async (at, inEffect, expected) => {
+      services.dispose();
+      setup(
+        {
+          'airport-events': [
+            { airportId: 'PVD', freeForm: PVD_CLOSURE },
+            { airportId: 'DEN', groundStop: { impactingCondition: 'thunderstorms' } },
+          ],
+          'enroute-events': [],
+        },
+        at,
+      );
+      const result = await run();
+
+      expect(locations(result)).toEqual(expected);
+      expect(structured(result).events.find((event) => event.location === 'PVD')).toMatchObject({
+        closureText: PVD_CLOSURE.simpleText,
+        dailyWindowUtc: { start: '0515', end: '1030' },
+        inEffect,
+      });
+      expect(contentText(result).match(/^### .+$/gm)).toEqual(
+        expected.map((key) => `### ${key.replace(':', ' — ')}`),
+      );
+      expect(contentText(result)).toContain(
+        `daily 0515–1030 UTC, ${inEffect ? 'in effect' : 'not in effect'}`,
+      );
+    },
+  );
 });
 
 describe('enrichment and filtering', () => {
@@ -826,13 +933,13 @@ describe('enrichment and filtering', () => {
       expect(structured(await run()).notice).toBeUndefined();
     });
 
-    it('flattens line breaks in the airport identifier it names', async () => {
+    it('keeps the named airport identifier literal on both notice surfaces', async () => {
       services.dispose();
       setup(
         {
           'airport-events': [
             {
-              airportId: 'ORD\n### Injected',
+              airportId: 'ORD\n*North* [arrival]',
               departureDelay: {
                 averageDelay: '15',
                 trend: 'increasing',
@@ -845,9 +952,16 @@ describe('enrichment and filtering', () => {
         '2026-09-30T08:00:00Z',
       );
 
-      expect(structured(await run()).notice).toContain(
-        'ORD ### INJECTED departure delay was last updated 8 h ago',
-      );
+      const result = await run();
+      const notice =
+        'ORD *NORTH* [ARRIVAL] departure delay was last updated 8 h ago; the FAA feed can keep a delay entry after it lapses.';
+      expect(structured(result).notice).toBe(notice);
+      const tokens = new MarkdownIt('commonmark').parse(contentText(result), {});
+      const quote = tokens.findIndex((token) => token.type === 'blockquote_open');
+      expect(quote).toBeGreaterThanOrEqual(0);
+      expect(tokens[quote + 2]?.children?.map((token) => [token.type, token.content])).toEqual([
+        ['text', notice],
+      ]);
     });
   });
 });
@@ -1006,9 +1120,20 @@ describe('format', () => {
     });
     const result = await run();
     expect(structured(result).events[0]?.afp).toMatchObject({ comments });
-    expect(contentText(result)).toContain('> USE \\<FIX\\> \\[route\\](u) *literal*');
-    expect(contentText(result)).toContain('> FCA005:NO_AR_ATLANTIC ');
-    expect(contentText(result)).not.toContain('\u202e');
+    const tokens = new MarkdownIt('commonmark').parse(contentText(result), {});
+    const quote = tokens.findIndex((token) => token.type === 'blockquote_open');
+    expect(tokens.slice(quote, quote + 5).map((token) => token.type)).toEqual([
+      'blockquote_open',
+      'paragraph_open',
+      'inline',
+      'paragraph_close',
+      'blockquote_close',
+    ]);
+    expect(tokens[quote + 2]?.children?.map((token) => [token.type, token.content])).toEqual([
+      ['text', 'USE <FIX> [route](u) *literal*'],
+      ['hardbreak', ''],
+      ['text', 'FCA005:NO_AR_ATLANTIC '],
+    ]);
   });
   it('renders each event with the fields a caller acts on and the enrichment trailer', async () => {
     const text = contentText(await run());
@@ -1144,10 +1269,10 @@ describe('format', () => {
       ).toBe(false);
     }
     expect(text).toContain('- Program start: 2026-09-30T01:00:00Z ### Program start injection');
-    expect(lines).toContain('> CLOSED');
-    expect(lines).toContain('> ## Closure injection');
-    expect(lines).toContain('> TWO');
-    expect(lines).toContain('> ### Comment injection');
+    expect(lines).toContain('> CLOSED\\');
+    expect(lines).toContain('> \\## Closure injection');
+    expect(lines).toContain('> TWO\\');
+    expect(lines).toContain('> \\### Comment injection');
   });
 
   it('keeps structuredContent verbatim', async () => {

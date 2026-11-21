@@ -58,7 +58,12 @@ const commonmarkTexts = (markdown: string): string[] =>
   new MarkdownIt('commonmark')
     .parse(markdown, {})
     .filter((token) => token.type === 'inline')
-    .map((token) => token.content);
+    .map(
+      (token) =>
+        token.children
+          ?.map((child) => (child.type === 'hardbreak' ? '\n' : child.content))
+          .join('') ?? '',
+    );
 
 beforeEach(() => {
   vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('unmocked fetch'));
@@ -526,6 +531,94 @@ describe('status', () => {
     }
   });
 
+  it('keeps narrow, ambiguous, and missing full NOTAM wording at restriction precedence', async () => {
+    services.dispose();
+    setup(
+      {
+        'airport-events': [
+          {
+            airportId: 'LAS',
+            freeForm: {
+              simpleText:
+                '!LAS 10/160 LAS AD AP CLSD TO NON SKED TRANSIENT GA ACFT EXC PPR 2611040600-2611041400',
+            },
+          },
+          {
+            airportId: 'LAX',
+            freeForm: {
+              simpleText: '!LAX 05/277 LAX AD AP CLSD AS DIRECTED EXC HEL 2611040600-2611041400',
+            },
+            groundStop: { impactingCondition: 'thunderstorms' },
+          },
+          {
+            airportId: 'SAN',
+            freeForm: { text: '!SAN 10/004 SAN AD AP CLSD EXC HEL 2611040600-2611041400' },
+          },
+          {
+            airportId: 'SNA',
+            freeForm: { simpleText: '!SNA 11/003 SNA AD AP CLSD EXC 2611040600-2611041400' },
+          },
+        ],
+      },
+      '2026-11-04T08:28:00Z',
+    );
+
+    const result = await run({ airports: ['LAS', 'LAX', 'SAN', 'SNA'] });
+
+    expect(rowsOf(result)).toMatchObject([
+      { airportId: 'LAS', status: 'restrictions_only' },
+      { airportId: 'LAX', status: 'ground_stop' },
+      { airportId: 'SAN', status: 'restrictions_only' },
+      { airportId: 'SNA', status: 'restrictions_only' },
+    ]);
+    expect(contentText(result)).toContain('- Restriction: !SAN');
+    expect(contentText(result)).not.toContain('**Status:** closed');
+  });
+
+  it.each([
+    [
+      'AD AP CLSD EXC LIFE FLT HEL AND SAR HEL 30MIN PPR',
+      'except LIFE FLT HEL AND SAR HEL 30MIN PPR',
+    ],
+    ['AD AP CLSD', undefined],
+  ])('closes the airport for a freeForm NOTAM with scope %s', async (scope, text) => {
+    services.dispose();
+    const simpleText = `!ASE 11/064 ASE ${scope} 2611040600-2611041400`;
+    setup(
+      {
+        'airport-events': [
+          {
+            airportId: 'ASE',
+            freeForm: {
+              simpleText,
+              text,
+              notamNumber: 64,
+              startTime: '2026-11-04T06:00:00Z',
+              endTime: '2026-11-04T14:00:00Z',
+            },
+            groundStop: { impactingCondition: 'thunderstorms' },
+          },
+        ],
+      },
+      '2026-11-04T08:28:00Z',
+    );
+
+    const result = await run({ airports: ['ASE'] });
+
+    expect(rowsOf(result)[0]).toMatchObject({
+      status: 'closed',
+      closureNotam: { notamText: simpleText, notamNumber: 64 },
+      groundStop: { reason: 'thunderstorms' },
+    });
+    expect(rowsOf(result)[0]).not.toHaveProperty('closure');
+    const rendered = contentText(result);
+    expect(rendered).toContain('**Status:** closed');
+    expect(rendered).toContain('**Ground stop:**');
+    expect(rendered).toContain('**Closure NOTAM 64:**');
+    expect(rendered).toContain(`> ${simpleText}`);
+    if (text) expect(rendered).toContain(`- Detail: ${text}`);
+  });
+
   it('reports every active event of a listed airport in its own field', async () => {
     const [sea] = rowsOf(await run({ airports: ['SEA'] }));
     expect(sea).toMatchObject({
@@ -659,22 +752,35 @@ describe('daily closure window', () => {
     expect(rowsOf(await run({ airports: ['PVD'] }))[0]?.status).toBe(status);
   });
 
-  it('evaluates a daily closure NOTAM without letting it set the status', async () => {
+  it.each([
+    ['2026-11-03T12:23:00Z', false, 'ground_stop'],
+    ['2026-11-04T08:28:00Z', true, 'closed'],
+  ])('uses the freeForm closure window for status at %s', async (at, inEffect, status) => {
     services.dispose();
     setup(
-      { 'airport-events': [{ airportId: 'PVD', freeForm: PVD_CLOSURE }] },
-      '2026-11-03T12:23:00Z',
+      {
+        'airport-events': [
+          {
+            airportId: 'PVD',
+            freeForm: PVD_CLOSURE,
+            groundStop: { impactingCondition: 'thunderstorms' },
+          },
+        ],
+      },
+      at,
     );
 
     const result = await run({ airports: ['PVD'] });
 
     expect(rowsOf(result)[0]).toMatchObject({
-      closureNotam: { dailyWindowUtc: { end: '1030', start: '0515' }, inEffect: false },
-      status: 'restrictions_only',
+      closureNotam: { dailyWindowUtc: { end: '1030', start: '0515' }, inEffect },
+      status,
     });
-    expect(noticeOf(result)).toContain('PVD closure NOTAM applies daily 0515–1030 UTC');
+    if (!inEffect)
+      expect(noticeOf(result)).toContain('PVD closure NOTAM applies daily 0515–1030 UTC');
+    expect(contentText(result)).toContain(`**Status:** ${status}`);
     expect(contentText(result)).toContain(
-      '**Closure NOTAM 5:** 2026-11-03T05:15:00Z → 2026-11-04T10:30:00Z · daily 0515–1030 UTC, not in effect',
+      `**Closure NOTAM 5:** 2026-11-03T05:15:00Z → 2026-11-04T10:30:00Z · daily 0515–1030 UTC, ${inEffect ? 'in effect' : 'not in effect'}`,
     );
   });
 
@@ -1343,9 +1449,10 @@ describe('format', () => {
       closure: { text },
       closureNotam: { notamText: text },
     });
-    expect(contentText(result)).toContain('> USE \\<FIX\\> \\[route\\](u) *literal*');
-    expect(contentText(result)).toContain('> FCA005:NO_AR_ATLANTIC ');
-    expect(contentText(result)).not.toContain('\u202e');
+    const rendered = contentText(result);
+    const literal = 'USE <FIX> [route](u) *literal*\nFCA005:NO_AR_ATLANTIC ';
+    expect(commonmarkTexts(rendered).filter((value) => value === literal)).toHaveLength(2);
+    expect(rendered).not.toContain('\u202e');
   });
   it('carries the same data as structuredContent', async () => {
     const result = await run({ airports: ['SEA', 'KJFK', 'DEN', 'ORD', 'LAX'] });
@@ -1535,17 +1642,16 @@ describe('format', () => {
     expect(lines.filter((line) => line.startsWith('## '))).toEqual([
       expect.stringMatching(/^## SEA — Sea # Name injection/),
     ]);
-    expect(lines).toContain('> LINE ONE');
-    expect(lines).toContain('> LINE TWO');
-    expect(lines).toContain('> ## Injected heading');
-    expect(lines).toContain('- Detail:');
-    expect(lines).toContain('  > EXC HEL');
-    expect(lines).toContain('  > ## Detail injection');
-    expect(lines).toContain('> !SEA 1');
-    expect(lines).toContain('> 3');
-    expect(lines).toContain('- Restriction:');
-    expect(lines).toContain('  > NARROW RESTRICTION');
-    expect(lines).toContain('  > - injected');
+    expect(commonmarkTexts(text)).toEqual(
+      expect.arrayContaining([
+        'LINE ONE\nLINE TWO\n## Injected heading',
+        'Detail:',
+        'EXC HEL\n## Detail injection',
+        '!SEA 1\n2\n3',
+        'Restriction:',
+        'NARROW RESTRICTION\n- injected',
+      ]),
+    );
     expect(lines).toContain('- Program start: 2026-09-30T01:00:00Z ## Profile start');
   });
 
@@ -1644,8 +1750,10 @@ describe('format', () => {
     const result = await run({ airports: ['SEA'] });
     const text = contentText(result);
 
-    expect(text).toContain('## SEA — !\\[x\\](https://evil.example/p.png)');
-    expect(text).toContain('- Reason: \\[click\\](https://evil.example) \\<b\\>x\\</b\\>\\[31m');
+    const markup = new MarkdownIt('commonmark').render(text);
+    expect(markup).toContain('SEA — ![x](https://evil.example/p.png)');
+    expect(markup).toContain('Reason: [click](https://evil.example) &lt;b&gt;x&lt;/b&gt;[31m');
+    expect(markup).not.toMatch(/<(?:a|img|b)\b/);
     expect(text).not.toMatch(/[\u{1B}\u{202E}]/u);
     expect(rowsOf(result)[0]).toMatchObject({
       airportName: '![x](https://evil.example/p.png)',

@@ -37,7 +37,7 @@ Live US air traffic status from the FAA Command Center, the source behind [nasst
 |:---|:---|
 | `faa_delays_get_airport_status` | Current status of up to 25 distinct US airports per call, with the remainder named: ground stops, delay programs, delays, closures, deicing, runway configuration, and the programs the operations plan names for each |
 | `faa_delays_list_active_events` | Every active event across the National Airspace System, Airspace Flow Programs included, sorted by severity with per-type counts |
-| `faa_delays_get_operations_plan` | The Command Center's operations plan: programs and initiatives expected later today, with planned time and likelihood |
+| `faa_delays_get_operations_plan` | The Command Center's operations plan: programs and initiatives expected later today, with planned time, likelihood, and the advisory’s send time when available |
 | `faa_delays_get_advisory` | Full text of one ATCSCC advisory by number and UTC date: program rate, scope, comments, and the plan's constraints |
 | `faa_delays_list_advisories` | The ATCSCC advisories issued on one UTC date, newest first, with their numbers: programs as issued, proposed, revised, and canceled, reroutes, and the operations plan |
 | `faa_delays_list_reference` | Decode event types, traffic-management terms, ARTCC codes, the FAA pacing airports, and identifier formats |
@@ -51,7 +51,7 @@ Live US air traffic status from the FAA Command Center, the source behind [nasst
 ### `faa_delays_get_airport_status` <sub>tool</sub>
 
 - `airports`: 1–100 codes, each a 3-character FAA identifier (`SEA`) or ICAO code (`KSEA`, `PHNL`), as an array or comma-separated string. An unknown code fails the whole call as `unknown_airport`. Only the first 25 distinct airports are processed (`cap: 25`); `processedCount` and `omittedAirports` give the remainder to pass in the next call
-- One row per airport, in request order: `status` (`closed`, `ground_stop`, `ground_delay_program`, `delays`, `restrictions_only`, `no_active_events`), `listedInFeed`, `airportName`, `artcc`, coordinates, and each active event (`groundStop`, `groundDelayProgram` with a per-15-minute `delayProfile`, `arrivalDelay` / `departureDelay`, `closure` and `closureNotam` with their NOTAM text, `deicing`). A closure the NOTAM schedules `DLY HHMM-HHMM` carries `dailyWindowUtc` and `inEffect`; outside its window it does not set `status` to `closed`
+- One row per airport, in request order: `status` (`closed`, `ground_stop`, `ground_delay_program`, `delays`, `restrictions_only`, `no_active_events`), `listedInFeed`, `airportName`, `artcc`, coordinates, and each active event (`groundStop`, `groundDelayProgram` with a per-15-minute `delayProfile`, `arrivalDelay` / `departureDelay`, `closure` and `closureNotam` with their NOTAM text, `deicing`). A full closure in effect sets `closed` even when the FAA files it under `closureNotam`. A restriction limited to named traffic keeps its narrower scope. A closure the NOTAM schedules `DLY HHMM-HHMM` carries `dailyWindowUtc` and `inEffect`; outside its window it does not set `status` to `closed`
 - `runwayConfiguration` (runways and `arrivalRatePerHour`) appears only for airports the feed lists. PHX reports `timezone: "America/Phoenix"` with `reportedTimezone: "US/Mountain"`
 - `plannedPrograms`: the operations plan's terminal items naming the airport, with the plan's `advisory`; `[]` when the plan names it nowhere (not an all-clear), absent when the plan could not be read
 
@@ -69,7 +69,8 @@ Live US air traffic status from the FAA Command Center, the source behind [nasst
 
 - No input; `terminalPlanned` and `enRoutePlanned` items carry `text`, `timeQualifier` (`after`, `until`, `by`, `between`), `timeUtc` (`HHMM` with no date), and `likelihood` (`possible`, `probable`, `expected`)
 - Terminal items also carry `airports`, the FAA identifiers they name (`SEA/BFI` → `SEA`, `BFI`), absent when they name none, such as a metro area or an ARTCC
-- `announcements` lists current ATCSCC announcements (omitted with a `notice` if unreadable); `advisory` points to the full plan text for `faa_delays_get_advisory`
+- `sentAt` dates the linked advisory in UTC. A missing link, unreadable page, or missing send time leaves the field absent with a notice. `advisory` opens the full text with `faa_delays_get_advisory`, including the EVENT TIME that dates the planned items.
+- `announcements` lists current ATCSCC announcements and is omitted with a notice if unreadable.
 
 ---
 
@@ -197,7 +198,7 @@ MCP_TRANSPORT_TYPE=http MCP_HTTP_PORT=3010 bun run start:http
 
 ### Prerequisites
 
-- [Bun v1.4.0](https://bun.sh/) or higher (or Node.js v24+).
+- [Bun v1.4.4](https://bun.sh/) or higher (or Node.js v24+).
 - No API key or account: the FAA feeds are public.
 
 ### Installation
@@ -229,15 +230,19 @@ cp .env.example .env
 
 ## Configuration
 
-The server reads no environment variables of its own: the FAA hosts, cache lifetimes, and request pacing are fixed in the services. These framework variables cover transport, logging, and telemetry.
+The server reads no environment variables of its own. The FAA hosts, cache lifetimes, and request pacing are fixed in the services. These framework variables cover transport, authentication, logging, and telemetry.
 
 | Variable | Description | Default |
 |:---|:---|:---|
 | `MCP_TRANSPORT_TYPE` | Transport: `stdio` or `http`. | `stdio` |
 | `MCP_HTTP_PORT` | HTTP server port. | `3010` |
 | `MCP_HTTP_HOST` | HTTP server host. | `127.0.0.1` |
+| `MCP_HTTP_ENDPOINT_PATH` | HTTP route path without a query or fragment. A leading slash is added if omitted. | `/mcp` |
+| `MCP_PUBLIC_URL` | Public HTTP(S) base URL behind a reverse proxy. Omit credentials, queries, and fragments. | Unset |
 | `MCP_SESSION_MODE` | HTTP session mode: `stateless`, `stateful`, or `auto`. | `stateless` |
 | `MCP_AUTH_MODE` | Authentication: `none`, `jwt`, or `oauth`. | `none` |
+| `MCP_JWT_EXPECTED_AUDIENCE` | Expected `aud` claim in JWT mode. Leaving it unset accepts any audience and warns at startup. | Unset |
+| `MCP_JWT_EXPECTED_ISSUER` | Expected `iss` claim in JWT mode. Set it alongside the audience. | Unset |
 | `MCP_LOG_LEVEL` | Log level (`debug`, `info`, `warning`, `error`, etc.). | `info` |
 | `LOGS_DIR` | Directory for log files (Node.js only). | `<app-root>/logs` |
 | `OTEL_ENABLED` | Enable [OpenTelemetry](https://github.com/cyanheads/mcp-ts-core/tree/main/docs/telemetry). | `false` |

@@ -9,6 +9,7 @@
 import { z } from '@cyanheads/mcp-ts-core';
 import { JsonRpcErrorCode, rateLimited } from '@cyanheads/mcp-ts-core/errors';
 import { createFetchMock, runToolContract } from '@cyanheads/mcp-ts-core/testing';
+import MarkdownIt from 'markdown-it';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getAdvisory } from '@/mcp-server/tools/definitions/get-advisory.tool.js';
 import { listAdvisories } from '@/mcp-server/tools/definitions/list-advisories.tool.js';
@@ -145,8 +146,15 @@ describe('input', () => {
     const result = await run({ date: '2026-10-01', query: '.*' });
     expect(numbers(result)).toEqual([]);
     expect(structured(result)).toMatchObject({ totalCount: 0, appliedQuery: '.*' });
-    expect(structured(result).notice).toContain('matches query .*');
-    expect(contentText(result)).toContain('matches query .*');
+    const notice =
+      'No advisory issued on 2026-10-01 (UTC) matches query .*. Call faa_delays_list_advisories without query or broaden the filters.';
+    expect(structured(result).notice).toBe(notice);
+    const tokens = new MarkdownIt('commonmark').parse(contentText(result), {});
+    const quote = tokens.findIndex((token) => token.type === 'blockquote_open');
+    expect(quote).toBeGreaterThanOrEqual(0);
+    expect(tokens[quote + 2]?.children?.map((token) => [token.type, token.content])).toEqual([
+      ['text', notice],
+    ]);
   });
   it('filters subject text before paging and echoes the trimmed query on both surfaces', async () => {
     const result = await run({ date: '2026-10-01', query: '  ground stop  ', limit: 1 });
@@ -958,8 +966,8 @@ describe('format', () => {
     });
     const lines = (result.content[0] as { text: string }).text.split('\n');
     expect(lines[2]).toBe(
-      '- **ADVZY 5** · ORD/ZAU · \\[click\\](https://e.test) \\<b\\>bold\\</b\\> · sent 2026-10-01T12:00:00Z',
+      '- **ADVZY 5** · ORD/ZAU · \\[click\\](https://e.test) \\<b>bold\\</b> · sent 2026-10-01T12:00:00Z',
     );
-    expect(lines[3]).toBe('  - Details: ```js · # heading');
+    expect(lines[3]).toBe('  - Details: \\`\\`\\`js · \\# heading');
   });
 });

@@ -4,7 +4,7 @@ description: Gates and workflows for the faa_delays_* tools over FAA ground stop
 license: Apache-2.0
 metadata:
   author: "cyanheads"
-  version: "1.0"
+  version: "1.1"
 ---
 
 ## Scope
@@ -33,11 +33,11 @@ Not covered; say so rather than infer it:
 
 **Read every event on the row.** `status` names only the first match in its precedence order, and one row can carry a GDP and a departure delay together.
 
-**Read the NOTAM text for a closure's scope.** `AD AP CLSD` closes the whole airport, with exceptions after `EXC`. `CLSD TO NON SKED TRANSIENT GA ACFT` bars only non-scheduled transient general aviation; scheduled airline flights are unaffected. Both forms arrive as closure NOTAMs: a live ASE NOTAM read `AD AP CLSD EXC LIFE FLT HEL AND SAR HEL` on a row whose status was `restrictions_only`, so `restrictions_only` does not mean open.
+**Read the NOTAM for the scope of a closure.** An in-effect `AD AP CLSD EXC …` closes the airport except for the named operations. An ASE closure, for example, allowed life-flight and search-and-rescue helicopters. `AD AP CLSD TO NON SKED TRANSIENT GA ACFT` restricts only non-scheduled transient general aviation, even when an exception follows. Both can appear under `closureNotam`. Check the wording and daily window before applying either to a flight.
 
 **Check whether a closure is in effect now.** A closure scheduled `DLY HHMM-HHMM` closes the airport only inside that daily UTC window, while its `startTime`–`endTime` span runs for days. Report `inEffect` and the next window from the notice, never the span as one closure. Other schedule wordings are not parsed: read the text before saying an airport is closed now.
 
-**Date the operations plan before quoting it.** The feed carries the current plan advisory, which the FAA reissues several times a day, so it can be many hours old: one read at 0854Z had been sent at 0025Z and still listed `UNTIL 0500` items. Plan times are HHMM UTC with no date; the day comes from the EVENT TIME line of the plan advisory's text. Read that advisory with faa_delays_get_advisory for `sentAt`, `effectiveStart`, and `effectiveEnd`, then compare each item's time with now: an UNTIL item past its time is over, and an AFTER item past its time is either in the feed now or did not happen. The advisory's TERMINAL ACTIVE section belongs to the same snapshot; what is active now comes from the feed tools.
+**Date the operations plan before quoting it.** Compare the plan's `sentAt` with the current UTC time to tell the caller how old it is. If the field is absent, report that its issue time is unknown. `fetchedAt` dates the server's copy. To place an `HHMM` item on a calendar day, follow `advisory` with faa_delays_get_advisory and read the EVENT TIME line. A plan sent at 0025Z still listed an `UNTIL 0500` item at 0854Z. Once an item's window has passed, check the active feed before describing what is happening now.
 
 **An empty `plannedPrograms` is not "no trouble expected".** It holds the plan's terminal ground-stop and delay-program items that name the airport, with times as written. En-route items (ORD/MDW ARRIVAL ROUTES POSSIBLE) stay in the plan's en-route list, and terminal constraints (weather by airport) and runway closures appear only in the plan advisory's text. `likelihood` is absent when the FAA used another word (LIKELY); read the item text then.
 
@@ -72,7 +72,7 @@ A program that has ended is gone from the feed. Find it with faa_delays_list_adv
 
 ### Which airports are worst right now
 
-faa_delays_list_active_events sorts by event type and delay, not by impact on travelers. Before ranking, drop closure NOTAMs that bar only general aviation, check whether each closure is in effect, and set aside delays the stale-entry notice names (the FAA feed can keep a delay entry after it lapses). Its counts include those restrictions, so a raw event count overstates disruption.
+faa_delays_list_active_events sorts by event severity and reported delay. A full closure takes closure rank even when the event type is `closure_notam`. Before ranking, drop closure NOTAMs that bar only general aviation, check whether each closure is in effect, and set aside delays the stale-entry notice names (the FAA feed can keep a delay entry after it lapses). Its counts include those restrictions, so a raw event count overstates disruption.
 
 ### What happened earlier, or on a past date
 

@@ -1,8 +1,6 @@
 /**
- * @fileoverview The daily window of a closure whose NOTAM schedules it `DLY HHMM-HHMM`, shared by
- * faa_delays_get_airport_status and faa_delays_list_active_events: the output fields, whether the
- * closure is in effect at the snapshot's `fetchedAt` with the next window start, and the suffix
- * the closure line renders.
+ * @fileoverview Closure scope and daily window shared by faa_delays_get_airport_status and
+ * faa_delays_list_active_events. Evaluates `DLY HHMM-HHMM` at the feed snapshot's `fetchedAt`.
  * @module mcp-server/tools/closure-window
  */
 
@@ -10,6 +8,16 @@ import { z } from '@cyanheads/mcp-ts-core';
 import type { DailyWindow } from '@/services/nas-status/types.js';
 
 const DAY_MS = 86_400_000;
+
+/** Whether the full FAA NOTAM's opening scope closes the reported airport. */
+export function hasFullClosureScope(airportId: string, notamText: string | undefined): boolean {
+  if (notamText === undefined) return false;
+  const scope =
+    /^![A-Z0-9]{3}\s+\d{2}\/\d{3}\s+([A-Z0-9]{3})\s+AD\s+AP\s+CLSD\s+(?:EXC\s+(?!\d{10}-|DLY(?:\s|$))[A-Z0-9]|\d{10}-(?:\d{10}(?:EST)?|PERM)$)/i.exec(
+      notamText.trim(),
+    );
+  return scope?.[1]?.toUpperCase() === airportId;
+}
 
 /** The two fields a scheduled closure, or a closure row, carries beside its times. */
 export const DailyWindowFields = {

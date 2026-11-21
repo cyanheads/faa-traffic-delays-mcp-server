@@ -16,7 +16,12 @@ import type {
   Closure,
   DelayBand,
 } from '@/services/nas-status/types.js';
-import { DailyWindowFields, dailyWindowState, dailyWindowSuffix } from '../closure-window.js';
+import {
+  DailyWindowFields,
+  dailyWindowState,
+  dailyWindowSuffix,
+  hasFullClosureScope,
+} from '../closure-window.js';
 import {
   advisoryLine,
   blockquote,
@@ -232,6 +237,8 @@ const EventSchema = z
 
 type EventRow = z.infer<typeof EventSchema>;
 
+type SortableEvent = EventRow & { closureRank?: number };
+
 const CountsSchema = z
   .object({
     ground_stop: z.number().int().describe('Active ground stops.'),
@@ -276,12 +283,16 @@ function closureRow(
   base: Pick<EventRow, 'location' | 'locationName'>,
   closure: Closure,
   fetchedAt: string,
-): EventRow {
+): SortableEvent {
   const closureText = closure.notamText ?? closure.text;
   const state = dailyWindowState(closure, fetchedAt);
+  const isFullClosure =
+    state?.inEffect !== false &&
+    (eventType === 'airport_closure' || hasFullClosureScope(base.location, closure.notamText));
   return {
     eventType,
     ...base,
+    closureRank: isFullClosure ? SEVERITY_RANK.airport_closure : SEVERITY_RANK.closure_notam,
     ...(closure.startTime && { startTime: closure.startTime }),
     ...(closure.endTime && { endTime: closure.endTime }),
     ...(closure.updatedAt && { updatedAt: closure.updatedAt }),
@@ -290,12 +301,12 @@ function closureRow(
   };
 }
 
-function airportRows(airport: AirportEvents, fetchedAt: string): EventRow[] {
+function airportRows(airport: AirportEvents, fetchedAt: string): SortableEvent[] {
   const base = {
     location: airport.airportId,
     ...(airport.airportName && { locationName: airport.airportName }),
   };
-  const rows: EventRow[] = [];
+  const rows: SortableEvent[] = [];
   const { closure, closureNotam, deicing, groundDelayProgram: gdp, groundStop: gs } = airport;
   if (closure) rows.push(closureRow('airport_closure', base, closure, fetchedAt));
   if (gs) {
@@ -376,17 +387,13 @@ function afpRow(program: AirspaceFlowProgram): EventRow {
 const magnitude = (row: EventRow): number | undefined =>
   row.delayRangeMinutes?.max ?? row.delayRangeMinutes?.min ?? row.averageDelayMinutes;
 
-/** An airport closure outside its daily window does not close the airport: it ranks with closure NOTAMs. */
-const rankOf = (row: EventRow): number =>
-  row.eventType === 'airport_closure' && row.inEffect === false
-    ? SEVERITY_RANK.closure_notam
-    : SEVERITY_RANK[row.eventType];
+const rankOf = (row: SortableEvent): number => row.closureRank ?? SEVERITY_RANK[row.eventType];
 
 /**
  * Severity rank, then rows with a reported delay (largest first) before rows without one, then
  * location. Each key is a total order, so the comparison stays transitive.
  */
-function compareEvents(a: EventRow, b: EventRow): number {
+function compareEvents(a: SortableEvent, b: SortableEvent): number {
   const rank = rankOf(a) - rankOf(b);
   if (rank !== 0) return rank;
   const magnitudeA = magnitude(a);
@@ -416,7 +423,7 @@ function renderCounts(counts: Counts): string {
 export const listActiveEvents = tool('faa_delays_list_active_events', {
   title: 'List Active FAA Delay Events',
   description:
-    'List every active FAA traffic management event across the National Airspace System in one call: ground stops, Ground Delay Programs, Airspace Flow Programs, arrival and departure delays, airport closures, closure NOTAMs, and deicing. Rows are sorted by severity (airport closures in effect, ground stops, then GDPs and then AFPs each by average delay, arrival/departure delays by band maximum, closure NOTAMs and airport closures outside their daily window, deicing) and carry the reason, delay figures, times, and an advisory reference for faa_delays_get_advisory. Use faa_delays_get_airport_status for the full detail of one airport, including its GDP delay profile and runway configuration.',
+    'List every active FAA traffic management event across the National Airspace System in one call: ground stops, Ground Delay Programs, Airspace Flow Programs, arrival and departure delays, airport closures, closure NOTAMs, and deicing. Rows are sorted by severity (airport-wide closures in effect, including those filed as closure_notam, ground stops, then GDPs and then AFPs each by average delay, arrival/departure delays by band maximum, other closure NOTAMs and closures outside their daily window, deicing) and carry the reason, delay figures, times, and an advisory reference for faa_delays_get_advisory. Use faa_delays_get_airport_status for the full detail of one airport, including its GDP delay profile and runway configuration.',
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
   input: z.object({
     event_types: z
@@ -460,6 +467,7 @@ export const listActiveEvents = tool('faa_delays_list_active_events', {
       ),
   },
   enrichmentTrailer: {
+    notice: { render: blockquote },
     totalActive: { label: 'Total active' },
     shown: { label: 'Shown' },
     countsByType: { render: renderCounts },
@@ -540,7 +548,7 @@ export const listActiveEvents = tool('faa_delays_list_active_events', {
           ? 'format_changed'
           : 'unavailable';
     const programs = enrouteResult.status === 'fulfilled' ? enrouteResult.value.rows : [];
-    const all = [
+    const all: SortableEvent[] = [
       ...airportFeed.rows.flatMap((airport) => airportRows(airport, airportFeed.fetchedAt)),
       ...programs.map(afpRow),
     ];
@@ -555,7 +563,10 @@ export const listActiveEvents = tool('faa_delays_list_active_events', {
       closure_notam: countOf('closure_notam'),
       deicing: countOf('deicing'),
     };
-    const events = all.filter((row) => applied.includes(row.eventType)).sort(compareEvents);
+    const events = all
+      .filter((row) => applied.includes(row.eventType))
+      .sort(compareEvents)
+      .map(({ closureRank: _closureRank, ...event }) => event);
     ctx.enrich({
       appliedEventTypes: applied,
       countsByType,

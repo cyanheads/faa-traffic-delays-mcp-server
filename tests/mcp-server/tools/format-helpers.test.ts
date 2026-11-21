@@ -1,15 +1,56 @@
 /**
- * @fileoverview Tests for the Markdown helpers that render FAA-authored text: inline slots and
- * table cells flatten line breaks, drop control and bidi characters, and leave link, image, and
- * HTML syntax inert; a backslash in the text cannot cancel an escape.
+ * @fileoverview Tests for literal Markdown rendering and whitespace normalization of FAA text.
  * @module tests/mcp-server/tools/format-helpers.test
  */
 
-import { threadCpuUsage } from 'node:process';
+import MarkdownIt from 'markdown-it';
 import { describe, expect, it } from 'vitest';
 import { blockquote, cell, fenced, inline, span } from '@/mcp-server/tools/format-helpers.js';
+import { measureThreadCpuMicros } from '../../helpers/measure-thread-cpu.js';
+
+const commonmark = new MarkdownIt('commonmark');
+
+function readLiteral(markdown: string, blocks: string[]): string {
+  const tokens = commonmark.parse(markdown, {});
+  expect(tokens.map((token) => token.type)).toEqual(blocks);
+  return tokens
+    .flatMap((token) => token.children ?? [])
+    .map((token) => {
+      if (token.type === 'hardbreak') return '\n';
+      expect(token.type).toBe('text');
+      return token.content;
+    })
+    .join('');
+}
+
+function readQuote(value: string): string {
+  return readLiteral(blockquote(value), [
+    'blockquote_open',
+    'paragraph_open',
+    'inline',
+    'paragraph_close',
+    'blockquote_close',
+  ]);
+}
 
 describe('multiline FAA text', () => {
+  it('preserves literal markers, edge whitespace, and blank lines after CommonMark parsing', () => {
+    const value = [
+      '',
+      '# North route',
+      '- West route',
+      '1. East route',
+      '---',
+      '',
+      'South route',
+      '===',
+      '  Mention *literal* and `token` and FCA005:NO_AR_ATLANTIC.  ',
+      '',
+      '',
+    ].join('\n');
+    expect(readQuote(value)).toBe(value);
+  });
+
   it.each([blockquote, fenced])(
     'bounds worst-case rendering CPU across a 64-fold input span',
     (render) => {
@@ -18,19 +59,18 @@ describe('multiline FAA text', () => {
       for (let round = 0; round < 7; round++) {
         for (const [index, size] of sizes.entries()) {
           const input = `${'\\'.repeat(size)}[x]\t\u202e\n${'`'.repeat(size)}`;
-          const started = threadCpuUsage();
-          render(input);
-          const elapsed = threadCpuUsage(started);
-          fastest[index] = Math.min(fastest[index] as number, elapsed.user + elapsed.system);
+          fastest[index] = Math.min(
+            fastest[index] as number,
+            measureThreadCpuMicros(() => render(input), 1),
+          );
         }
       }
       expect((fastest[3] as number) / (fastest[0] as number)).toBeLessThan(256);
     },
   );
   it('escapes links and HTML after backslash runs on every quoted line', () => {
-    expect(blockquote('USE <FIX> [route](u)\n![x](u)\n\\[x]')).toBe(
-      '> USE \\<FIX\\> \\[route\\](u)\n> !\\[x\\](u)\n> \\\\\\[x\\]',
-    );
+    const value = 'USE <FIX> [route](u)\n![x](u)\n\\[x]';
+    expect(readQuote(value)).toBe(value);
   });
   it.each([blockquote, fenced])(
     'normalizes tabs and removes controls without merging lines',
@@ -41,36 +81,42 @@ describe('multiline FAA text', () => {
       expect(text.split('\n').filter((line) => /[CDE]/.test(line))).toHaveLength(3);
     },
   );
-  it('preserves lines, identifiers, emphasis, and a safe dynamic fence', () => {
-    expect(blockquote('FCA005:NO_AR_ATLANTIC\r\n*literal*\n`code`')).toBe(
-      '> FCA005:NO_AR_ATLANTIC\n> *literal*\n> `code`',
-    );
+  it('uses a fence longer than the longest run in the text', () => {
     expect(fenced('a```b')).toBe('````text\na```b\n````');
   });
 });
 
 describe('inline', () => {
+  it('preserves punctuation and edge spaces in a heading after CommonMark parsing', () => {
+    const value = '  FCA005:NO_AR_ATLANTIC *literal* `token` #  ';
+    expect(readLiteral(`## ${inline(value)}`, ['heading_open', 'inline', 'heading_close'])).toBe(
+      value,
+    );
+  });
+
   it('flattens CR, LF, and TAB runs to one space', () => {
     expect(inline('A\r\n\tB\nC')).toBe('A B C');
   });
 
   it.each([
-    ['an image', '![x](https://evil.example/p?q=1)', '!\\[x\\](https://evil.example/p?q=1)'],
-    ['a link', '[click](https://evil.example)', '\\[click\\](https://evil.example)'],
-    ['a reference link', '[x][ref]', '\\[x\\]\\[ref\\]'],
-    ['an HTML tag', '<img src=x onerror=alert(1)>', '\\<img src=x onerror=alert(1)\\>'],
-    ['an autolink', '<https://evil.example>', '\\<https://evil.example\\>'],
-  ])('escapes %s so it renders as text', (_label, input, expected) => {
-    expect(inline(input)).toBe(expected);
+    ['an image', '![x](https://example.com/diagram.png)'],
+    ['a link', '[route](https://example.com)'],
+    ['a reference link', '[route][ref]'],
+    ['an HTML tag', '<strong>North</strong>'],
+    ['an autolink', '<https://example.com>'],
+  ])('escapes %s so it renders as text', (_label, input) => {
+    expect(readLiteral(inline(input), ['paragraph_open', 'inline', 'paragraph_close'])).toBe(input);
   });
 
   it('doubles a backslash run before an escaped character so it cannot cancel the escape', () => {
     expect(inline('a\\[b')).toBe('a\\\\\\[b');
     expect(inline('a\\\\](u)')).toBe('a\\\\\\\\\\](u)');
+    const value = `${'\\'.repeat(16)}x`;
+    expect(readLiteral(inline(value), ['paragraph_open', 'inline', 'paragraph_close'])).toBe(value);
   });
 
-  it('leaves a backslash that precedes no escaped character alone', () => {
-    expect(inline('C:\\path\\*x')).toBe('C:\\path\\*x');
+  it('leaves backslashes before ordinary text alone', () => {
+    expect(inline('C:\\path\\x')).toBe('C:\\path\\x');
   });
 
   it('removes C0 and C1 controls and bidi embedding, override, and isolate controls', () => {
@@ -90,14 +136,14 @@ describe('inline', () => {
   /**
    * Times `inline` on a backslash run of 5k, 20k, and 80k characters and keeps each size's fastest
    * per-call time over every round, so a pause that lands in one round never counts. Each timed
-   * loop renders 80k characters in all (16 calls at 5k, 4 at 20k, 1 at 80k), so every size is as
-   * exposed to a collection or a preemption, and the size order alternates each round. Linear work
-   * grows 16× from 5k to 80k and quadratic work 256×, so the 64× bound sits between them.
+   * batch starts with 80k characters (16 calls at 5k, 4 at 20k, 1 at 80k), and the size order
+   * alternates each round. Linear work grows 16× from 5k to 80k and quadratic work 256×, so the
+   * 64× bound sits between them.
    */
   it('grows linearly with the length of a backslash run', () => {
     const SIZES = [5_000, 20_000, 80_000] as const;
     const ROUNDS = 21;
-    /** Slowest acceptable fastest-call time at 80k characters; a linear pass takes about 1.5 ms. */
+    /** Slowest acceptable fastest-call time at 80k characters. */
     const MAX_80K_MS = 100;
     const inputs = SIZES.map((size) => `${'\\'.repeat(size)}x`);
     const fastest = SIZES.map(() => Number.POSITIVE_INFINITY);
@@ -105,22 +151,39 @@ describe('inline', () => {
       for (const i of round % 2 === 0 ? [0, 1, 2] : [2, 1, 0]) {
         const input = inputs[i] as string;
         const calls = 80_000 / (SIZES[i] as number);
-        const started = performance.now();
-        for (let call = 0; call < calls; call++) inline(input);
-        fastest[i] = Math.min(fastest[i] as number, (performance.now() - started) / calls);
+        const elapsedMs = measureThreadCpuMicros(() => inline(input), calls) / 1_000;
+        fastest[i] = Math.min(fastest[i] as number, elapsedMs);
       }
     }
     const [t5k, , t80k] = fastest as [number, number, number];
 
     expect(t80k / t5k, `${t5k.toFixed(3)} ms at 5k, ${t80k.toFixed(3)} ms at 80k`).toBeLessThan(64);
     expect(t80k).toBeLessThan(MAX_80K_MS);
-    expect(inline(inputs[2] as string)).toBe(inputs[2]);
   });
 });
 
 describe('cell', () => {
-  it('escapes every backslash, then pipes, brackets, and angle brackets', () => {
-    expect(cell('a|b\\[c](u)<d>')).toBe('a\\|b\\\\\\[c\\](u)\\<d\\>');
+  it('keeps an embedded pipe and backslashes inside one table cell', () => {
+    const value = 'a|b\\[c](u)<d>';
+    const tokens = new MarkdownIt().parse(
+      ['| Route | Status |', '| --- | --- |', `| ${cell(value)} | Active |`].join('\n'),
+      {},
+    );
+    expect(tokens.filter((token) => token.type === 'td_open')).toHaveLength(2);
+    expect(tokens.flatMap((token) => token.children ?? []).map((token) => token.content)).toEqual([
+      'Route',
+      'Status',
+      value,
+      'Active',
+    ]);
+  });
+
+  it('renders emphasis and backticks literally next to an embedded pipe', () => {
+    const value = '  East\\|West *literal* `token`  ';
+    const tokens = new MarkdownIt().parse(`| Route |\n| --- |\n| ${cell(value)} |`, {});
+    const body = tokens.slice(tokens.findIndex((token) => token.type === 'tbody_open'));
+    const children = body.flatMap((token) => token.children ?? []);
+    expect(children.map((token) => [token.type, token.content])).toEqual([['text', value]]);
   });
 
   it('removes control and bidi characters', () => {
@@ -134,6 +197,8 @@ describe('cell', () => {
 
 describe('span', () => {
   it('renders both bounds through the inline escaping', () => {
-    expect(span('[a](u)', '<b>')).toBe('\\[a\\](u) → \\<b\\>');
+    expect(
+      readLiteral(span('[a](u)', '<b>'), ['paragraph_open', 'inline', 'paragraph_close']),
+    ).toBe('[a](u) → <b>');
   });
 });

@@ -5,7 +5,6 @@
  * @module tests/services/nas-status/feed-parsers.test
  */
 
-import { threadCpuUsage } from 'node:process';
 import { JsonRpcErrorCode, McpError } from '@cyanheads/mcp-ts-core/errors';
 import { describe, expect, it } from 'vitest';
 import {
@@ -21,6 +20,7 @@ import {
 } from '@/services/nas-status/feed-parsers.js';
 import type { AirportEvents } from '@/services/nas-status/types.js';
 import { feedFixture } from '../../helpers/faa-fakes.js';
+import { measureThreadCpuMicros } from '../../helpers/measure-thread-cpu.js';
 
 /** Records reporter calls. */
 function recorder() {
@@ -372,10 +372,10 @@ describe('parseAirportEvents', () => {
         const batch = 320_000 / size;
         let fastest = Infinity;
         for (let round = 0; round < 5; round++) {
-          const started = threadCpuUsage();
-          for (let call = 0; call < batch; call++) parseAirportEvents(body, report);
-          const elapsed = threadCpuUsage(started);
-          fastest = Math.min(fastest, (elapsed.user + elapsed.system) / batch);
+          fastest = Math.min(
+            fastest,
+            measureThreadCpuMicros(() => parseAirportEvents(body, report), batch),
+          );
         }
         expect(fastest).toBeLessThan(size * 0.5);
         perCallMicros.push(fastest);
@@ -1281,10 +1281,10 @@ describe('parseTerminalPlannedEvent', () => {
       const batch = 320_000 / size;
       let fastest = Infinity;
       for (let round = 0; round < 5; round++) {
-        const started = threadCpuUsage();
-        for (let call = 0; call < batch; call++) parseTerminalPlannedEvent(event, undefined);
-        const elapsed = threadCpuUsage(started);
-        fastest = Math.min(fastest, (elapsed.user + elapsed.system) / batch);
+        fastest = Math.min(
+          fastest,
+          measureThreadCpuMicros(() => parseTerminalPlannedEvent(event, undefined), batch),
+        );
       }
       expect(fastest).toBeLessThan(size * 0.5);
       perCallMicros.push(fastest);

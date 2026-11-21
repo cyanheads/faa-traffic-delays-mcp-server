@@ -1,13 +1,14 @@
 /**
  * @fileoverview faa_delays_get_operations_plan — the ATCSCC operations plan: terminal and en-route
  * programs the FAA expects later in the day, each with its planned UTC time and stated likelihood,
- * plus current Command Center announcements. The announcements leg degrades rather than failing
- * the call.
+ * plus the plan advisory's send time and current Command Center announcements.
  * @module mcp-server/tools/definitions/get-operations-plan
  */
 
-import { tool, z } from '@cyanheads/mcp-ts-core';
-import { JsonRpcErrorCode } from '@cyanheads/mcp-ts-core/errors';
+import { type Context, tool, z } from '@cyanheads/mcp-ts-core';
+import { JsonRpcErrorCode, McpError } from '@cyanheads/mcp-ts-core/errors';
+import type { AdvisoryRef } from '@/services/advisory/advisory-ref.js';
+import { getAdvisoryService } from '@/services/advisory/advisory-service.js';
 import { getNasStatusService } from '@/services/nas-status/nas-status-service.js';
 import { advisoryLine, blockquote } from '../format-helpers.js';
 import { skippedRowsNotice, unreadableSectionsNotice } from '../notices.js';
@@ -24,6 +25,42 @@ const TerminalPlannedItemSchema = PlannedItemSchema.extend({
 
 type TerminalPlannedItem = z.infer<typeof TerminalPlannedItemSchema>;
 
+const ADVISORY_READ_FAILURES: ReadonlySet<unknown> = new Set([
+  'advisory_service_unavailable',
+  'advisory_contract_changed',
+  'upstream_rate_limited',
+  'pacer_shed',
+  'retry_deadline_exceeded',
+]);
+
+async function readAdvisoryTime(
+  advisory: AdvisoryRef,
+  ctx: Context,
+): Promise<{ sentAt?: string; advisoryNotice?: string }> {
+  const reference = `ADVZY ${advisory.number} (${advisory.date})`;
+  try {
+    const page = await getAdvisoryService().getAdvisory(advisory.number, advisory.date, ctx);
+    if (page.sentAt) return { sentAt: page.sentAt };
+    return {
+      advisoryNotice: page.found
+        ? `Plan send time is unavailable because FAA advisory ${reference} has no readable signature.`
+        : `Plan send time is unavailable because the FAA advisories database has no page for ${reference}.`,
+    };
+  } catch (error) {
+    if (ctx.signal.aborted || !(error instanceof McpError)) throw error;
+    const reason = error.data?.reason;
+    if (!ADVISORY_READ_FAILURES.has(reason)) throw error;
+    ctx.log.warning('Plan advisory read failed; omitting send time', {
+      advisoryNumber: advisory.number,
+      advisoryDate: advisory.date,
+      reason,
+    });
+    return {
+      advisoryNotice: `Plan send time is unavailable because FAA advisory ${reference} could not be read. Call faa_delays_get_advisory with its number and date for the reason and recovery guidance.`,
+    };
+  }
+}
+
 function renderPlanned(heading: string, items: TerminalPlannedItem[]): string[] {
   const lines = ['', `## ${heading} (${items.length})`];
   if (items.length === 0) return [...lines, '', 'None listed.'];
@@ -37,7 +74,7 @@ function renderPlanned(heading: string, items: TerminalPlannedItem[]): string[] 
 export const getOperationsPlan = tool('faa_delays_get_operations_plan', {
   title: 'Get FAA Operations Plan',
   description:
-    "Get the FAA Command Center's current operations plan: terminal programs (possible ground stops and delay programs by airport) and en-route initiatives (route closures, severe-weather avoidance plans) expected later in the day, each with its planned UTC time and stated likelihood, plus current ATCSCC announcements. The advisory reference opens the full plan text with faa_delays_get_advisory, including active constraints and runway closures this summary omits.",
+    "Get the FAA Command Center's current operations plan: terminal programs (possible ground stops and delay programs by airport) and en-route initiatives (route closures, severe-weather avoidance plans) expected later in the day, each with its planned UTC time and stated likelihood, plus the plan advisory's send time and current ATCSCC announcements. The advisory reference opens the full plan text with faa_delays_get_advisory, including active constraints, runway closures, and the EVENT TIME line that dates planned items.",
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
   input: z.object({}),
   output: z.object({
@@ -47,6 +84,12 @@ export const getOperationsPlan = tool('faa_delays_get_operations_plan', {
         'When this server fetched the operations plan from the FAA (UTC ISO); with the 60 s cache it can trail the call by up to a minute.',
       ),
     advisory: AdvisoryRefSchema.optional(),
+    sentAt: z
+      .string()
+      .optional()
+      .describe(
+        "When the FAA signed the plan advisory, ISO 8601 UTC, when available. Use the advisory's EVENT TIME line to date individual planned items.",
+      ),
     terminalPlanned: z
       .array(TerminalPlannedItemSchema)
       .describe(
@@ -76,6 +119,7 @@ export const getOperationsPlan = tool('faa_delays_get_operations_plan', {
       .optional()
       .describe('Guidance on an empty plan, a missing advisory link, or partial data.'),
   },
+  enrichmentTrailer: { notice: { render: blockquote } },
   errors: [
     {
       reason: 'feed_unavailable',
@@ -127,7 +171,10 @@ export const getOperationsPlan = tool('faa_delays_get_operations_plan', {
   async handler(_input, ctx) {
     const nas = getNasStatusService();
     const [planResult, announcementsResult] = await Promise.allSettled([
-      nas.getOperationsPlan(ctx),
+      nas.getOperationsPlan(ctx).then(async (plan) => {
+        ctx.signal.throwIfAborted();
+        return { plan, ...(plan.advisory && (await readAdvisoryTime(plan.advisory, ctx))) };
+      }),
       nas.getAnnouncements(ctx),
     ]);
     if (planResult.status === 'rejected') throw planResult.reason;
@@ -135,7 +182,8 @@ export const getOperationsPlan = tool('faa_delays_get_operations_plan', {
       throw announcementsResult.reason;
     }
 
-    const plan = planResult.value;
+    ctx.signal.throwIfAborted();
+    const { plan, sentAt, advisoryNotice } = planResult.value;
     const announcements =
       announcementsResult.status === 'fulfilled'
         ? announcementsResult.value.rows.map((text) => ({ text }))
@@ -152,6 +200,7 @@ export const getOperationsPlan = tool('faa_delays_get_operations_plan', {
       );
     }
     if (!plan.advisory) notices.push('The feed carried no advisory link for this plan.');
+    if (advisoryNotice) notices.push(advisoryNotice);
     if (announcementsResult.status === 'rejected') {
       ctx.log.warning('Announcements leg failed; omitting announcements', {
         error:
@@ -175,6 +224,7 @@ export const getOperationsPlan = tool('faa_delays_get_operations_plan', {
     return {
       fetchedAt: plan.fetchedAt,
       ...(plan.advisory && { advisory: plan.advisory }),
+      ...(sentAt && { sentAt }),
       terminalPlanned: plan.terminalPlanned,
       enRoutePlanned: plan.enRoutePlanned,
       ...(announcements && { announcements }),
@@ -185,7 +235,7 @@ export const getOperationsPlan = tool('faa_delays_get_operations_plan', {
     const lines = [`**Fetched:** ${result.fetchedAt}`];
     lines.push(
       result.advisory
-        ? `**Plan advisory:** ${advisoryLine(result.advisory)}`
+        ? `**Plan advisory:** ${advisoryLine(result.advisory)}${result.sentAt ? ` · sent ${result.sentAt}` : ''}`
         : '**Plan advisory:** none linked',
     );
     lines.push(...renderPlanned('Terminal planned', result.terminalPlanned));

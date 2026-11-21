@@ -6,7 +6,7 @@
  */
 
 import { dailyWindowLabel, dailyWindowState, type ScheduledClosure } from './closure-window.js';
-import { inline } from './format-helpers.js';
+import { normalizeInline } from './format-helpers.js';
 
 const STALE_DELAY_MS = 6 * 60 * 60 * 1000;
 
@@ -23,7 +23,7 @@ export function staleDelayNotice(
   if (!updatedAt) return;
   const age = Date.parse(fetchedAt) - Date.parse(updatedAt);
   if (!Number.isFinite(age) || age <= STALE_DELAY_MS) return;
-  return `${inline(airportId)} ${kind} delay was last updated ${Math.floor(age / 3_600_000)} h ago; the FAA feed can keep a delay entry after it lapses.`;
+  return `${normalizeInline(airportId)} ${kind} delay was last updated ${Math.floor(age / 3_600_000)} h ago; the FAA feed can keep a delay entry after it lapses.`;
 }
 
 /**
@@ -39,10 +39,10 @@ export function closureWindowNotice(
 ): string | undefined {
   const state = dailyWindowState(closure, fetchedAt);
   if (!state || state.inEffect) return;
-  const schedule = `${inline(airportId)} ${kind} applies ${dailyWindowLabel(state.window)}`;
+  const schedule = `${normalizeInline(airportId)} ${kind} applies ${dailyWindowLabel(state.window)}`;
   return state.nextWindowStart
     ? `${schedule} and is not in effect at fetchedAt; its next window starts ${state.nextWindowStart}.`
-    : `${schedule}; its last window ended ${inline(state.endTime)}.`;
+    : `${schedule}; its last window ended ${normalizeInline(state.endTime)}.`;
 }
 
 /** `N FAA feed rows could not be read and were skipped.`, singular for one row. */
@@ -56,7 +56,7 @@ export function skippedRowsNotice(count: number): string {
 export function unreadableSectionsNotice(sections: string[] | undefined): string[] {
   return sections?.length
     ? [
-        `FAA feed sections could not be read and were omitted: ${sections.map(inline).join(', ')}. Their contents are unknown, not confirmed empty.`,
+        `FAA feed sections could not be read and were omitted: ${sections.map(normalizeInline).join(', ')}. Their contents are unknown, not confirmed empty.`,
       ]
     : [];
 }
