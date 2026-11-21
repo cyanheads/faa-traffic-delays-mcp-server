@@ -2,6 +2,10 @@
 
 All notable changes to this project. Each entry links to its full per-version file in [changelog/](changelog/).
 
+## [0.3.1](changelog/0.3.x/0.3.1.md) — 2026-11-21
+
+Airport-wide closure NOTAMs take closure precedence, and the operations plan shows when the FAA sent it
+
 ## [0.3.0](changelog/0.3.x/0.3.0.md) — 2026-11-04
 
 Closure NOTAM text and daily windows, the operations plan's planned programs per airport, ISO 8601 advisory times, and a published agent skill

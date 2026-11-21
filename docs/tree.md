@@ -1,6 +1,6 @@
 # faa-traffic-delays-mcp-server - Directory Structure
 
-Generated on: 2026-11-04 09:54:29
+Generated on: 2026-11-21 18:09:42
 
 ```text
 faa-traffic-delays-mcp-server/
@@ -200,7 +200,8 @@ faa-traffic-delays-mcp-server/
 │   │   └── pacing-airports.json
 │   ├── helpers/
 │   │   ├── faa-fakes.ts
-│   │   └── feed-failures.ts
+│   │   ├── feed-failures.ts
+│   │   └── measure-thread-cpu.ts
 │   ├── mcp-server/
 │   │   └── tools/
 │   │       ├── closure-window.test.ts
